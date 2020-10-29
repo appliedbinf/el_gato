@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import multiprocessing
 import os
 import re
 import subprocess
 import sys
-import multiprocessing
-import time
 import shutil
+import time
 
 t0 = time.time()
 
@@ -16,7 +16,7 @@ class Ref:
     file = "Ref_Paris_mompS_2.fasta"
     name = "Paris_mompS_R"
     source = "Contig = gi|54295983|ref|NC_006368.1| location on contig = 3453389_3455389"
-    seq = "GTTATCAATAAAATGGAAACTCAATAATAAACAAGTGGAGACAAGGCATGTTTAGTTTGAAAAAAACAGCAGTGGCAGTACTCGCCTTAGGAAGCGGTGCAGTGTTTGCTGGAACCATGGGACCAGTTTGCACCCCAGGTAATGTAACTGTTCCTTGCGAAAGAACTGCATGGGATATTGGTATCACCGCACTATATTTGCAACCAATCTATGATGCTGATTGGGGCTACAATGGTTTCACCCAAGTTGGTGGCTGGCAGCATTGGCATGATGTTGACCATGAGTGGGATTGGGGCTTCAAATTAGAAGGTTCTTATCACTTCAATACTGGTAATGACATCAATGTGAACTGGTATCATTTTGATAATGACAGTGATCACTGGGCTGATTTTGCTAACTGGCACAACTACAACAACAAGTGGGATGCTGTTAATGCTGAATTAGGTCAATTCGTAGATTTCAGCGCTAACAAGAAAATGCGTTTCCACGGCGGTGTTCAATACGCTCGCATTGAAGCTGATGTGAACCGTTATTTCAATAACTTTGCCTTTAACGGGTTCAACTCTAAGTTCAATGGCTTTGGTCCTCGCACTGGTTTAGACATGAACTATGTATTTGGCAATGGCTTTGGTGTTTATGCTAAAGGCGCTGCTGCTATTCTGGTTGGTACCAGCGATTTCTACGATGGAATCAACTTCATTACTGGTTCTAAAAATGCTATCGTTCCTGAGTTGGAAGCTAAGCTTGGTGCTGATTACACTTACGCAATGGCTCAAGGCGATTTGACTTTAGACGTTGGTTACATGTGGTTTAACTACTTCAACGCTATGCACAATACTGGCGTATTTAATGGATTTGAAACTGATTTCGCAGCTTCTGGTCCTTACATTGGCTTGAAGTATGTTGGTAATGTGTAATTTGTTAAGTTGATAAGAAATTTCAGCAATACTGTTGACTTTATAGAAGTCCGGCTGGATAATTTATCCA"
+    seq = "GTTATCAATAAAATGGAAACTCAATAATAAACAAGTGGAGACAAGGCATGTTTAGTTTGAAAAAAACAGCAGTGGCAGTACTCGCCTTAGGAAGCGGTGCAGTGTTTGCTGGAACCATGGGACCAGTTTGCACCCCAGGTAATGTAACTGTTCCTTGCGAAAGAACTGCATGGGATATTGGTATCACCGCACTATATTTGCAACCAATCTATGATGCTGATTGGGGCTACAATGGTTTCACCCAAGTTGGTGGCTGGCAGCATTGGCATGATGTTGACCATGAGTGGGATTGGGGCTTCAAATTAGAAGGTTCTTATCACTTCAATACTGGTAATGACATCAATGTGAACTGGTATCATTTTGATAATGACAGTGATCACTGGGCTGATTTTGCTAACTGGCACAACTACAACAACAAGTGGGATGCTGTTAATGCTGAATTAGGTCAATTCGTAGATTTCAGCGCTAACAAGAAAATGCGTTTCCACGGCGGTGTTCAATACGCTCGCATTGAAGCTGATGTGAACCGTTATTTCAATAACTTTGCCTTTAACGGGTTCAACTCTAAGTTCAATGGCTTTGGTCCTCGCACTGGTTTAGACATGAACTATGTATTTGGCAATGGCTTTGGTGTTTATGCTAAAGGCGCTGCTGCTATTCTGGTTGGTACCAGCGATTTCTACGATGGAATCAACTTCATTACTGGTTCTAAAAATGCTATCGTTCCTGAGTTGGAAGCTAAGCTTGGTGCTGATTACACTTACGCAATGGCTCAAGGCGATTTGACTTTAGACGTTGGTTACATGTGGTTTAACTACTTCAACGCTATGCACAATACTGGCGTATTTAATGGATTTGAAACTGATTTCGCAGCTTCTGGTCCTTACATTGGCTTGAAGTATGTTGGTAATGTGTAATTTGTTAAGTTGATAAGAAATTTCAGCAATACTGTTGACTTTATAGAAGTCCGGCTGGATAATTTATCCA "
     allele_start = 367
     allele_stop = 718
     flank_start = 15
@@ -26,7 +26,7 @@ class Ref:
     ispcr_opt = "stdout -out=fa -minPerfect=5 -tileSize=6 -maxSize=1200 -stepSize=5"
     mompS_primer1 = "TTGACCATGAGTGGGATTGG\tTGGATAAATTATCCAGCCGGACTTC"
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
-    prereq_programs = ["bwa", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr"]
+    prereq_programs = ["bwa", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py"]
 
 
 """ Get commandline arguments """
@@ -38,21 +38,23 @@ Notes on arguments:
 (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted. 
 (3) If both are provided, SBT is called using a combination of assembly and mapping.
 """, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
+default_prefix = "out"
 group1 = parser.add_argument_group(title='Input files',
                                    description="Please specify either reads file and/or a genome assembly file")
-group1.add_argument("-r1", help="Read(s) file", type=str, required=False, metavar="Read 1 file")
-group1.add_argument("-r2", help="Read 2 file", type=str, required=False, metavar="Read 2 file")
-group1.add_argument("-a", help="Assembly file for isolate", type=str, required=False)
+group1.add_argument("-r1", "-1", help="Read(s) file", type=str, required=False, metavar="Read 1 file")
+group1.add_argument("-r2", "-2", help="Read 2 file", type=str, required=False, metavar="Read 2 file")
+group1.add_argument("-a", help="Assembly file for isolate", type=str, required=False, metavar="Assembly file")
 group2 = parser.add_argument_group(title='Optional arguments')
 group2.add_argument("-h", "--help", action="help", help="Show this help message and exit")
 group2.add_argument("-t", help="Number of threads to run the programs (default: %(default)s)", type=int, required=False,
                     default=4)
 group2.add_argument("-d", help="Variant read depth cutoff (default: %(default)s)", type=int, required=False, default=3)
 group2.add_argument("--prefix", help="Prefix for output files (default: %(default)s)", type=str, required=False,
-                    default="run")
+                    default=default_prefix)
 group2.add_argument("-out", "-o", help="Output folder name (default: %(default)s)", type=str, required=False,
-                    default="out")
-group2.add_argument("-log", help="Logging file prefix (default: %(default)s)", type=str, required=False, default="run")
+                    default=default_prefix)
+group2.add_argument("-log", help="Logging file prefix (default: %(default)s)", type=str, required=False,
+                    default=default_prefix)
 group2.add_argument("-overwrite", "-w", help="Overwrite output directory (default: %(default)s)", action="store_true",
                     required=False, default=False)
 group2.add_argument("-sbt", "-s", help="Database containing SBT allele files (default: %(default)s)", type=str,
@@ -67,8 +69,17 @@ group2.add_argument("-verbose", "-v", help="Print what the script is doing (defa
 args = parser.parse_args()
 
 """ Configuring the logger """
-logging.basicConfig(filename=args.log + ".log", filemode="w", level=logging.DEBUG,
-                    format=f"[%(asctime)s | {args.out} ]  %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
+try:
+    logging.basicConfig(filename=args.log + ".log", filemode="w", level=logging.DEBUG,
+                        format=f"[%(asctime)s | {args.out} ]  %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
+except FileNotFoundError:
+    print(f"The supplied location for log file '{args.log}.log' doesn't exist. Please check if the location exist.")
+    sys.exit(1)
+except IOError:
+    print(
+        f"I don't seem to have access to make the log file. Are the permissions correct? or is there a directory with the same name?")
+    sys.exit(1)
+
 if args.verbose:
     console = logging.StreamHandler()
     console.setLevel(logging.INFO)
@@ -76,50 +87,73 @@ if args.verbose:
     console.setFormatter(formatter)
     logging.getLogger().addHandler(console)
 
-""" Check for command line arguments """
-error = f"""Not enough arguments! The script requires either both read files and/or a genome assembly file.
-Run {parser.prog} -h to see usage."""
-Ref.analysis_path = ""
-if not args.a:
-    # assembly file is not supplied, make sure both reads file are supplied
-    if not args.r1 or not args.r2:
-        logging.critical(f"Error: {error}")
-        sys.exit(1)
-    Ref.analysis_path = "r"
-    logging.info("User supplied both read files, will adopt the assembly/mapping/alignment paradigm")
-elif args.r1:
-    # assembly is supplied, do we have reads1?
-    Ref.analysis_path = "a"
-    if args.r2:
-        # we have reads and assembly
-        Ref.analysis_path += "r"
-        logging.info("User supplied both read files and the assembly file, will adopt the mapping/alignment paradigm")
+""" Functions """
+
+
+def check_input_supplied() -> None:
+    """Checks if all the required arguments have been supplied
+
+    Returns
+    -------
+    None
+        Exits the program if required arguments are not supplied or if they are mismatched
+    """
+    error = f"""Not enough arguments! The script requires either both read files and/or a genome assembly file.\n\nRun {parser.prog} -h to see usage."""
+    Ref.analysis_path = ""
+    if not args.a:
+        # assembly file is not supplied, make sure both reads file are supplied
+        if not args.r1 or not args.r2:
+            logging.critical(f"Error: {error}")
+            if not args.verbose:
+                print(f"Error: {error}")
+            sys.exit(1)
+        Ref.analysis_path = "r"
+        logging.info("User supplied both read files, will adopt the assembly/mapping/alignment paradigm")
+    elif args.r1:
+        # assembly is supplied, do we have reads1?
+        Ref.analysis_path = "a"
+        if args.r2:
+            # we have reads and assembly
+            Ref.analysis_path += "r"
+            logging.info(
+                "User supplied both read files and the assembly file, will adopt the mapping/alignment paradigm")
+        else:
+            # reads2 is missing, which is incorrect
+            logging.critical(f"Error: {error}")
+            if not args.verbose:
+                print(f"Error: {error}")
+            sys.exit(1)
     else:
-        # reads2 is missing, which is incorrect
-        logging.critical(f"Error: {error}")
-        sys.exit(1)
-else:
-    # assembly is supplied, read1 is not. Is read2 supplied?
-    Ref.analysis_path = "a"
-    if args.r2:
-        # only reads2 is supplied, which is incorrect
-        logging.critical(f"Error: {error}")
-        sys.exit(1)
-    logging.info("User supplied the assembly file, will adopt the alignment/in silico pcr paradigm")
-
-""" Check for files, folders and dependencies in environment """
+        # assembly is supplied, read1 is not. Is read2 supplied?
+        Ref.analysis_path = "a"
+        if args.r2:
+            # only reads2 is supplied, which is incorrect
+            logging.critical(f"Error: {error}")
+            if not args.verbose:
+                print(f"Error: {error}")
+            sys.exit(1)
+        logging.info("User supplied the assembly file, will adopt the alignment/in silico pcr paradigm")
 
 
-# TODO: check if the dependency programs are installed
 def check_program(program_name: str) -> None:
-    # Check for bwa
-    # Check for sambamba
-    # Check for freebayes
-    # Check for samtools
-    # Check for BLAST (blastn and makeblastdb)
-    # Check for isPcr -> packaged with this script
+    """Checks if the supplied program_name exists
+
+    Parameters
+    ----------
+    program_name : str
+        Name of the program to check if it exists
+
+    Returns
+    -------
+    None
+        Exits the program if a dependency doesn't exist
+    """
     logging.info(f"Checking for program {program_name}")
-    pass
+    path = shutil.which(program_name)
+    if path is None:
+        if program_name != "spades.py" or Ref.analysis_path != "r":
+            logging.critical(f"Program {program_name} not found! Can not continue, dependency not fulfilled.")
+            sys.exit(1)
 
 
 def check_files() -> None:
@@ -142,8 +176,11 @@ def check_files() -> None:
     if os.path.isdir(args.out):
         if args.overwrite:
             logging.info(f"Output directory exists, removing the existing directory")
-            # TODO: implement try-catch
-            shutil.rmtree(args.out)
+            try:
+                shutil.rmtree(args.out)
+            except PermissionError:
+                logging.critical("Failed to remove the existing directory. Do you have write permissions?")
+                sys.exit(1)
             os.mkdir(args.out)
             logging.info(f"New output directory created")
         else:
@@ -181,9 +218,6 @@ def ensure_safe_threads(threads: int = args.t) -> None:
     if threads > multiprocessing.cpu_count():
         logging.critical("User has supplied more threads than processor capacity, resetting to max cores.")
         args.t = multiprocessing.cpu_count()
-
-
-""" Functions """
 
 
 # TODO: implement try-catch for running programs
@@ -439,7 +473,7 @@ def vcf_to_fasta(full_vcf: str, filtered_vcf: str) -> str:
                             logging.debug(f"block 1.1: {start_anchor}-{pos - 1}: {Ref.seq[start_anchor:(pos - 1)]}")
                             logging.debug(f"block 1.1: {pos}: {ref} to {filtered_call[pos]}")
                             start_anchor = pos - 1 + len(ref)
-                        elif filtered_call[f"{pos}_ab"]  == 0 or filtered_call[f"{pos}_ab"] > float(ab):
+                        elif filtered_call[f"{pos}_ab"] == 0 or filtered_call[f"{pos}_ab"] > float(ab):
                             this_seq += Ref.seq[start_anchor:(pos - 1)] + alt
                             logging.debug(f"block 1.2: {start_anchor}-{pos - 1}: {Ref.seq[start_anchor:(pos - 1)]}")
                             logging.debug(f"block 1.2: {pos}: {ref} to {alt}")
@@ -782,7 +816,9 @@ def pretty_time_delta(seconds: int):
 
 
 """ Main code """
+check_input_supplied()
 logging.info("Starting preprocessing")
+
 logging.info("Checking if all the prerequisite programs are installed")
 for program in Ref.prereq_programs:
     check_program(program)
