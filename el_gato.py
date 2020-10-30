@@ -230,7 +230,7 @@ def ensure_safe_threads(threads: int = args.t) -> None:
 
 
 # TODO: implement try-catch for running programs
-def run_command(command: str, tool: str = None, stdin: str = None) -> str:
+def run_command(command: str, tool: str = None, stdin: str = None, shell: bool = False) -> str:
     """Runs a command, and logs it nicely
 
     Wraps around logging and subprocess.check_output
@@ -246,6 +246,9 @@ def run_command(command: str, tool: str = None, stdin: str = None) -> str:
     stdin: str, optional
         Optional text to be supplied as stdin to the command
 
+    shell: bool, optional
+        shell option passed to check_output
+
     Returns
     -------
     str
@@ -253,18 +256,21 @@ def run_command(command: str, tool: str = None, stdin: str = None) -> str:
 
     """
     logging.debug(f"Running command: {command}")
-    logging.info(f"Running {tool}")
+    if tool is not None:
+        logging.info(f"Running {tool}")
     # result = ""
+    if not shell:
+        command = shlex.split(command, posix=False)
     if stdin is not None:
-        result = subprocess.check_output(shlex.split(command, posix=False), stderr=subprocess.STDOUT,
+        result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=shell,
                                          input=bytes(stdin, "utf-8")).decode("utf-8")
     else:
-        result = subprocess.check_output(shlex.split(command, posix=False), stderr=subprocess.STDOUT).decode("utf-8")
+        result = subprocess.check_output(command, shell=shell, stderr=subprocess.STDOUT).decode("utf-8")
     if tool is not None:
         logging.debug(f"Command log for {tool}:\n{result}")
+        logging.info(f"Finished running {tool}")
     else:
         logging.debug(f"Command log:\n{result}")
-    logging.info(f"Finished running {tool}")
     return result
 
 
@@ -312,7 +318,7 @@ def validate_ref() -> None:
                 f.write(f"{locus}\t{this_locus}\n")
             f.write(f"[profile]\nprofile\t{args.profile}\n")
 
-        run_command(f"stringMLST.py --buildDB -c {config_target} -k 35 -P {args.sbt}/lp")
+        run_command(f"stringMLST.py --buildDB -c {config_target} -k 35 -P {args.sbt}/lp", "stringMLST buildDB")
 
 
 def run_stringmlst(r1: str = args.r1, r2: str = args.r2) -> dict:
