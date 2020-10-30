@@ -230,7 +230,7 @@ def ensure_safe_threads(threads: int = args.t) -> None:
 
 
 # TODO: implement try-catch for running programs
-def run_command(command: str, tool: str, stdin: str = None) -> str:
+def run_command(command: str, tool: str = None, stdin: str = None) -> str:
     """Runs a command, and logs it nicely
 
     Wraps around logging and subprocess.check_output
@@ -260,7 +260,10 @@ def run_command(command: str, tool: str, stdin: str = None) -> str:
                                          input=bytes(stdin, "utf-8")).decode("utf-8")
     else:
         result = subprocess.check_output(shlex.split(command, posix=False), stderr=subprocess.STDOUT).decode("utf-8")
-    logging.debug(f"Command log for {tool}:\n{result}")
+    if tool is not None:
+        logging.debug(f"Command log for {tool}:\n{result}")
+    else:
+        logging.debug(f"Command log:\n{result}")
     logging.info(f"Finished running {tool}")
     return result
 
@@ -313,7 +316,8 @@ def validate_ref() -> None:
 
 
 def run_stringmlst(r1: str = args.r1, r2: str = args.r2) -> dict:
-    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {args.sbt}/lp").split("\n")
+    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {args.sbt}/lp", "stringMLST").split(
+        "\n")
     header = string_output[0].rstrip().split("\t")
     values = string_output[1].rstrip().split("\t")
     allele_calls = {}
