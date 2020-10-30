@@ -562,7 +562,7 @@ def blast_momps_allele(seq: str, db: str = os.path.join(args.sbt, "mompS" + args
     makeblastdb = f"makeblastdb -in {db} -dbtype nucl"
     run_command(makeblastdb, "makeblastdb/mompS")
     blastcmd = f"blastn -query - -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
-    res = run_command(blastcmd, "blastn/mompS", seq).rstrip()
+    res = run_command(blastcmd, "blastn/mompS", seq, shell=True).rstrip()
     if res == "":
         # TODO: run blast again with lower identity threshold and return allele*
         return "-"
@@ -644,7 +644,7 @@ def call_momps_pcr(assembly_file: str = args.a, db: str = os.path.join(args.sbt,
     makeblastdb = f"makeblastdb -in {db} -dbtype nucl"
     run_command(makeblastdb, "makeblastdb/mompS")
     blast_command = f"blastn -db {db} -outfmt '6 sseqid slen length pident' -query {assembly_file} -perc_identity 100"
-    res = run_command(blast_command, "blastn/mompS").rstrip().split("\n")
+    res = run_command(blast_command, "blastn/mompS", shell=True).rstrip().split("\n")
     # res = [line.rstrip().split("\t")[1] for line in res]
 
     alleles = {}
@@ -731,7 +731,7 @@ def blast_non_momps(assembly_file: str = args.a) -> dict:
         makeblastdb = f"makeblastdb -in {db} -dbtype nucl"
         run_command(makeblastdb, f"makeblastdb/{locus}")
         blastcmd = f"blastn -query {assembly_file} -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
-        res = run_command(blastcmd, f"blastn/{locus}").rstrip()
+        res = run_command(blastcmd, f"blastn/{locus}", shell=True).rstrip()
         allele = "-"
         if res == "":
             # TODO: run blast again with lower identity threshold and return allele*
