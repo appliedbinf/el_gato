@@ -563,12 +563,15 @@ def blast_momps_allele(seq: str, db: str = os.path.join(args.sbt, "mompS" + args
     run_command(makeblastdb, "makeblastdb/mompS")
     blastcmd = f"blastn -query - -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
     res = run_command(blastcmd, "blastn/mompS", seq, shell=True).rstrip()
+    allele = "-"
     if res == "":
         # TODO: run blast again with lower identity threshold and return allele*
-        return "-"
+        return allele
     else:
-        cols = res.split("\t")
-        allele = cols[1].replace("mompS_", "")
+        for match in res.split("\n"):
+            (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
+            if int(slen) / int(align_len) == 1 and float(pident) == 100:
+                allele = sseqid.replace("mompS_", "")
         return allele
 
 
@@ -650,7 +653,7 @@ def call_momps_pcr(assembly_file: str = args.a, db: str = os.path.join(args.sbt,
     alleles = {}
     for match in res:
         (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
-        if align_len / slen == 1 and pident == 100:
+        if int(align_len) / int(slen) == 1 and float(pident) == 100:
             alleles[sseqid.replace("mompS_", "")] = 1
     alleles = list(alleles.keys())
 
@@ -739,7 +742,7 @@ def blast_non_momps(assembly_file: str = args.a) -> dict:
         else:
             for match in res.split("\n"):
                 (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
-                if slen / align_len == 1 and pident == 100:
+                if int(slen) / int(align_len) == 1 and float(pident) == 100:
                     allele = sseqid.replace(locus + "_", "")
             if allele == "-":
                 run_string = True
