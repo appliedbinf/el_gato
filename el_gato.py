@@ -7,16 +7,22 @@ import re
 import subprocess
 import sys
 import shutil
+import shlex
 import time
 
 t0 = time.time()
 
 
+# TODO: Implement ability to find databases and bin (isPcr really) in the scripts "resource" folder
+# TODO: fix argument names so that they are consistent
+# TODO: add another argument that sets the default prefix for everything instead of setting them one at a time
+# TODO: if only reads are provided, stringMLST should be called for allele calls instead of genome assembly
+
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
     name = "Paris_mompS_R"
     source = "Contig = gi|54295983|ref|NC_006368.1| location on contig = 3453389_3455389"
-    seq = "GTTATCAATAAAATGGAAACTCAATAATAAACAAGTGGAGACAAGGCATGTTTAGTTTGAAAAAAACAGCAGTGGCAGTACTCGCCTTAGGAAGCGGTGCAGTGTTTGCTGGAACCATGGGACCAGTTTGCACCCCAGGTAATGTAACTGTTCCTTGCGAAAGAACTGCATGGGATATTGGTATCACCGCACTATATTTGCAACCAATCTATGATGCTGATTGGGGCTACAATGGTTTCACCCAAGTTGGTGGCTGGCAGCATTGGCATGATGTTGACCATGAGTGGGATTGGGGCTTCAAATTAGAAGGTTCTTATCACTTCAATACTGGTAATGACATCAATGTGAACTGGTATCATTTTGATAATGACAGTGATCACTGGGCTGATTTTGCTAACTGGCACAACTACAACAACAAGTGGGATGCTGTTAATGCTGAATTAGGTCAATTCGTAGATTTCAGCGCTAACAAGAAAATGCGTTTCCACGGCGGTGTTCAATACGCTCGCATTGAAGCTGATGTGAACCGTTATTTCAATAACTTTGCCTTTAACGGGTTCAACTCTAAGTTCAATGGCTTTGGTCCTCGCACTGGTTTAGACATGAACTATGTATTTGGCAATGGCTTTGGTGTTTATGCTAAAGGCGCTGCTGCTATTCTGGTTGGTACCAGCGATTTCTACGATGGAATCAACTTCATTACTGGTTCTAAAAATGCTATCGTTCCTGAGTTGGAAGCTAAGCTTGGTGCTGATTACACTTACGCAATGGCTCAAGGCGATTTGACTTTAGACGTTGGTTACATGTGGTTTAACTACTTCAACGCTATGCACAATACTGGCGTATTTAATGGATTTGAAACTGATTTCGCAGCTTCTGGTCCTTACATTGGCTTGAAGTATGTTGGTAATGTGTAATTTGTTAAGTTGATAAGAAATTTCAGCAATACTGTTGACTTTATAGAAGTCCGGCTGGATAATTTATCCA "
+    seq = "GTTATCAATAAAATGGAAACTCAATAATAAACAAGTGGAGACAAGGCATGTTTAGTTTGAAAAAAACAGCAGTGGCAGTACTCGCCTTAGGAAGCGGTGCAGTGTTTGCTGGAACCATGGGACCAGTTTGCACCCCAGGTAATGTAACTGTTCCTTGCGAAAGAACTGCATGGGATATTGGTATCACCGCACTATATTTGCAACCAATCTATGATGCTGATTGGGGCTACAATGGTTTCACCCAAGTTGGTGGCTGGCAGCATTGGCATGATGTTGACCATGAGTGGGATTGGGGCTTCAAATTAGAAGGTTCTTATCACTTCAATACTGGTAATGACATCAATGTGAACTGGTATCATTTTGATAATGACAGTGATCACTGGGCTGATTTTGCTAACTGGCACAACTACAACAACAAGTGGGATGCTGTTAATGCTGAATTAGGTCAATTCGTAGATTTCAGCGCTAACAAGAAAATGCGTTTCCACGGCGGTGTTCAATACGCTCGCATTGAAGCTGATGTGAACCGTTATTTCAATAACTTTGCCTTTAACGGGTTCAACTCTAAGTTCAATGGCTTTGGTCCTCGCACTGGTTTAGACATGAACTATGTATTTGGCAATGGCTTTGGTGTTTATGCTAAAGGCGCTGCTGCTATTCTGGTTGGTACCAGCGATTTCTACGATGGAATCAACTTCATTACTGGTTCTAAAAATGCTATCGTTCCTGAGTTGGAAGCTAAGCTTGGTGCTGATTACACTTACGCAATGGCTCAAGGCGATTTGACTTTAGACGTTGGTTACATGTGGTTTAACTACTTCAACGCTATGCACAATACTGGCGTATTTAATGGATTTGAAACTGATTTCGCAGCTTCTGGTCCTTACATTGGCTTGAAGTATGTTGGTAATGTGTAATTTGTTAAGTTGATAAGAAATTTCAGCAATACTGTTGACTTTATAGAAGTCCGGCTGGATAATTTATCCA"
     allele_start = 367
     allele_stop = 718
     flank_start = 15
@@ -26,7 +32,8 @@ class Ref:
     ispcr_opt = "stdout -out=fa -minPerfect=5 -tileSize=6 -maxSize=1200 -stepSize=5"
     mompS_primer1 = "TTGACCATGAGTGGGATTGG\tTGGATAAATTATCCAGCCGGACTTC"
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
-    prereq_programs = ["bwa", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py"]
+    prereq_programs = ["bwa", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py",
+                       "stringMLST.py"]
 
 
 """ Get commandline arguments """
@@ -151,8 +158,10 @@ def check_program(program_name: str) -> None:
     logging.info(f"Checking for program {program_name}")
     path = shutil.which(program_name)
     if path is None:
-        if program_name != "spades.py" or Ref.analysis_path != "r":
+        if program_name != "spades.py" or Ref.analysis_path == "r":
             logging.critical(f"Program {program_name} not found! Can not continue, dependency not fulfilled.")
+            if not args.verbose:
+                print(f"Program {program_name} not found! Can not continue, dependency not fulfilled.")
             sys.exit(1)
 
 
@@ -247,10 +256,10 @@ def run_command(command: str, tool: str, stdin: str = None) -> str:
     logging.info(f"Running {tool}")
     # result = ""
     if stdin is not None:
-        result = subprocess.check_output(command.split(" "), stderr=subprocess.STDOUT,
+        result = subprocess.check_output(shlex.split(command, posix=False), stderr=subprocess.STDOUT,
                                          input=bytes(stdin, "utf-8")).decode("utf-8")
     else:
-        result = subprocess.check_output(command.split(" "), stderr=subprocess.STDOUT).decode("utf-8")
+        result = subprocess.check_output(shlex.split(command, posix=False), stderr=subprocess.STDOUT).decode("utf-8")
     logging.debug(f"Command log for {tool}:\n{result}")
     logging.info(f"Finished running {tool}")
     return result
@@ -290,6 +299,27 @@ def validate_ref() -> None:
         logging.info("Reference fasta index doesn't exist, creating now")
         run_command(f"bwa index {Ref.file}", "bwa index")
         run_command(f"samtools faidx {Ref.file}", "samtools faidx")
+
+    if not os.path.isfile(os.path.join(args.sbt, "lp_35.txt")):
+        config_target = os.path.join(args.sbt, "config.txt")
+        with open(config_target, "w") as f:
+            f.write("[loci]\n")
+            for locus in Ref.locus_order:
+                this_locus = os.path.join(args.sbt, locus + args.suffix)
+                f.write(f"{locus}\t{this_locus}\n")
+            f.write(f"[profile]\nprofile\t{args.profile}\n")
+
+        run_command(f"stringMLST.py --buildDB -c {config_target} -k 35 -P {args.sbt}/lp")
+
+
+def run_stringmlst(r1: str = args.r1, r2: str = args.r2) -> dict:
+    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {args.sbt}/lp").split("\n")
+    header = string_output[0].rstrip().split("\t")
+    values = string_output[1].rstrip().split("\t")
+    allele_calls = {}
+    for i in range(len(header)):
+        allele_calls[header[i]] = values[i]
+    return allele_calls
 
 
 def check_coverage(file: str, min_depth: int = args.d) -> bool:
@@ -521,7 +551,7 @@ def blast_momps_allele(seq: str, db: str = os.path.join(args.sbt, "mompS" + args
     logging.debug(f"Looking for \n{seq}")
     makeblastdb = f"makeblastdb -in {db} -dbtype nucl"
     run_command(makeblastdb, "makeblastdb/mompS")
-    blastcmd = f"blastn -query - -db {db} -outfmt 6 -perc_identity 100"
+    blastcmd = f"blastn -query - -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
     res = run_command(blastcmd, "blastn/mompS", seq).rstrip()
     if res == "":
         # TODO: run blast again with lower identity threshold and return allele*
@@ -603,13 +633,15 @@ def call_momps_pcr(assembly_file: str = args.a, db: str = os.path.join(args.sbt,
     """
     makeblastdb = f"makeblastdb -in {db} -dbtype nucl"
     run_command(makeblastdb, "makeblastdb/mompS")
-    blast_command = f"blastn -db {db} -outfmt 6 -query {assembly_file} -perc_identity 100"
+    blast_command = f"blastn -db {db} -outfmt '6 sseqid slen length pident' -query {assembly_file} -perc_identity 100"
     res = run_command(blast_command, "blastn/mompS").rstrip().split("\n")
-    res = [line.rstrip().split("\t")[1] for line in res]
+    # res = [line.rstrip().split("\t")[1] for line in res]
 
     alleles = {}
-    for allele in res:
-        alleles[allele.replace("mompS_", "")] = 1
+    for match in res:
+        (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
+        if align_len / slen == 1 and pident == 100:
+            alleles[sseqid.replace("mompS_", "")] = 1
     alleles = list(alleles.keys())
 
     if len(alleles) == 1:
@@ -657,7 +689,15 @@ def genome_assembly(r1: str = args.r1, r2: str = args.r2, out: str = os.path.joi
     """
     assembly_command = f"spades.py -1 {r1} -2 {r2} -o {out} --careful -t {args.t}"
     run_command(assembly_command, "spades")
-    args.a = os.path.join(out, "scaffolds.fasta")
+    assem = os.path.join(out, "scaffolds.fasta")
+    if not os.path.isfile(assem):
+        logging.critical(f"Something went wrong with genome assembly. Please check log.")
+        sys.exit(1)
+    logging.debug(f"Setting assembly path to {assem}")
+    args.a = assem
+    if args.a != assem:
+        logging.critical(f"Failed to set new assembly {assem} as the target sequence")
+    logging.debug(f"")
 
 
 def blast_non_momps(assembly_file: str = args.a) -> dict:
@@ -675,20 +715,32 @@ def blast_non_momps(assembly_file: str = args.a) -> dict:
     """
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
     calls = {}
+    run_string = False
     for locus in loci:
         db = os.path.join(args.sbt, locus + args.suffix)
         makeblastdb = f"makeblastdb -in {db} -dbtype nucl"
         run_command(makeblastdb, f"makeblastdb/{locus}")
-        blastcmd = f"blastn -query {assembly_file} -db {db} -outfmt 6 -perc_identity 100"
+        blastcmd = f"blastn -query {assembly_file} -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
         res = run_command(blastcmd, f"blastn/{locus}").rstrip()
-        # allele = ""
+        allele = "-"
         if res == "":
             # TODO: run blast again with lower identity threshold and return allele*
             allele = "-"
         else:
-            cols = res.split("\t")
-            allele = cols[1].replace(locus + "_", "")
+            for match in res.split("\n"):
+                (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
+                if slen / align_len == 1 and pident == 100:
+                    allele = sseqid.replace(locus + "_", "")
+            if allele == "-":
+                run_string = True
         calls[locus] = allele
+
+    if run_string:
+        string_calls = run_stringmlst()
+        for locus in loci:
+            if calls[locus] == "-":
+                calls[locus] = string_calls[locus]
+
     return calls
 
 
