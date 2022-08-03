@@ -159,10 +159,10 @@ def set_inputs():
     Ref.file = os.path.join(Inputs.out_prefix, Ref.file)
     if args.sample == Inputs.sample_name:
         if Inputs.read1 is not None:
-            Inputs.sample_name = os.path.splitext(Inputs.read1)[0]
+            Inputs.sample_name = os.path.basename(os.path.splitext(Inputs.read1)[0])
             Inputs.sample_name = re.sub("_R1.*", "", Inputs.sample_name)
         else:
-            Inputs.sample_name = os.path.splitext(Inputs.assembly)[0]
+            Inputs.sample_name = os.path.basename(os.path.splitext(Inputs.assembly)[0])
     else:
         Inputs.sample_name = args.sample
 
