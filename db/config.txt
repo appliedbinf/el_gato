@@ -1,0 +1,10 @@
+[loci]
+flaA	/home/dmashruwala3/el_gato/db/flaA_alleles.tfa
+pilE	/home/dmashruwala3/el_gato/db/pilE_alleles.tfa
+asd	/home/dmashruwala3/el_gato/db/asd_alleles.tfa
+mip	/home/dmashruwala3/el_gato/db/mip_alleles.tfa
+mompS	/home/dmashruwala3/el_gato/db/mompS_alleles.tfa
+proA	/home/dmashruwala3/el_gato/db/proA_alleles.tfa
+neuA_neuAH	/home/dmashruwala3/el_gato/db/neuA_neuAH_alleles.tfa
+[profile]
+profile	/home/dmashruwala3/el_gato/db/lpneumophila.txt
