@@ -10,4 +10,19 @@ Currently in development
   3. Activate your newly created conda environment: 
       conda activate el_gato
   4. Install the following dependencies via bioconda and conda-forge: bwa, sambamba, freebayes, SAMTools, BLAST, ispcr, SPAdes, stringMLST
-  5. 
+
+#Usage
+  Required arguments: 
+  --read1 <paired end read1>
+  --read2 <paired end read2> 
+  --assembly <assembly file name>
+  --out <output folder name>
+  Optional arguments: 
+  --help, -h <help>
+  --threads, -t <threads (default: 1)>
+  --sample, -n <sample name>
+  --overwrite, -w <overwrites output folder name>
+  --sbt, -s <database containing SBT allele and mapping files>
+  --suffix, -x <suffix of SBT allele files (default: _alleles.tfa)>
+  --profile, -p <name of allele profile in ST mapping file>
+  --verbose -v <print what the script is doing (default: False)>
