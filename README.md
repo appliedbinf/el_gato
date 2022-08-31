@@ -22,13 +22,13 @@ Required arguments:
 Optional arguments:   
 --out (output folder name)  
 --help, -h (help)  
---threads, -t (threads (default: 1)  )
---sample, -n sample name  
---overwrite, -w overwrites output folder name  
---sbt, -s database containing SBT allele and mapping files  
---suffix, -x suffix of SBT allele files (default: _alleles.tfa)  
---profile, -p name of allele profile in ST mapping file  
---verbose -v print what the script is doing (default: False)  
+--threads, -t (threads (default: 1))  
+--sample, -n (sample name)    
+--overwrite, -w (overwrites output folder name)   
+--sbt, -s (database containing SBT allele and mapping files))   
+--suffix, -x (suffix of SBT allele files (default: _alleles.tfa))  
+--profile, -p (name of allele profile in ST mapping file)   
+--verbose -v (print what the script is doing (default: False))    
 
 Paired-end:  
    python3 el_gato.py --read1 read1 --read2 read2 --out output folder  
