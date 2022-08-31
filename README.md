@@ -20,7 +20,7 @@ Required arguments:
 --assembly (assembly file)  
 
 Optional arguments:   
---out <<output folder name)  
+--out <<output folder name>>
 --help, -h help  
 --threads, -t threads (default: 1)  
 --sample, -n sample name  
