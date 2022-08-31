@@ -5,7 +5,7 @@ Currently in development
 
 # Installation 
   1. Download or clone el_gato into your home directory
-  2. Create a new conda environment to install dependencies: 
+  2. Create a new conda environment to install dependencies:  
       conda create --name el_gato
   3. Activate your newly created conda environment: 
       conda activate el_gato
