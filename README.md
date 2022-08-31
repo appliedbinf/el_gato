@@ -20,9 +20,9 @@ Required arguments:
 --assembly (assembly file)  
 
 Optional arguments:   
---out <<output folder name>>
---help, -h help  
---threads, -t threads (default: 1)  
+--out (output folder name)  
+--help, -h (help)  
+--threads, -t (threads (default: 1)  )
 --sample, -n sample name  
 --overwrite, -w overwrites output folder name  
 --sbt, -s database containing SBT allele and mapping files  
