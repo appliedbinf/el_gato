@@ -15,7 +15,7 @@ Currently in development
 # Usage
 
 Required arguments:  
---read1 paired end read1  
+--read1 <paired end read1>  
 --read2 paired end read2  
 --assembly assembly file  
 
