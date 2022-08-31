@@ -15,12 +15,12 @@ Currently in development
 # Usage
 
 Required arguments:  
---read1 <paired end read1>  
---read2 paired end read2  
---assembly assembly file  
+--read1 (paired end read1)  
+--read2 (paired end read2)  
+--assembly (assembly file)  
 
 Optional arguments:   
---out output folder name  
+--out <<output folder name)  
 --help, -h help  
 --threads, -t threads (default: 1)  
 --sample, -n sample name  
