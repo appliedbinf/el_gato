@@ -7,16 +7,16 @@ Currently in development
   1. Download or clone el_gato into your home directory
   2. Create a new conda environment to install dependencies:  
       conda create --name el_gato
-  3. Activate your newly created conda environment: 
+  3. Activate your newly created conda environment:  
       conda activate el_gato
-  4. Install the following dependencies via bioconda and conda-forge: bwa, sambamba, freebayes, SAMTools, BLAST, isPcr, SPAdes, stringMLST
+  4. Install the following dependencies via bioconda and conda-forge:  bwa, sambamba, freebayes, SAMTools, BLAST, isPcr, SPAdes, stringMLST
 
 # Usage
 
-Required arguments: 
---read1 paired end read1
---read2 paired end read2 
---assembly assembly file
+Required arguments:  
+--read1 paired end read1  
+--read2 paired end read2  
+--assembly assembly file  
 
 Optional arguments: 
 --out output folder name
