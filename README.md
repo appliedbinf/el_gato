@@ -11,7 +11,7 @@ Currently in development
       conda activate el_gato
   4. Install the following dependencies via bioconda and conda-forge: bwa, sambamba, freebayes, SAMTools, BLAST, ispcr, SPAdes, stringMLST
 
-#Usage
+# Usage
   Required arguments: 
   --read1 <paired end read1>
   --read2 <paired end read2> 
