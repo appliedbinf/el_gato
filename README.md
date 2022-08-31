@@ -9,7 +9,7 @@ Currently in development
       conda create --name el_gato
   3. Activate your newly created conda environment: 
       conda activate el_gato
-  4. Install the following dependencies via bioconda and conda-forge: bwa, sambamba, freebayes, SAMTools, BLAST, ispcr, SPAdes, stringMLST
+  4. Install the following dependencies via bioconda and conda-forge: bwa, sambamba, freebayes, SAMTools, BLAST, isPcr, SPAdes, stringMLST
 
 # Usage
 
