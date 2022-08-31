@@ -30,8 +30,8 @@ Optional arguments:
 --verbose -v print what the script is doing (default: False)  
 
 Paired end:  
-   python3 el_gato.py --read1 read1 --read2 read2 --out output folder 
+   python3 el_gato.py --read1 read1 --read2 read2 --out output folder  
 Assembly:  
-   python3 el_gato.py --assembly assembly file --out output folder name 
+   python3 el_gato.py --assembly assembly file --out output folder name  
 Combined:  
    python3 el_gato.py --read1 read1 --read2 read2 --assembly assembly file --out output folder
