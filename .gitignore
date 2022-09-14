@@ -1,0 +1,9 @@
+#vscode files
+.vscode/*
+
+#blastdbs
+db/*.n*
+
+#stringmlst temp files
+db/lp_*
+db/lp.log
