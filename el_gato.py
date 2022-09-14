@@ -846,7 +846,8 @@ def blast_non_momps(assembly_file) -> dict:
                 if int(slen) / int(align_len) == 1 and float(pident) == 100:
                     allele = sseqid.replace(locus + "_", "")
             if allele == "-":
-                run_string = True
+                if Inputs.analysis_path == "ar":
+                    run_string = True
         calls[locus] = allele
 
     if run_string:
