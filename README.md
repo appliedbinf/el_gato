@@ -13,6 +13,8 @@ Epidemiology of *Legionella*: Genome-bAsed Typing
    * [Software](#software)
 
 Currently in development
+Codebase stage: development   
+Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Will Overholt](https://github.com/), [Dev Mashruwala](https://github.com/)
 
 # Installation 
   1. Download or clone el_gato into your home directory
