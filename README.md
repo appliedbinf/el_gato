@@ -1,6 +1,17 @@
 # el_gato
 Epidemiology of *Legionella*: Genome-bAsed Typing
 
+* [Installation](#installation)
+      * [Method 1. ](#method-1-using-conda-yml-script)
+      * [Method 3. Creating conda environment and loading the dependencies](#method-3-Creating-conda-environment-and-loading-the-dependencies)
+      * [Quickstart guide](#Quickstart-guide)
+         * [A typical run](#A-typical-run)
+         * [General program structure overview](#General-program-structure-overview)
+      * [Input file format](#Input-file-format)      
+   * [All available arguments](#All-available-arguments)
+   * [Literature Citations](#Literature-Citations)
+   * [Software](#software)
+
 Currently in development
 
 # Installation 
