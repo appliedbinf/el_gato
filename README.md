@@ -2,7 +2,7 @@
 Epidemiology of *Legionella*: Genome-bAsed Typing
 
 * [Installation](#installation)
-   * [Method 1. ](#method-1-using-conda-yml-script)
+   * [Method 1. using conda yml script](#method-1-using-conda-yml-script)
    * [Method 2. Creating conda environment and loading the dependencies](#method-2-Creating-conda-environment-and-loading-the-dependencies)
    * [Quickstart guide](#Quickstart-guide)
       * [A typical run](#A-typical-run)
