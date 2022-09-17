@@ -17,13 +17,18 @@ Codebase stage: development
 Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Will Overholt](https://github.com/), [Dev Mashruwala](https://github.com/)
 
 # Installation 
+
   1. Download or clone el_gato into your home directory
   2. Create a new conda environment to install dependencies:  
-      conda create --name el_gato
-  3. Activate your newly created conda environment:  
-      conda activate el_gato
-  4. Install the following dependencies via bioconda and conda-forge:  
-      bwa, sambamba, freebayes, SAMTools, BLAST, isPcr, SPAdes, stringMLST
+  ```
+  # You can install the dependencies while creating the el_gato base environment.
+    conda install mamba
+    conda create -n el_gato 
+
+  # Activate the conda environement using
+    conda activa el_gato
+    mamba install bwa, sambamba, freebayes, SAMTools, BLAST, isPcr, SPAdes, stringMLST
+  ```
 
 # Usage
 
