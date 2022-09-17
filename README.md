@@ -39,13 +39,13 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
 Here is an example of a basic run using paired end reads, assemblies, or both as input.
 
 ```
-Paired-end:
+#Paired-end:
 python3 el_gato.py --read1 read1 --read2 read2 --out output_folder
 
-Assembly:
+#Assembly:
 python3 el_gato.py --assembly assembly_file --out output_folder
 
-Combined:
+#Combined:
 python3 el_gato.py --read1 read1 --read2 read2 --assembly assembly_file --out output_folder
 
 ```
