@@ -18,8 +18,7 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
 
 # Installation 
 
-  1. Download or clone el_gato into your home directory
-  2. Create a new conda environment to install dependencies:  
+1. Create a new conda environment to install dependencies:  
   ```
   # You can install the dependencies while creating the el_gato base environment.
     conda install mamba
@@ -28,6 +27,9 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
   # Activate the conda environement using
     conda activa el_gato
     mamba install bwa, sambamba, freebayes, SAMTools, BLAST, isPcr, SPAdes, stringMLST
+    
+  # Once the dependencies have been installed, proceed to cloning el_gato
+    git clone https://github.com/appliedbinf/el_gato.git
   ```
 
 # Usage
