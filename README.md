@@ -32,7 +32,23 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
   # Once the dependencies have been installed, proceed to cloning el_gato
     git clone https://github.com/appliedbinf/el_gato.git
   ```
+## Quickstart Guide
 
+### A typical run
+
+Here is an example of a basic run using paired end reads, assemblies, or both as input.
+
+```
+Paired-end:
+python3 el_gato.py --read1 read1 --read2 read2 --out output_folder
+
+Assembly:
+python3 el_gato.py --assembly assembly_file --out output_folder
+
+Combined:
+python3 el_gato.py --read1 read1 --read2 read2 --assembly assembly_file --out output_folder
+
+```
 # Usage
 
 Required arguments:  
@@ -51,11 +67,3 @@ Optional arguments:
 --profile, -p (name of allele profile in ST mapping file)   
 --verbose -v (print what the script is doing (default: False))    
 
-Paired-end:  
-   python3 el_gato.py --read1 read1 --read2 read2 --out output folder  
-
-Assembly:  
-   python3 el_gato.py --assembly assembly file --out output folder name  
-
-Combined:  
-   python3 el_gato.py --read1 read1 --read2 read2 --assembly assembly file --out output folder
