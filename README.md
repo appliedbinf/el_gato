@@ -18,7 +18,8 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
 
 # Installation 
 
-1. Create a new conda environment to install dependencies:  
+1. Install the el_gato base environment 
+2. Create a new conda environment to install dependencies:  
   ```
   # You can install the dependencies while creating the el_gato base environment.
     conda install mamba
