@@ -58,6 +58,7 @@ Required arguments:
 
 Optional arguments:   
 --out (output folder name)  
+--spades, -g (Runs SPAdes when paired-end samples are given (default: False))  
 --help, -h (help)  
 --threads, -t (threads (default: 1))  
 --sample, -n (sample name)    
