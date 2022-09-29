@@ -1,0 +1,37 @@
+{% set name = "elgato_test" %}
+{% set version = "1.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  path: ./
+  #git_rev:
+  #git_url: https://github.com/appliedbinf/el_gato.git
+
+requirements:
+  build:
+    - python
+    - setuptools
+
+  host: 
+    - python >= 3
+ 
+  run:
+    - bwa==0.7.17
+    - sambamba==0.8.2
+    - freebayes
+    - samtools==1.15.1
+    - blast==2.13.0
+    - ispcr==33.0
+    - spades==3.15
+    - stringmlst==0.6.3
+
+#test:
+#  imports:
+#    - elgato
+
+about:
+  home: https://github.com/appliedbinf/el_gato
+  license: MIT
