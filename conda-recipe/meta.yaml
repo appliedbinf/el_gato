@@ -6,7 +6,7 @@ package:
   version: {{ version }}
 
 source:
-  path: ./
+  path: ../
   #git_rev:
   #git_url: https://github.com/appliedbinf/el_gato.git
 
@@ -14,12 +14,15 @@ requirements:
   build:
     - python
     - setuptools
+    - skip: True  # [win]
 
   host: 
-    - python >= 3
+    - python >=3.8
+    - pip
  
   run:
     - bwa==0.7.17
+    
     - sambamba==0.8.2
     - freebayes
     - samtools==1.15.1
@@ -28,9 +31,9 @@ requirements:
     - spades==3.15
     - stringmlst==0.6.3
 
-#test:
-#  imports:
-#    - elgato
+test:
+  commands:
+    - el_gato.py -h
 
 about:
   home: https://github.com/appliedbinf/el_gato
