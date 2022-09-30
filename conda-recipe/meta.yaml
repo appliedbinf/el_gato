@@ -22,7 +22,6 @@ requirements:
  
   run:
     - bwa==0.7.17
-    
     - sambamba==0.8.2
     - freebayes
     - samtools==1.15.1
@@ -34,6 +33,9 @@ requirements:
 test:
   commands:
     - el_gato.py -h
+    - isPcr
+  imports:
+    - shlex
 
 about:
   home: https://github.com/appliedbinf/el_gato
