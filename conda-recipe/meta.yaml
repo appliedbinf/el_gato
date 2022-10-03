@@ -31,11 +31,11 @@ requirements:
     - stringmlst==0.6.3
 
 test:
+  imports:
+    - "shlex"
   commands:
     - el_gato.py -h
-    - isPcr
-  imports:
-    - shlex
+    - isPcr | head
 
 about:
   home: https://github.com/appliedbinf/el_gato
