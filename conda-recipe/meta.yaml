@@ -1,4 +1,4 @@
-{% set name = "elgato_test" %}
+{% set name = "elgato" %}
 {% set version = "1.0.0" %}
 
 package:
