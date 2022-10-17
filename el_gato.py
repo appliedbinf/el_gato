@@ -991,38 +991,42 @@ def pretty_time_delta(seconds: int):
     else:
         return f"{seconds}s"
 
+def main():
+    """ Main code """
+    check_input_supplied()
+    set_inputs()
+    make_output_directory()
+    configure_logger()
+    logging.info("Starting preprocessing")
+    for line in Inputs.logging_buffer_message.rstrip().split("\n"):
+        logging.info(line)
+    logging.info("Checking if all the prerequisite programs are installed")
+    for program in Ref.prereq_programs:
+        check_program(program)
+    logging.info("All prerequisite programs are accessible")
 
-""" Main code """
-check_input_supplied()
-set_inputs()
-make_output_directory()
-configure_logger()
-logging.info("Starting preprocessing")
-for line in Inputs.logging_buffer_message.rstrip().split("\n"):
-    logging.info(line)
-logging.info("Checking if all the prerequisite programs are installed")
-for program in Ref.prereq_programs:
-    check_program(program)
-logging.info("All prerequisite programs are accessible")
+    logging.info("Checking if all the required input files exist")
+    check_files()
+    logging.info("Input files are present")
 
-logging.info("Checking if all the required input files exist")
-check_files()
-logging.info("Input files are present")
+    logging.info("Ensuring thread counts are correct")
+    ensure_safe_threads()
+    logging.info("Thread count has been validated")
 
-logging.info("Ensuring thread counts are correct")
-ensure_safe_threads()
-logging.info("Thread count has been validated")
+    logging.info("Checking for reference files")
+    validate_ref()
+    logging.info("All reference files have been discovered")
+    get_inputs()
+    logging.info("Starting analysis")
+    output = choose_analysis_path()
+    logging.info("Finished analysis")
 
-logging.info("Checking for reference files")
-validate_ref()
-logging.info("All reference files have been discovered")
-get_inputs()
-logging.info("Starting analysis")
-output = choose_analysis_path()
-logging.info("Finished analysis")
+    logging.debug(f"Output = \n{output}\n")
+    print(output)
 
-logging.debug(f"Output = \n{output}\n")
-print(output)
+    total_time = pretty_time_delta(int(time.time() - t0))
+    logging.info(f"The program took {total_time}")
 
-total_time = pretty_time_delta(int(time.time() - t0))
-logging.info(f"The program took {total_time}")
+
+if __name__ == '__main__':
+    main()
