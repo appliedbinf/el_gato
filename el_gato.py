@@ -776,8 +776,8 @@ def call_momps_pcr(assembly_file: str, db: str) -> str:
             with open(primer2, "w") as f:
                 f.write("mompS_2\t" + Ref.mompS_primer2)
             ispcr_command = f"isPcr stdin {primer2} {Ref.ispcr_opt}"
-            primer2_res = run_command(ispcr_command, "mompS2 primer2", primer1_res).rstrip().split("\n")
-            primer2_res = "".join(primer2_res[1:])
+            primer2_res = run_command(ispcr_command, "mompS2 primer2", primer1_res).rstrip()#.split("\n")
+            # primer2_res = "".join(primer2_res[1:])
             logging.debug(f"Found the sequence: {primer2_res}")
             return blast_momps_allele(seq=primer2_res, db=os.path.join(Inputs.sbt, "mompS" + Inputs.suffix))
         else:
