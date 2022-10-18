@@ -18,6 +18,6 @@ el_gato/db/config.txt
 
 # build files
 build/
-elgato.egg_info/
-el_gato/__pycache__/*
-el_gato/elgato.egg_info/*
+elgato.egg-info/
+el_gato/__pycache__/
+el_gato/elgato.egg-info/
