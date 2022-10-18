@@ -1,14 +1,15 @@
 #!/usr/bin/env nextflow
 nextflow.enable.dsl=2
 
-process CHECK_INPUTS {
+process READ_INPUTS {
 
   output:
-    stdout
+    path 'inputs.json'
 
   """
   #!/usr/bin/env python
-  from el_gato import el_gato
+
+  import json
 
   inputs = {
     'read1' : ${params.read1},
@@ -28,14 +29,42 @@ process CHECK_INPUTS {
     'logging_buffer_message' : "${params.logging_buffer_message}"
   }
 
-  print(inputs)
+  with open("inputs.json", "w") as fout:
+    json.dump(inputs, fout, ensure_ascii=False, indent=4)
 
   """
+
+}
+
+process VALIDATE_REF {
+  input:
+    path 'inputs.json'
+
+  output:
+    stdout
+
+  // """
+  // cat 'inputs.json'
+  // """
+
+  """
+  #!/usr/bin/env python
+  
+  import json
+
+  with open('inputs.json') as fin:
+    inputs = json.load(fin)
+
+  print("printing from VALIDATE_REF")
+  print(inputs)
+  """
+
 
 }
 
 
 
 workflow {
-  CHECK_INPUTS | view
+  inputs = READ_INPUTS()
+  VALIDATE_REF(inputs) | view
 }
