@@ -249,7 +249,7 @@ def configure_logger(inputs: dict):
         logging.getLogger().addHandler(console)
 
 
-def get_inputs():
+def get_inputs(inputs: dict):
     """Writes run settings to log
 
     Parameters
@@ -364,7 +364,7 @@ def ensure_safe_threads(inputs: dict, threads: int = 1) -> dict:
     """
     if threads > multiprocessing.cpu_count():
         logging.critical("User has supplied more threads than processor capacity, resetting to max cores.")
-        Inputs.threads = multiprocessing.cpu_count()
+        inputs["threads"] = multiprocessing.cpu_count()
 
     return inputs
 
@@ -486,7 +486,7 @@ def validate_ref(inputs: dict, Ref: Ref) -> None:
 
 
 def run_stringmlst(r1: str, r2: str) -> dict:
-    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {Inputs.sbt}/lp",
+    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {inputs['sbt']}/lp",
                                 "stringMLST").split("\n")
     header = string_output[0].rstrip().split("\t")
     values = string_output[1].rstrip().split("\t")
@@ -548,10 +548,10 @@ def call_variants(prefix: str) -> bool:
         returns True if all positions in the alignment have read coverage above minimum, False otherwise
     """
     # SAM -> BAM and sort
-    sam2bam = f"sambamba view -f bam -S -t {Inputs.threads} -o {prefix}.bam {prefix}.sam"
+    sam2bam = f"sambamba view -f bam -S -t {inputs['threads']} -o {prefix}.bam {prefix}.sam"
     run_command(sam2bam, "sambamba SAM to BAM conversion")
 
-    sort_bam = f"sambamba sort -t {Inputs.threads} {prefix}.bam"
+    sort_bam = f"sambamba sort -t {inputs['threads']} {prefix}.bam"
     run_command(sort_bam, "sambamba sort BAM")
 
     # Call variants
@@ -765,7 +765,7 @@ def call_momps_mapping(r1: str, r2: str, outfile: str, filt_file: str = "") -> s
         filt_file = outfile + ".filtered"
 
     # Map reads to mompS gene
-    bwa_call = f"bwa mem -t {Inputs.threads} {Ref.file} {r1} {r2} -o {outfile}.sam"
+    bwa_call = f"bwa mem -t {inputs['threads']} {Ref.file} {r1} {r2} -o {outfile}.sam"
     run_command(bwa_call, "bwa")
 
     # Create a separate file containing reads coming from the border regions
@@ -782,18 +782,20 @@ def call_momps_mapping(r1: str, r2: str, outfile: str, filt_file: str = "") -> s
     allele_seq = vcf_to_fasta(full_vcf=outfile + ".vcf", filtered_vcf=filt_file + ".vcf")
     allele_seq = allele_seq[(Ref.allele_start - 1):Ref.allele_stop]
 
-    mompS_allele = blast_momps_allele(seq=allele_seq, db=os.path.join(Inputs.sbt, "mompS" + Inputs.suffix))
+    mompS_allele = blast_momps_allele(seq=allele_seq, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
     if mompS_allele != "-":
         mompS_allele += allele_confidence
 
     return mompS_allele
 
 
-def call_momps_pcr(assembly_file: str, db: str) -> str:
+def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
     """Find the mompS gene using an in silico PCR procedure
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
     assembly_file : str, optional
         Read1 file name
 
@@ -819,7 +821,7 @@ def call_momps_pcr(assembly_file: str, db: str) -> str:
     if len(alleles) == 1:
         return alleles[0]
     else:
-        primer1 = os.path.join(Inputs.out_prefix, "mompS_primer1.tab")
+        primer1 = os.path.join(inputs["out_prefix"], "mompS_primer1.tab")
         with open(primer1, "w") as f:
             f.write("mompS_1\t" + Ref.mompS_primer1)
         ispcr_command = f"isPcr {assembly_file} {primer1} {Ref.ispcr_opt}"
@@ -827,14 +829,14 @@ def call_momps_pcr(assembly_file: str, db: str) -> str:
 
         if primer1_res != "":
             # nested PCR
-            primer2 = os.path.join(Inputs.out_prefix, "mompS_primer2.tab")
+            primer2 = os.path.join(inputs["out_prefix"], "mompS_primer2.tab")
             with open(primer2, "w") as f:
                 f.write("mompS_2\t" + Ref.mompS_primer2)
             ispcr_command = f"isPcr stdin {primer2} {Ref.ispcr_opt}"
             primer2_res = run_command(ispcr_command, "mompS2 primer2", primer1_res).rstrip()#.split("\n")
             # primer2_res = "".join(primer2_res[1:])
             logging.debug(f"Found the sequence: {primer2_res}")
-            return blast_momps_allele(seq=primer2_res, db=os.path.join(Inputs.sbt, "mompS" + Inputs.suffix))
+            return blast_momps_allele(seq=primer2_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
         else:
             logging.info("In silico PCR returned no results, try mapping route")
             return "-"
@@ -859,23 +861,25 @@ def genome_assembly(r1: str, r2: str, out: str) -> None:
     None
         Executes the commands and exits
     """
-    assembly_command = f"spades.py -1 {r1} -2 {r2} -o {out} --careful -t {Inputs.threads}"
+    assembly_command = f"spades.py -1 {r1} -2 {r2} -o {out} --careful -t {inputs['threads']}"
     run_command(assembly_command, "spades")
     assem = os.path.join(out, "scaffolds.fasta")
     if not os.path.isfile(assem):
         logging.critical(f"Something went wrong with genome assembly. Please check log.")
-        if not Inputs.verbose:
+        if not inputs["verbose"]:
             print(f"Something went wrong with genome assembly. Please check log.")
         sys.exit(1)
-    Inputs.assembly = assem
-    logging.debug(f"Setting assembly path to {Inputs.assembly}")
+    inputs["assembly"] = assem
+    logging.debug(f"Setting assembly path to {inputs['assembly']}")
 
 
-def blast_non_momps(assembly_file) -> dict:
+def blast_non_momps(inputs: dict, assembly_file: str) -> dict:
     """Find the rest of alleles (non-mompS) by BLAST search
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
     assembly_file : str, optional
         Read1 file name
 
@@ -888,7 +892,7 @@ def blast_non_momps(assembly_file) -> dict:
     calls = {}
     run_string = False
     for locus in loci:
-        db = os.path.join(Inputs.sbt, locus + Inputs.suffix)
+        db = os.path.join(inputs["sbt"], locus + inputs["suffix"])
         blastcmd = f"blastn -query {assembly_file} -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
         res = run_command(blastcmd, f"blastn/{locus}", shell=True).rstrip()
         allele = "-"
@@ -901,12 +905,12 @@ def blast_non_momps(assembly_file) -> dict:
                 if int(slen) / int(align_len) == 1 and float(pident) == 100:
                     allele = sseqid.replace(locus + "_", "")
             if allele == "-":
-                if Inputs.analysis_path == "ar":
+                if inputs["analysis_path"] == "ar":
                     run_string = True
         calls[locus] = allele
 
     if run_string:
-        string_calls = run_stringmlst(r1=Inputs.read1, r2=Inputs.read2)
+        string_calls = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"])
         for locus in loci:
             if calls[locus] == "-":
                 calls[locus] = string_calls[locus]
@@ -914,14 +918,15 @@ def blast_non_momps(assembly_file) -> dict:
     return calls
 
 
-def get_st(allele_profile: str, profile_file: str) -> str:
+def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     """Looks for the ST in the allele profile table (simple look-up)
 
     Parameters
     ----------
     allele_profile : str, optional
         allele profile as ordered tab-separated string
-
+    Ref: Ref
+        Reference sequence information
     profile_file : str, optional
         profile file containing ST as the first column, and allele profiles in the next columns
 
@@ -945,11 +950,13 @@ def get_st(allele_profile: str, profile_file: str) -> str:
     # return st
 
 
-def choose_analysis_path(header: bool = True) -> str:
+def choose_analysis_path(inputs: dict, header: bool = True) -> str:
     """Pick the correct analysis path based on the program input supplied
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
     header : bool, optional
         should the header be returned in the output
 
@@ -959,42 +966,46 @@ def choose_analysis_path(header: bool = True) -> str:
         formatted ST + allele profile (and optional header) of the isolate
     """
     alleles = {}
-    if Inputs.analysis_path == "ar":
-        mompS_allele = call_momps_mapping(r1=Inputs.read1, r2=Inputs.read2,
-                                          outfile=os.path.join(Inputs.out_prefix, Inputs.sample_name))
+    if inputs["analysis_path"] == "ar":
+        mompS_allele = call_momps_mapping(r1=inputs["read1"], r2=inputs["read2"],
+                                          outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
         if mompS_allele == "-":
-            mompS_allele = call_momps_pcr(assembly_file=Inputs.assembly,
-                                          db=os.path.join(Inputs.sbt, "mompS" + Inputs.suffix))
-        alleles = blast_non_momps(assembly_file=Inputs.assembly)
+            mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                          db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+        alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"])
         alleles["mompS"] = mompS_allele
-    elif Inputs.analysis_path == "a":
-        alleles = blast_non_momps(assembly_file=Inputs.assembly)
-        alleles["mompS"] = call_momps_pcr(assembly_file=Inputs.assembly,
-                                          db=os.path.join(Inputs.sbt, "mompS" + Inputs.suffix))
-    elif Inputs.analysis_path == "r":
-        genome_assembly(r1=Inputs.read1, r2=Inputs.read2,
-                        out=os.path.join(Inputs.out_prefix, "run_spades"))
-        mompS_allele = call_momps_mapping(r1=Inputs.read1, r2=Inputs.read2,
-                                          outfile=os.path.join(Inputs.out_prefix, Inputs.sample_name))
+    elif inputs["analysis_path"] == "a":
+        alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"])
+        alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                          db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+    elif inputs["analysis_path"] == "r":
+        genome_assembly(r1=inputs["read1"], r2=inputs["read2"],
+                        out=os.path.join(inputs["out_prefix"], "run_spades"))
+        mompS_allele = call_momps_mapping(r1=inputs["read1"], r2=inputs["read2"],
+                                          outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
         if mompS_allele == "-":
-            mompS_allele = call_momps_pcr(assembly_file=Inputs.assembly,
-                                          db=os.path.join(Inputs.sbt, "mompS" + Inputs.suffix))
-        alleles = blast_non_momps(assembly_file=Inputs.assembly)
+            mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                          db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+        alleles = blast_non_momps(assembly_file=inputs["assembly"])
         alleles["mompS"] = mompS_allele
     else:
         logging.critical(
-            "This path should not have been traversed. Is Inputs.analysis_path being changed somewhere else?")
-        if not Inputs.verbose:
+            "This path should not have been traversed. Is inputs['analysis_path'] being changed somewhere else?")
+        if not inputs["verbose"]:
             print(f"Something went wrong with genome assembly. Please check log.")
 
-    return print_table(alleles, header)
+    return print_table(inputs,  Ref, alleles, header)
 
 
-def print_table(alleles: dict, header: bool = True) -> str:
+def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> str:
     """Formats the allele profile so it's ready for printing
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
+    Ref: Ref
+        Reference sequence information
     alleles : dict
         The allele profile and the ST
 
@@ -1010,9 +1021,8 @@ def print_table(alleles: dict, header: bool = True) -> str:
     for locus in Ref.locus_order:
         allele_profile += alleles[locus] + "\t"
     allele_profile = allele_profile.rstrip()
-    allele_profile = Inputs.sample_name + "\t" + get_st(allele_profile,
-                                                        profile_file=Inputs.profile) + "\t" + allele_profile
-
+    allele_profile = inputs["sample_name"] + "\t" + get_st(allele_profile, Ref,
+                                                        profile_file=inputs["profile"]) + "\t" + allele_profile
     head = "Sample\tST\t" + "\t".join(Ref.locus_order) + "\n"
     if header:
         return head + allele_profile
@@ -1091,11 +1101,11 @@ def main():
     logging.info("Thread count has been validated")
 
     logging.info("Checking for reference files")
-    validate_ref()
+    validate_ref(inputs, Ref)
     logging.info("All reference files have been discovered")
-    get_inputs()
+    get_inputs(inputs)
     logging.info("Starting analysis")
-    output = choose_analysis_path()
+    output = choose_analysis_path(inputs, Ref)
     logging.info("Finished analysis")
 
     logging.debug(f"Output = \n{output}\n")
