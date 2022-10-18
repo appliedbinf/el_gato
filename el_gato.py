@@ -211,7 +211,7 @@ def make_output_directory(inputs: dict):
             os.mkdir(inputs["out_prefix"])
             inputs["logging_buffer_message"] += f"New output directory created\n"
         else:
-            print(f"Output directory \'{inputs['out_prefix']}\' exists and overwrite is turned off. Exiting")
+            print(f"Output directory '{inputs['out_prefix']}' exists and overwrite is turned off. Exiting")
             sys.exit(1)
     else:
         os.mkdir(inputs["out_prefix"])
@@ -236,7 +236,7 @@ def configure_logger(inputs: dict):
                             format=f"[%(asctime)s | {inputs['out_prefix']} ]  %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
     except FileNotFoundError:
         print(
-            f"The supplied location for the log file \'{inputs['log']}\' doesn't exist. Please check if the location exists.")
+            f"The supplied location for the log file '{inputs['log']}' doesn't exist. Please check if the location exists.")
         sys.exit(1)
     except IOError:
         print(
@@ -276,13 +276,15 @@ def get_inputs():
                 Depth       {inputs["depth"]}\n\n""")
 
 
-def check_program(program_name: str) -> None:
+def check_program(program_name: str, inputs: dict) -> None:
     """Checks if the supplied program_name exists
 
     Parameters
     ----------
     program_name : str
         Name of the program to check if it exists
+    inputs: dict
+        Run settings
 
     Returns
     -------
@@ -292,50 +294,55 @@ def check_program(program_name: str) -> None:
     logging.info(f"Checking for program {program_name}")
     path = shutil.which(program_name)
     if path is None:
-        if program_name != "spades.py" or Inputs.analysis_path == "r":
+        if program_name != "spades.py" or inputs["analysis_path"] == "r":
             logging.critical(f"Program {program_name} not found! Cannot continue; dependency not fulfilled.")
-            if not Inputs.verbose:
+            if not inputs["verbose"]:
                 print(f"Program {program_name} not found! Cannot continue; dependency not fulfilled.")
             sys.exit(1)
 
 
-def check_files() -> None:
+def check_files(inputs: dict) -> None:
     """Checks if all the input files exists; exits if file not found or if file is a directory
+    
+    Parameters
+    ----------
+    inputs: dict
+        Run settings
 
     Returns
     -------
     None
         Exits the program if file doesn't exist
     """
-    if Inputs.read1 and not os.path.isfile(Inputs.read1):
-        logging.critical(f"Read file 1: '{Inputs.read1}' doesn't exist. Exiting")
-        if not Inputs.verbose:
-            print(f"Read file 1: '{Inputs.read1}' doesn't exist. Exiting")
+    if inputs["read1"] and not os.path.isfile(inputs["read1"]):
+        logging.critical(f"Read file 1: '{inputs['read1']}' doesn't exist. Exiting")
+        if not inputs["verbose"]:
+            print(f"Read file 1: '{inputs['read1']}' doesn't exist. Exiting")
         sys.exit(1)
-    if Inputs.read2 and not os.path.isfile(Inputs.read2):
-        logging.critical(f"Read file 2: '{Inputs.read2}' doesn't exist. Exiting")
-        if not Inputs.verbose:
-            print(f"Read file 2: '{Inputs.read2}' doesn't exist. Exiting")
+    if inputs["read2"] and not os.path.isfile(inputs['read2']):
+        logging.critical(f"Read file 2: '{inputs['read2']}' doesn't exist. Exiting")
+        if not inputs["verbose"]:
+            print(f"Read file 2: '{inputs['read2']}' doesn't exist. Exiting")
         sys.exit(1)
-    if Inputs.assembly and not os.path.isfile(Inputs.assembly):
-        logging.critical(f"Assembly file: '{Inputs.assembly}' doesn't exist. Exiting")
-        if not Inputs.verbose:
-            print(f"Assembly file: '{Inputs.assembly}' doesn't exist. Exiting")
+    if inputs["assembly"] and not os.path.isfile(inputs["assembly"]):
+        logging.critical(f"Assembly file: '{inputs['assembly']}' doesn't exist. Exiting")
+        if not inputs["verbose"]:
+            print(f"Assembly file: '{inputs['assembly']}' doesn't exist. Exiting")
         sys.exit(1)
-    if not os.path.isdir(Inputs.sbt):
-        logging.critical(f"SBT directory: '{Inputs.sbt}' doesn't exist. Exiting")
-        if not Inputs.verbose:
-            print(f"SBT directory: '{Inputs.sbt}' doesn't exist. Exiting")
+    if not os.path.isdir(inputs["sbt"]):
+        logging.critical(f"SBT directory: '{inputs['sbt']}' doesn't exist. Exiting")
+        if not inputs.verbose:
+            print(f"SBT directory: '{inputs['sbt']}' doesn't exist. Exiting")
         sys.exit(1)
     for locus in Ref.locus_order:
-        file = os.path.join(Inputs.sbt, locus + Inputs.suffix)
+        file = os.path.join(inputs["sbt"], locus + inputs["suffix"])
         if not os.path.isfile(file):
             logging.critical(f"Allele file: '{file}' for locus ({locus}) doesn't exist. Exiting")
             sys.exit(1)
-    if not os.path.isfile(Inputs.profile):
-        logging.critical(f"Profile file: '{Inputs.profile}' doesn't exist. Exiting")
-        if not Inputs.verbose:
-            print(f"Profile file: '{Inputs.profile}' doesn't exist. Exiting")
+    if not os.path.isfile(inputs["profile"]):
+        logging.critical(f"Profile file: '{inputs['profile']}' doesn't exist. Exiting")
+        if not inputs["verbose"]:
+            print(f"Profile file: '{inputs['profile']}' doesn't exist. Exiting")
         sys.exit(1)
 
 
@@ -1057,17 +1064,17 @@ def main():
     inputs = check_input_supplied(args, parser, inputs)
     inputs = set_inputs(args, inputs)
     make_output_directory(inputs)
-    configure_logger()
+    configure_logger(inputs)
     logging.info("Starting preprocessing")
-    for line in Inputs.logging_buffer_message.rstrip().split("\n"):
+    for line in inputs["logging_buffer_message"].rstrip().split("\n"):
         logging.info(line)
     logging.info("Checking if all the prerequisite programs are installed")
     for program in Ref.prereq_programs:
-        check_program(program)
+        check_program(program, inputs)
     logging.info("All prerequisite programs are accessible")
 
     logging.info("Checking if all the required input files exist")
-    check_files()
+    check_files(inputs)
     logging.info("Input files are present")
 
     logging.info("Ensuring thread counts are correct")
