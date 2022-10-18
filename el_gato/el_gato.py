@@ -81,7 +81,6 @@ def get_args() -> argparse.ArgumentParser:
     return parser
 
 
-
 def check_input_supplied(
         args: argparse.ArgumentParser,
         parser: argparse.ArgumentParser,
@@ -330,7 +329,7 @@ def check_files(inputs: dict) -> None:
         sys.exit(1)
     if not os.path.isdir(inputs["sbt"]):
         logging.critical(f"SBT directory: '{inputs['sbt']}' doesn't exist. Exiting")
-        if not inputs.verbose:
+        if not inputs["verbose"]:
             print(f"SBT directory: '{inputs['sbt']}' doesn't exist. Exiting")
         sys.exit(1)
     for locus in Ref.locus_order:
