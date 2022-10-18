@@ -14,3 +14,10 @@ db/config.txt
 el_gato/db/lp_*
 el_gato/db/lp.log
 el_gato/db/config.txt
+
+
+# build files
+build/
+elgato.egg_info/
+el_gato/__pycache__/*
+el_gato/elgato.egg_info/*
