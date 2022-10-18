@@ -200,22 +200,22 @@ def make_output_directory(inputs: dict):
     None
         Output directory is created; if there are errors the program stops here 
     """
-    if os.path.isdir(inputs.out_prefix):
-        if inputs.overwrite:
-            inputs.logging_buffer_message += "Output directory exists, removing the existing directory\n"
+    if os.path.isdir(inputs["out_prefix"]):
+        if inputs["overwrite"]:
+            inputs["logging_buffer_message"] += "Output directory exists, removing the existing directory\n"
             try:
-                shutil.rmtree(inputs.out_prefix)
+                shutil.rmtree(inputs["out_prefix"])
             except PermissionError:
                 print("Failed to remove the existing directory. Do you have write permissions?")
                 sys.exit(1)
-            os.mkdir(inputs.out_prefix)
-            inputs.logging_buffer_message += f"New output directory created\n"
+            os.mkdir(inputs["out_prefix"])
+            inputs["logging_buffer_message"] += f"New output directory created\n"
         else:
-            print(f"Output directory '{inputs.out_prefix}' exists and overwrite is turned off. Exiting")
+            print(f"Output directory \'{inputs['out_prefix']}\' exists and overwrite is turned off. Exiting")
             sys.exit(1)
     else:
-        os.mkdir(inputs.out_prefix)
-        inputs.logging_buffer_message += f"New output directory created\n"
+        os.mkdir(inputs["out_prefix"])
+        inputs["logging_buffer_message"] += f"New output directory created\n"
 
 
 def configure_logger(inputs: dict):
