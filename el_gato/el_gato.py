@@ -10,7 +10,6 @@ import sys
 import shutil
 import shlex
 import time
-
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
@@ -346,25 +345,29 @@ def check_files(inputs: dict) -> None:
         sys.exit(1)
 
 
-def ensure_safe_threads(threads: int = 1) -> None:
+def ensure_safe_threads(inputs: dict, threads: int = 1) -> dict:
     """Ensures that the number of user supplied threads doesn't exceed system capacity
 
     Sets the number of threads to maximum available threads if threads exceed system capacity.
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
     threads : int
         Number of threads supplied by the user.
 
     Returns
     -------
-    None
-        Threads are adjusted, no value is returned
+    dict
+        modified inputs object with threads adjusted
 
     """
     if threads > multiprocessing.cpu_count():
         logging.critical("User has supplied more threads than processor capacity, resetting to max cores.")
         Inputs.threads = multiprocessing.cpu_count()
+
+    return inputs
 
 
 # TODO: implement try-catch for running programs
@@ -440,8 +443,15 @@ def resume_checkpoint(step):
 
 
 # TODO: Create the file and indices inside the Input.out_prefix folder
-def validate_ref() -> None:
+def validate_ref(inputs: dict, Ref: Ref) -> None:
     """Checks if the reference files and indices exist, creates them otherwise, returns nothing
+
+    Parameters
+    ----------
+    inputs: dict
+        Run settings
+    Ref: Ref class instance
+        Reference sequence information
 
     Returns
     -------
@@ -459,20 +469,20 @@ def validate_ref() -> None:
         run_command(f"bwa index {Ref.file}", "bwa index")
         run_command(f"samtools faidx {Ref.file}", "samtools faidx")
 
-    if not os.path.isfile(os.path.join(Inputs.sbt, "lp_35.txt")):
-        config_target = os.path.join(Inputs.sbt, "config.txt")
+    if not os.path.isfile(os.path.join(inputs["sbt"], "lp_35.txt")):
+        config_target = os.path.join(inputs["sbt"], "config.txt")
         with open(config_target, "w") as f:
             f.write("[loci]\n")
             for locus in Ref.locus_order:
-                this_locus = os.path.join(Inputs.sbt, locus + Inputs.suffix)
+                this_locus = os.path.join(inputs["sbt"], locus + inputs["suffix"])
                 f.write(f"{locus}\t{this_locus}\n")
-            f.write(f"[profile]\nprofile\t{Inputs.profile}\n")
+            f.write(f"[profile]\nprofile\t{inputs['profile']}\n")
 
-        run_command(f"stringMLST.py --buildDB -c {config_target} -k 35 -P {Inputs.sbt}/lp", "stringMLST buildDB")
+        run_command(f"stringMLST.py --buildDB -c {config_target} -k 35 -P {inputs['sbt']}/lp", "stringMLST buildDB")
 
     for locus in Ref.locus_order:
-        if not os.path.isfile(os.path.join(Inputs.sbt, locus + Inputs.suffix + ".nhr")):
-            makeblastdb = f"makeblastdb -in {os.path.join(Inputs.sbt, locus + Inputs.suffix)} -dbtype nucl"
+        if not os.path.isfile(os.path.join(inputs["sbt"], locus + inputs["suffix"] + ".nhr")):
+            makeblastdb = f"makeblastdb -in {os.path.join(inputs['sbt'], locus + inputs['suffix'])} -dbtype nucl"
             run_command(makeblastdb, f"makeblastdb/{locus}")
 
 
@@ -1078,7 +1088,7 @@ def main():
     logging.info("Input files are present")
 
     logging.info("Ensuring thread counts are correct")
-    ensure_safe_threads()
+    inputs = ensure_safe_threads(inputs)
     logging.info("Thread count has been validated")
 
     logging.info("Checking for reference files")
