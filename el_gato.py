@@ -39,70 +39,74 @@ class Ref:
                        "stringMLST.py"]
 
 
-class Inputs:
-    read1 = None
-    read2 = None
-    assembly = None
-    threads = 1
-    out_prefix = "out"
-    sample_name = "<Inferred from input file>"
-    log = os.path.join(out_prefix, "run.log")
-    sbt = os.path.join(script_path, "db")
-    suffix = "_alleles.tfa"
-    profile = os.path.join(sbt, "lpneumophila.txt")
-    verbose = False
-    overwrite = False
-    depth = 3
-    analysis_path = ""
-    logging_buffer_message = ""
+def get_args() -> argparse.ArgumentParser:
+
+    """ Get commandline arguments """
+    parser = argparse.ArgumentParser(description="""Legionella in silico SBT script. 
+    Requires paired-end reads files and/or a genome assembly.
+
+    Notes on arguments:
+    (1) If only reads are provided, de novo assembly is performed and SBT is called using an assembly/mapping/alignment route.
+    (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted. 
+    (3) If both reads and an assembly are provided, SBT is called using a combination of assembly and mapping.
+    """, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
+    group1 = parser.add_argument_group(title='Input files',
+                                       description="Please specify either reads files and/or a genome assembly file")
+    group1.add_argument("--read1", "-1", help="Input Read 1 (forward) file", type=str, required=False,
+                        metavar="Read 1 file")
+    group1.add_argument("--read2", "-2", help="Input Read 2 (reverse) file", type=str, required=False,
+                        metavar="Read 2 file")
+    group1.add_argument("--assembly", "-a", help="Input assembly fasta file", type=str, required=False,
+                        metavar="Assembly file")
+    group2 = parser.add_argument_group(title='Optional arguments')
+    group2.add_argument("--help", "-h", action="help", help="Show this help message and exit")
+    group2.add_argument("--threads", "-t", help="Number of threads to run the programs (default: %(default)s)", type=int,
+                        required=False, default=1)
+    group2.add_argument("--depth", "-d", help="Variant read depth cutoff (default: %(default)s)", type=int, required=False,
+                        default=3)
+    group2.add_argument("--out", "-o", help="Output folder name (default: %(default)s)", type=str, required=False,
+                        default="out")
+    group2.add_argument("--sample", "-n", help="Sample name (default: %(default)s)", type=str, required=False,
+                        default="<Inferred from input file>")
+    group2.add_argument("--overwrite", "-w", help="Overwrite output directory (default: %(default)s)", action="store_true",
+                        required=False, default=False)
+    group2.add_argument("--sbt", "-s", help="Database containing SBT allele and ST mapping files (default: %(default)s)",
+                        type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db"))
+    group2.add_argument("--suffix", "-x", help="Suffix of SBT allele files (default: %(default)s)", type=str,
+                        required=False, default="_alleles.tfa")
+    group2.add_argument("--profile", "-p", help="Name of allele profile to ST mapping file (default: %(default)s)",
+                        type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"))
+    group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
+                        action="store_true", required=False, default=False)
+
+    return parser
 
 
-""" Get commandline arguments """
-parser = argparse.ArgumentParser(description="""Legionella in silico SBT script. 
-Requires paired-end reads files and/or a genome assembly.
 
-Notes on arguments:
-(1) If only reads are provided, de novo assembly is performed and SBT is called using an assembly/mapping/alignment route.
-(2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted. 
-(3) If both reads and an assembly are provided, SBT is called using a combination of assembly and mapping.
-""", formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
-group1 = parser.add_argument_group(title='Input files',
-                                   description="Please specify either reads files and/or a genome assembly file")
-group1.add_argument("--read1", "-1", help="Input Read 1 (forward) file", type=str, required=False,
-                    metavar="Read 1 file")
-group1.add_argument("--read2", "-2", help="Input Read 2 (reverse) file", type=str, required=False,
-                    metavar="Read 2 file")
-group1.add_argument("--assembly", "-a", help="Input assembly fasta file", type=str, required=False,
-                    metavar="Assembly file")
-group2 = parser.add_argument_group(title='Optional arguments')
-group2.add_argument("--help", "-h", action="help", help="Show this help message and exit")
-group2.add_argument("--threads", "-t", help="Number of threads to run the programs (default: %(default)s)", type=int,
-                    required=False, default=Inputs.threads)
-group2.add_argument("--depth", "-d", help="Variant read depth cutoff (default: %(default)s)", type=int, required=False,
-                    default=Inputs.depth)
-group2.add_argument("--out", "-o", help="Output folder name (default: %(default)s)", type=str, required=False,
-                    default=Inputs.out_prefix)
-group2.add_argument("--sample", "-n", help="Sample name (default: %(default)s)", type=str, required=False,
-                    default=Inputs.sample_name)
-group2.add_argument("--overwrite", "-w", help="Overwrite output directory (default: %(default)s)", action="store_true",
-                    required=False, default=Inputs.overwrite)
-group2.add_argument("--sbt", "-s", help="Database containing SBT allele and ST mapping files (default: %(default)s)",
-                    type=str, required=False, default=Inputs.sbt)
-group2.add_argument("--suffix", "-x", help="Suffix of SBT allele files (default: %(default)s)", type=str,
-                    required=False, default=Inputs.suffix)
-group2.add_argument("--profile", "-p", help="Name of allele profile to ST mapping file (default: %(default)s)",
-                    type=str, required=False, default=Inputs.profile)
-group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
-                    action="store_true", required=False, default=Inputs.verbose)
-args = parser.parse_args()
-
-
-def check_input_supplied() -> None:
+def check_input_supplied(
+        args: argparse.ArgumentParser,
+        parser: argparse.ArgumentParser,
+        inputs: dict
+        ) -> dict:
     """Checks if all the required arguments have been supplied
+
+    Parameters
+    ----------
+    args: argparse.ArgumentParser
+        The arguments with which program was executed, parsed using 
+        argparse.
+
+    parser: argparse.ArgumentParser
+        Argparse command line parser object
+
+    inputs: dict
+        Run settings
 
     Returns
     -------
-    None
+    dict
+        modified inputs dict
+        
         Exits the program if required arguments are not supplied or if they are mismatched
     """
     error = f"""Not enough arguments! The script requires both read files and/or a genome assembly file.\n\nRun {parser.prog} -h to see usage."""
@@ -111,90 +115,116 @@ def check_input_supplied() -> None:
         if not args.read1 or not args.read2:
             print(f"Error: {error}")
             sys.exit(1)
-        Inputs.analysis_path = "r"
-        Inputs.logging_buffer_message += "User supplied both reads files, adopting the assembly/mapping/alignment route\n"
+        inputs["analysis_path"] = "r"
+        inputs["logging_buffer_message"] += "User supplied both reads files, adopting the assembly/mapping/alignment route\n"
     elif args.read1:
         # assembly is supplied, do we have reads1?
-        Inputs.analysis_path = "a"
+        inputs["analysis_path"] = "a"
         if args.read2:
             # we have reads and assembly
-            Inputs.analysis_path += "r"
-            Inputs.logging_buffer_message += "User supplied both reads files and the assembly file, adopting the mapping/alignment route\n"
+            inputs["analysis_path"] += "r"
+            inputs["logging_buffer_message"] += "User supplied both reads files and the assembly file, adopting the mapping/alignment route\n"
         else:
             # reads2 is missing, which is incorrect
             print(f"Error: {error}")
             sys.exit(1)
     else:
         # assembly is supplied, read1 is not. Is read2 supplied?
-        Inputs.analysis_path = "a"
+        inputs["analysis_path"] = "a"
         if args.read2:
             # only reads2 is supplied, which is incorrect
             print(f"Error: {error}")
             sys.exit(1)
-        Inputs.logging_buffer_message += "User supplied the assembly file, adopting the alignment/in silico pcr route\n"
+        inputs["logging_buffer_message"] += "User supplied the assembly file, adopting the alignment/in silico pcr route\n"
+
+    return inputs
 
 
-def set_inputs():
+def set_inputs(
+        args: argparse.ArgumentParser,
+        inputs: dict
+        ) -> dict:
     """Carries over the arguments supplied in argparse into a local class Inputs
+
+    Parameters
+    ----------
+    args: argparse.ArgumentParser
+        The arguments with which program was executed, parsed using 
+        argparse.
+
+    inputs: dict
+        Run settings
 
     Returns
     -------
-    None
-        Inputs are set
+    dict
+        modified inputs dict
     """
-    if "r" in Inputs.analysis_path:
-        Inputs.read1 = args.read1
-        Inputs.read2 = args.read2
-    if "a" in Inputs.analysis_path:
-        Inputs.assembly = args.assembly
-    Inputs.threads = args.threads
-    Inputs.out_prefix = args.out
-    Inputs.log = os.path.join(args.out, "run.log")
-    Inputs.sbt = args.sbt
-    Inputs.suffix = args.suffix
-    Inputs.profile = args.profile
-    Inputs.verbose = args.verbose
-    Inputs.overwrite = args.overwrite
-    Inputs.depth = args.depth
-    Ref.file = os.path.join(Inputs.out_prefix, Ref.file)
-    if args.sample == Inputs.sample_name:
-        if Inputs.read1 is not None:
-            Inputs.sample_name = os.path.basename(os.path.splitext(Inputs.read1)[0])
-            Inputs.sample_name = re.sub("_R1.*", "", Inputs.sample_name)
+    if "r" in inputs["analysis_path"]:
+        inputs["read1"] = args.read1
+        inputs["read2"] = args.read2
+    if "a" in inputs["analysis_path"]:
+        inputs["assembly"] = args.assembly
+    inputs["threads"] = args.threads
+    inputs["out_prefix"] = args.out
+    inputs["log"] = os.path.join(args.out, "run.log")
+    inputs["sbt"] = args.sbt
+    inputs["suffix"] = args.suffix
+    inputs["profile"] = args.profile
+    inputs["verbose"] = args.verbose
+    inputs["overwrite"] = args.overwrite
+    inputs["depth"] = args.depth
+    Ref.file = os.path.join(inputs["out_prefix"], Ref.file)
+    if args.sample == inputs["sample_name"]:
+        if inputs["read1"] is not None:
+            inputs["sample_name"] = os.path.basename(os.path.splitext(inputs["read1"])[0])
+            inputs["sample_name"] = re.sub("_R1.*", "", inputs["sample_name"])
         else:
-            Inputs.sample_name = os.path.basename(os.path.splitext(Inputs.assembly)[0])
+            inputs["sample_name"] = os.path.basename(os.path.splitext(inputs["assembly"])[0])
     else:
-        Inputs.sample_name = args.sample
+        inputs["sample_name"] = args.sample
+
+    return inputs
 
 
-def make_output_directory():
+def make_output_directory(inputs: dict):
     """Makes the output directory
+    
+    Parameters
+    ----------
+    inputs: dict
+        Run settings
 
     Returns
     -------
     None
         Output directory is created; if there are errors the program stops here 
     """
-    if os.path.isdir(Inputs.out_prefix):
-        if Inputs.overwrite:
-            Inputs.logging_buffer_message += "Output directory exists, removing the existing directory\n"
+    if os.path.isdir(inputs.out_prefix):
+        if inputs.overwrite:
+            inputs.logging_buffer_message += "Output directory exists, removing the existing directory\n"
             try:
-                shutil.rmtree(Inputs.out_prefix)
+                shutil.rmtree(inputs.out_prefix)
             except PermissionError:
                 print("Failed to remove the existing directory. Do you have write permissions?")
                 sys.exit(1)
-            os.mkdir(Inputs.out_prefix)
-            Inputs.logging_buffer_message += f"New output directory created\n"
+            os.mkdir(inputs.out_prefix)
+            inputs.logging_buffer_message += f"New output directory created\n"
         else:
-            print(f"Output directory '{Inputs.out_prefix}' exists and overwrite is turned off. Exiting")
+            print(f"Output directory '{inputs.out_prefix}' exists and overwrite is turned off. Exiting")
             sys.exit(1)
     else:
-        os.mkdir(Inputs.out_prefix)
-        Inputs.logging_buffer_message += f"New output directory created\n"
+        os.mkdir(inputs.out_prefix)
+        inputs.logging_buffer_message += f"New output directory created\n"
 
 
-def configure_logger():
+def configure_logger(inputs: dict):
     """Configures the logging for printing
+
+    Parameters
+    ----------
+    inputs: dict
+        Run settings
 
     Returns
     -------
@@ -202,39 +232,48 @@ def configure_logger():
         Logger behavior is set based on the Inputs variable
     """
     try:
-        logging.basicConfig(filename=Inputs.log, filemode="w", level=logging.DEBUG,
-                            format=f"[%(asctime)s | {Inputs.out_prefix} ]  %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
+        logging.basicConfig(filename=inputs["log"], filemode="w", level=logging.DEBUG,
+                            format=f"[%(asctime)s | {inputs['out_prefix']} ]  %(message)s", datefmt="%m/%d/%Y %I:%M:%S %p")
     except FileNotFoundError:
         print(
-            f"The supplied location for the log file '{Inputs.log}' doesn't exist. Please check if the location exists.")
+            f"The supplied location for the log file \'{inputs['log']}\' doesn't exist. Please check if the location exists.")
         sys.exit(1)
     except IOError:
         print(
             f"I don't seem to have access to make the log file. Are the permissions correct or is there a directory with the same name?")
         sys.exit(1)
 
-    if Inputs.verbose:
+    if inputs["verbose"]:
         console = logging.StreamHandler()
         console.setLevel(logging.INFO)
-        formatter = logging.Formatter(f"[%(asctime)s | {Inputs.out_prefix} ] %(message)s")
+        formatter = logging.Formatter(f"[%(asctime)s | {inputs['out_prefix']} ] %(message)s")
         console.setFormatter(formatter)
         logging.getLogger().addHandler(console)
 
 
 def get_inputs():
+    """Writes run settings to log
+
+    Parameters
+    ----------
+    inputs: dict
+        Run settings
+
+    """
+    
     logging.debug(f"""Parameters input:
-                Read 1      {Inputs.read1}
-                Read 2      {Inputs.read2}
-                Assembly    {Inputs.assembly}
-                Threads     {Inputs.threads}
-                Out Prefix  {Inputs.out_prefix}
-                Log file    {Inputs.log}
-                SBT         {Inputs.sbt}
-                Suffix      {Inputs.suffix}
-                Profile     {Inputs.profile}
-                Verbose     {Inputs.verbose}
-                Overwrite   {Inputs.overwrite}
-                Depth       {Inputs.depth}\n\n""")
+                Read 1      {inputs["read1"]}
+                Read 2      {inputs["read2"]}
+                Assembly    {inputs["assembly"]}
+                Threads     {inputs["threads"]}
+                Out Prefix  {inputs["out_prefix"]}
+                Log file    {inputs["log"]}
+                SBT         {inputs["sbt"]}
+                Suffix      {inputs["suffix"]}
+                Profile     {inputs["profile"]}
+                Verbose     {inputs["verbose"]}
+                Overwrite   {inputs["overwrite"]}
+                Depth       {inputs["depth"]}\n\n""")
 
 
 def check_program(program_name: str) -> None:
@@ -300,7 +339,7 @@ def check_files() -> None:
         sys.exit(1)
 
 
-def ensure_safe_threads(threads: int = Inputs.threads) -> None:
+def ensure_safe_threads(threads: int = 1) -> None:
     """Ensures that the number of user supplied threads doesn't exceed system capacity
 
     Sets the number of threads to maximum available threads if threads exceed system capacity.
@@ -441,7 +480,7 @@ def run_stringmlst(r1: str, r2: str) -> dict:
     return allele_calls
 
 
-def check_coverage(file: str, min_depth: int = Inputs.depth) -> bool:
+def check_coverage(file: str, min_depth: int = 3) -> bool:
     """Checks if sufficient read coverage is present throughout the reference gene
 
     Parameters
@@ -993,9 +1032,31 @@ def pretty_time_delta(seconds: int):
 
 def main():
     """ Main code """
-    check_input_supplied()
-    set_inputs()
-    make_output_directory()
+
+    inputs = {
+        'read1' : None,
+        'read2' : None,
+        'assembly' : None,
+        'threads' : 1,
+        'out_prefix' : "out",
+        'sample_name' : "<Inferred from input file>",
+        'log' : os.path.join("out", "run.log"),
+        'sbt' : os.path.join(os.path.dirname(__file__), "db"),
+        'suffix' : "_alleles.tfa",
+        'profile' : os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"),
+        'verbose' : False,
+        'overwrite' : False,
+        'depth' : 3,
+        'analysis_path' : "",
+        'logging_buffer_message' : ""
+        }
+
+
+    parser = get_args()
+    args = parser.parse_args()
+    inputs = check_input_supplied(args, parser, inputs)
+    inputs = set_inputs(args, inputs)
+    make_output_directory(inputs)
     configure_logger()
     logging.info("Starting preprocessing")
     for line in Inputs.logging_buffer_message.rstrip().split("\n"):
