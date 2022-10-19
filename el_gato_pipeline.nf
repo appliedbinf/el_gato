@@ -102,67 +102,88 @@ process LS_TEST {
   """
 }
 
+
+workflow reads_and_assembly {
+  // Make list of source and destination for inputs
+  to_copy = channel.of(params.sbt, params.read1, params.read2, params.assembly)
+  destinations = channel.of("db", "read1.fastq", "read2.fastq", "assembly.fna")
+  
+  // Copy inputs to Nextflow work dir and create lookup object
+  cp_out = CP_THING(to_copy, destinations)
+  cp_out
+    .branch {
+        db: it =~ /db$/
+        assembly: it =~ /assembly.fna$/
+        r1: it =~ /read1.fastq$/
+        r2: it =~ /read2.fastq$/
+    }
+    .set { new_paths }
+
+  // Paths can now be accessed with the following
+  new_paths.db.view { "$it is in db" }
+  new_paths.assembly.view { "$it is in assembly" }
+  new_paths.r1.view { "$it is in r1" }
+  new_paths.r2.view { "$it is in r2" }
+}
+
+
+workflow assembly_only {
+  to_copy = channel.of(params.sbt, params.assembly)
+  destinations = channel.of("db", "assembly.fna")
+  
+  cp_out = CP_THING(to_copy, destinations)
+  cp_out
+    .branch {
+        db: it =~ /db$/
+        assembly: it =~ /assembly.fna$/
+    }
+    .set { new_paths }
+
+    new_paths.db.view { "$it is in db" }
+    new_paths.assembly.view { "$it is in assembly" }
+}
+
+
+workflow reads_only {
+  to_copy = channel.of(params.sbt, params.read1, params.read2)
+  destinations = channel.of("db", "read1.fastq", "read2.fastq")
+
+  cp_out = CP_THING(to_copy, destinations)
+  cp_out
+    .branch {
+        db: it =~ /db$/
+        r1: it =~ /read1.fastq$/
+        r2: it =~ /read2.fastq$/
+    }
+    .set { new_paths }
+
+    new_paths.db.view { "$it is in db" }
+    new_paths.r1.view { "$it is in r1" }
+    new_paths.r2.view { "$it is in r2" }
+}
+
+
 workflow {
 
   if ( params.read1 != "False" && params.read2 != "False") {
     if ( params.assembly != "False" ){
-      // Make list of source and destination for inputs
-      to_copy = channel.of(params.sbt, params.read1, params.read2, params.assembly)
-      destinations = channel.of("db", "read1.fastq", "read2.fastq", "assembly.fna")
-      
-      // Copy inputs to Nextflow work dir and create lookup object
-      cp_out = CP_THING(to_copy, destinations)
-      cp_out
-        .branch {
-            db: it =~ /db$/
-            assembly: it =~ /assembly.fna$/
-            r1: it =~ /read1.fastq$/
-            r2: it =~ /read2.fastq$/
-        }
-        .set { new_paths }
 
-      // Paths can now be accessed with the following
-      new_paths.db.view { "$it is in db" }
-      new_paths.assembly.view { "$it is in assembly" }
-      new_paths.r1.view { "$it is in r1" }
-      new_paths.r2.view { "$it is in r2" }
+      reads_and_assembly()
+
     } else {
-      to_copy = channel.of(params.sbt, params.read1, params.read2)
-      destinations = channel.of("db", "read1.fastq", "read2.fastq")
 
-      cp_out = CP_THING(to_copy, destinations)
-      cp_out
-        .branch {
-            db: it =~ /db$/
-            r1: it =~ /read1.fastq$/
-            r2: it =~ /read2.fastq$/
-        }
-        .set { new_paths }
+      reads_only()
 
-        new_paths.db.view { "$it is in db" }
-        new_paths.r1.view { "$it is in r1" }
-        new_paths.r2.view { "$it is in r2" }
     }
-    
   } else {
     if ( params.assembly != "False" ){
 
-      to_copy = channel.of(params.sbt, params.assembly)
-      destinations = channel.of("db", "assembly.fna")
-      
-      cp_out = CP_THING(to_copy, destinations)
-      cp_out
-        .branch {
-            db: it =~ /db$/
-            assembly: it =~ /assembly.fna$/
-        }
-        .set { new_paths }
-
-        new_paths.db.view { "$it is in db" }
-        new_paths.assembly.view { "$it is in assembly" }
+      assembly_only()
 
     } else {
+
       println ( "ERROR! You must provide either reads, or an assembly, or both." )
+
     }
   }
 
