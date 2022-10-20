@@ -44,6 +44,11 @@ process READ_INPUTS {
     'logging_buffer_message' : "${params.logging_buffer_message}"
   }
 
+  # Correct input strings for not-provided inputs
+  for k, v in inputs.items():
+    if v == "False":
+      inputs[k] = False
+
   with open("inputs.json", "w") as fout:
     json.dump(inputs, fout, ensure_ascii=False, indent=4)
 
@@ -124,9 +129,9 @@ process UPDATE_READS {
   """
 }
 
-process VALIDATE_REF {
+process READS_AND_ASSEMBLY_PIPELINE {
   input:
-    path 'inputs.json'
+    path f
 
   output:
     stdout
@@ -135,17 +140,76 @@ process VALIDATE_REF {
   #!/usr/bin/env python
   
   import json
+  import os
 
   from el_gato import el_gato
 
-  with open('inputs.json') as fin:
+  with open("$f") as fin:
     inputs = json.load(fin)
 
+  # Use el_gato function to abort if files missing
+  el_gato.check_files(inputs)
+
+  # Change ref file location to DB location
   ref = el_gato.Ref
+  ref.file = os.path.join(inputs['sbt'], ref.file)
 
-  print("running validate_ref()")
-
+  # Build blast databases and other files
   el_gato.validate_ref(inputs, ref)
+
+  # Run read + assembly pipeline
+  mompS_allele = el_gato.call_momps_mapping(inputs, r1=inputs["read1"], r2=inputs["read2"],
+                                    threads=inputs['threads'], ref_file=ref.file,
+                                    outfile=os.path.join(inputs["sbt"], inputs["sample_name"]))
+  if mompS_allele == "-":
+      mompS_allele = el_gato.call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                    db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+  alleles = el_gato.blast_non_momps(inputs, assembly_file=inputs["assembly"])
+  alleles["mompS"] = mompS_allele
+
+  print(el_gato.print_table(inputs,  ref, alleles))
+
+  """
+}
+
+process ASSEMBLY_ONLY_PIPELINE {
+  input:
+    path f
+
+  output:
+    stdout
+
+  """
+  #!/usr/bin/env python
+  
+  import json
+  import os
+
+  from el_gato import el_gato
+
+  with open("$f") as fin:
+    inputs = json.load(fin)
+
+  # Use el_gato function to abort if files missing
+  el_gato.check_files(inputs)
+
+  # Change ref file location to DB location
+  ref = el_gato.Ref
+  ref.file = os.path.join(inputs['sbt'], ref.file)
+
+  # Build blast databases and other files
+  el_gato.validate_ref(inputs, ref)
+
+  # Run assembly-only pipeline
+  alleles = el_gato.blast_non_momps(inputs, assembly_file=inputs["assembly"])
+  alleles["mompS"] = el_gato.call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                            db=os.path.join(
+                                                            inputs["sbt"], 
+                                                            "mompS" + inputs["suffix"]
+                                                            )
+                                            )
+
+  print(el_gato.print_table(inputs,  ref, alleles))
 
   """
 }
@@ -242,6 +306,8 @@ workflow reads_and_assembly {
   UPDATE_ASSEMBLY(f, assembly)
   UPDATE_READS(f, r1, r2)
 
+  READS_AND_ASSEMBLY_PIPELINE(f) | view
+
 }
 
 
@@ -264,6 +330,8 @@ workflow assembly_only {
   f = READ_INPUTS()
   UPDATE_DB(f, db)
   UPDATE_ASSEMBLY(f, assembly)
+
+  ASSEMBLY_ONLY_PIPELINE(f) | view
 
 
 
