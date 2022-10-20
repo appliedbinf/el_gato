@@ -854,11 +854,14 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
             return "-"
 
 
-def genome_assembly(r1: str, r2: str, out: str) -> None:
+def genome_assembly(inputs: dict, r1: str, r2: str, out: str) -> None:
     """Perform de novo genome assembly using spades
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
+
     r1 : str
         Read1 file name
 
@@ -870,8 +873,8 @@ def genome_assembly(r1: str, r2: str, out: str) -> None:
 
     Returns
     -------
-    None
-        Executes the commands and exits
+    dict
+        inputs object with updated assembly location
     """
     assembly_command = f"spades.py -1 {r1} -2 {r2} -o {out} --careful -t {inputs['threads']}"
     run_command(assembly_command, "spades")
@@ -883,6 +886,8 @@ def genome_assembly(r1: str, r2: str, out: str) -> None:
         sys.exit(1)
     inputs["assembly"] = assem
     logging.debug(f"Setting assembly path to {inputs['assembly']}")
+
+    return inputs
 
 
 def blast_non_momps(inputs: dict, assembly_file: str) -> dict:
@@ -999,7 +1004,7 @@ def choose_analysis_path(inputs: dict, ref: str, header: bool = True) -> str:
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                           db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
     elif inputs["analysis_path"] == "r":
-        genome_assembly(r1=inputs["read1"], r2=inputs["read2"],
+        inputs = genome_assembly(r1=inputs["read1"], r2=inputs["read2"],
                         out=os.path.join(inputs["out_prefix"], "run_spades"))
         mompS_allele = call_momps_mapping(inputs,
                                           r1=inputs["read1"], 
