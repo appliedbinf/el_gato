@@ -405,14 +405,14 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
         command = shlex.split(command, posix=False)
     if stdin is not None:
         try:
-            result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=shell,
+            result = subprocess.check_output(command, stderr=subprocess.DEVNULL, shell=shell,
                                              input=stdin, encoding='utf-8')
         except subprocess.CalledProcessError:
             logging.critical(f"CRITICAL ERROR! The following command had an improper exit: \n{full_command}\n")
             sys.exit(1)
     else:
         try:
-            result = subprocess.check_output(command, shell=shell, stderr=subprocess.STDOUT, encoding='utf-8')
+            result = subprocess.check_output(command, shell=shell, stderr=subprocess.DEVNULL, encoding='utf-8')
         except subprocess.CalledProcessError:
             logging.critical(f"CRITICAL ERROR! The following command had an improper exit: \n{full_command}\n")
             sys.exit(1)
@@ -514,7 +514,7 @@ def check_coverage(file: str, min_depth: int = 3) -> bool:
     """
     logging.info(f"Computing coverage for {file}")
     depth = subprocess.check_output(
-        f"samtools depth -a -r {Ref.name}:{Ref.allele_start}-{Ref.allele_stop} {file}".split(" ")).decode(
+        f"samtools depth -a -r {Ref.name}:{Ref.allele_start}-{Ref.allele_stop} {file}".split(" "), stderr=subprocess.DEVNULL).decode(
         "utf-8").split("\n")
     for d in depth:
         d = d.rstrip().split("\t")
@@ -528,7 +528,7 @@ def check_coverage(file: str, min_depth: int = 3) -> bool:
     return True
 
 
-def call_variants(prefix: str) -> bool:
+def call_variants(inputs: dict, prefix: str) -> bool:
     """Call variants from SAM file
 
     Goes through the following steps:
@@ -539,6 +539,9 @@ def call_variants(prefix: str) -> bool:
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
+
     prefix : str
         prefix of the SAM file
 
@@ -737,18 +740,27 @@ def blast_momps_allele(seq: str, db: str) -> str:
         return allele
 
 
-def call_momps_mapping(r1: str, r2: str, outfile: str, filt_file: str = "") -> str:
+def call_momps_mapping(inputs: dict, r1: str, r2: str, threads: int, ref_file: str, outfile: str, filt_file: str = "") -> str:
     """Finds the mompS allele number using the mapping strategy
 
     Adopts the mapping based strategy to identify the allele present in the current isolate
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
+
     r1 : str, optional
         Read1 file name
 
     r2 : str, optional
         Read2 file name
+
+    threads: int
+        num threads
+
+    ref_file: str
+        path to ref file
 
     outfile : str, optional
         Output prefix
@@ -765,15 +777,15 @@ def call_momps_mapping(r1: str, r2: str, outfile: str, filt_file: str = "") -> s
         filt_file = outfile + ".filtered"
 
     # Map reads to mompS gene
-    bwa_call = f"bwa mem -t {inputs['threads']} {Ref.file} {r1} {r2} -o {outfile}.sam"
+    bwa_call = f"bwa mem -t {threads} {ref_file} {r1} {r2} -o {outfile}.sam"
     run_command(bwa_call, "bwa")
 
     # Create a separate file containing reads coming from the border regions
     filter_sam_file(samfile=f"{outfile}.sam", outfile=f"{filt_file}.sam")
 
     # Call variants
-    full_coverage = call_variants(prefix=outfile)
-    filtered_coverage = call_variants(prefix=filt_file)
+    full_coverage = call_variants(inputs, prefix=outfile)
+    filtered_coverage = call_variants(inputs, prefix=filt_file)
 
     allele_confidence = ""
     if not (full_coverage or filtered_coverage):
@@ -950,13 +962,17 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     # return st
 
 
-def choose_analysis_path(inputs: dict, header: bool = True) -> str:
+def choose_analysis_path(inputs: dict, ref: str, header: bool = True) -> str:
     """Pick the correct analysis path based on the program input supplied
 
     Parameters
     ----------
     inputs: dict
         Run settings
+
+    ref: Ref
+        Ref class instance
+
     header : bool, optional
         should the header be returned in the output
 
@@ -967,7 +983,11 @@ def choose_analysis_path(inputs: dict, header: bool = True) -> str:
     """
     alleles = {}
     if inputs["analysis_path"] == "ar":
-        mompS_allele = call_momps_mapping(r1=inputs["read1"], r2=inputs["read2"],
+        mompS_allele = call_momps_mapping(inputs,
+                                          r1=inputs["read1"],
+                                          r2=inputs["read2"],
+                                          threads=inputs['threads'],
+                                          ref_file=ref.file,
                                           outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
         if mompS_allele == "-":
             mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
@@ -981,7 +1001,11 @@ def choose_analysis_path(inputs: dict, header: bool = True) -> str:
     elif inputs["analysis_path"] == "r":
         genome_assembly(r1=inputs["read1"], r2=inputs["read2"],
                         out=os.path.join(inputs["out_prefix"], "run_spades"))
-        mompS_allele = call_momps_mapping(r1=inputs["read1"], r2=inputs["read2"],
+        mompS_allele = call_momps_mapping(inputs,
+                                          r1=inputs["read1"], 
+                                          r2=inputs["read2"],
+                                          threads=inputs['threads'],
+                                          ref_file=ref.file,
                                           outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
         if mompS_allele == "-":
             mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
