@@ -214,63 +214,55 @@ process ASSEMBLY_ONLY_PIPELINE {
   """
 }
 
-process CAT_TEST {
-  input:
-    path file
-
-  output:
-    stdout
-
-  """
-  cat ${file}
-  """
-}
-
-process HEAD_TEST {
-  input:
-    path file
-
-  output:
-    stdout
-
-  """
-  head -1 ${file}
-  """
-}
-
-process LS_TEST {
-  input:
-    path dir
-
-  output:
-    stdout
-
-  """
-  ls ${dir}
-  """
-}
-
-
-process TOUCH {
-
-  output:
-  path 'file.txt', emit: f
-
-  script:
-  """
-  touch file.txt
-  """
-}
-
-process TEST {
+process READS_ONLY_PIPELINE {
   input:
     path f
-    val x
+
+  output:
+    stdout
 
   """
-  echo "${x}" > ${f}
+  #!/usr/bin/env python
+  
+  import json
+  import os
+
+  from el_gato import el_gato
+
+  with open("$f") as fin:
+    inputs = json.load(fin)
+
+
+  # Use el_gato function to abort if files missing
+  el_gato.check_files(inputs)
+
+  # Change ref file location to DB location
+  ref = el_gato.Ref
+  ref.file = os.path.join(inputs['sbt'], ref.file)
+
+  # Build blast databases and other files
+  el_gato.validate_ref(inputs, ref)
+
+  # Run read + assembly pipeline
+
+  inputs = el_gato.genome_assembly(inputs, r1=inputs["read1"], r2=inputs["read2"],
+                        out=os.path.join(inputs["sbt"], "run_spades"))
+
+  mompS_allele = el_gato.call_momps_mapping(inputs, r1=inputs["read1"], r2=inputs["read2"],
+                                    threads=inputs['threads'], ref_file=ref.file,
+                                    outfile=os.path.join(inputs["sbt"], inputs["sample_name"]))
+  if mompS_allele == "-":
+      mompS_allele = el_gato.call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                    db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+  alleles = el_gato.blast_non_momps(inputs, assembly_file=inputs["assembly"])
+  alleles["mompS"] = mompS_allele
+
+  print(el_gato.print_table(inputs,  ref, alleles))
+
   """
 }
+
+
 
 workflow reads_and_assembly {
   // Make list of source and destination for inputs
@@ -302,9 +294,9 @@ workflow reads_and_assembly {
 
   // Update inputs object with path of copied files
   f = READ_INPUTS()
-  UPDATE_DB(f, db)
-  UPDATE_ASSEMBLY(f, assembly)
-  UPDATE_READS(f, r1, r2)
+  f = UPDATE_DB(f, db)
+  f = UPDATE_ASSEMBLY(f, assembly)
+  f = UPDATE_READS(f, r1, r2)
 
   READS_AND_ASSEMBLY_PIPELINE(f) | view
 
@@ -328,8 +320,8 @@ workflow assembly_only {
   assembly = new_paths.assembly.view {}
 
   f = READ_INPUTS()
-  UPDATE_DB(f, db)
-  UPDATE_ASSEMBLY(f, assembly)
+  f = UPDATE_DB(f, db)
+  f = UPDATE_ASSEMBLY(f, assembly)
 
   ASSEMBLY_ONLY_PIPELINE(f) | view
 
@@ -340,14 +332,14 @@ workflow assembly_only {
 
 workflow reads_only {
   to_copy = channel.of(params.sbt, params.read1, params.read2)
-  destinations = channel.of("db", "read1.fastq", "read2.fastq")
+  destinations = channel.of("db", "read1.fastq.gz", "read2.fastq.gz")
 
   cp_out = CP_THING(to_copy, destinations)
   cp_out
     .branch {
         db: it =~ /db$/
-        r1: it =~ /read1.fastq$/
-        r2: it =~ /read2.fastq$/
+        r1: it =~ /read1.fastq.gz$/
+        r2: it =~ /read2.fastq.gz$/
     }
     .set { new_paths }
 
@@ -356,8 +348,9 @@ workflow reads_only {
   r2 = new_paths.r2.view {}
 
   f = READ_INPUTS()
-  UPDATE_DB(f, db)
-  UPDATE_READS(f, r1, r2)
+  f = UPDATE_DB(f, db)
+  f = UPDATE_READS(f, r1, r2)
+  READS_ONLY_PIPELINE(f) | view
 }
 
 
