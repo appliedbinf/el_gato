@@ -18,16 +18,17 @@ process CP_THING {
 process READ_INPUTS {
 
   output:
-    path 'inputs.json'
+    path 'inputs.json', emit: f
 
   """
   #!/usr/bin/env python
 
+  import sys
   import json
 
   inputs = {
-    'read1' : ${params.read1},
-    'read2' : ${params.read2},
+    'read1' : "${params.read1}",
+    'read2' : "${params.read2}",
     'assembly' : "${params.assembly}",
     'threads' : ${params.threads},
     'out_prefix' : "${params.out_prefix}",
@@ -48,6 +49,79 @@ process READ_INPUTS {
 
   """
 
+}
+
+process UPDATE_DB {
+  input:
+    path f
+    val db
+
+  output:
+    path f, emit: f
+
+  """
+  #!/usr/bin/env python
+
+  import sys
+  import json
+
+  with open("${f}") as fin:
+    inputs = json.load(fin)
+  old_db_path = inputs['sbt']
+  inputs['sbt'] = "$db"
+  inputs['profile'] = inputs['profile'].replace(old_db_path, "$db")
+  with open("${f}", "w") as fout:
+    json.dump(inputs, fout, ensure_ascii=False, indent=4)
+
+  """
+}
+
+process UPDATE_ASSEMBLY {
+  input:
+    path f
+    val assembly
+
+  output:
+    path f, emit: f
+
+  """
+  #!/usr/bin/env python
+
+  import sys
+  import json
+
+  with open("${f}") as fin:
+    inputs = json.load(fin)
+  inputs['assembly'] = "$assembly"
+  with open("${f}", "w") as fout:
+    json.dump(inputs, fout, ensure_ascii=False, indent=4)
+
+  """
+}
+
+process UPDATE_READS {
+  input:
+    path f
+    val read1
+    val read2
+
+  output:
+    path f, emit: f
+
+  """
+  #!/usr/bin/env python
+
+  import sys
+  import json
+
+  with open("${f}") as fin:
+    inputs = json.load(fin)
+  inputs['read1'] = "$read1"
+  inputs['read2'] = "$read2"
+  with open("${f}", "w") as fout:
+    json.dump(inputs, fout, ensure_ascii=False, indent=4)
+
+  """
 }
 
 process VALIDATE_REF {
@@ -74,8 +148,18 @@ process VALIDATE_REF {
   el_gato.validate_ref(inputs, ref)
 
   """
+}
 
+process CAT_TEST {
+  input:
+    path file
 
+  output:
+    stdout
+
+  """
+  cat ${file}
+  """
 }
 
 process HEAD_TEST {
@@ -103,6 +187,27 @@ process LS_TEST {
 }
 
 
+process TOUCH {
+
+  output:
+  path 'file.txt', emit: f
+
+  script:
+  """
+  touch file.txt
+  """
+}
+
+process TEST {
+  input:
+    path f
+    val x
+
+  """
+  echo "${x}" > ${f}
+  """
+}
+
 workflow reads_and_assembly {
   // Make list of source and destination for inputs
   to_copy = channel.of(params.sbt, params.read1, params.read2, params.assembly)
@@ -120,14 +225,28 @@ workflow reads_and_assembly {
     .set { new_paths }
 
   // Paths can now be accessed with the following
-  new_paths.db.view { "$it is in db" }
-  new_paths.assembly.view { "$it is in assembly" }
-  new_paths.r1.view { "$it is in r1" }
-  new_paths.r2.view { "$it is in r2" }
+  // new_paths.db.view { "$it is in db" }
+  // new_paths.assembly.view { "$it is in assembly" }
+  // new_paths.r1.view { "$it is in r1" }
+  // new_paths.r2.view { "$it is in r2" }
+
+  // unpack paths to separate variables
+  db = new_paths.db.view {}
+  assembly = new_paths.assembly.view {}
+  r1 = new_paths.r1.view {}
+  r2 = new_paths.r2.view {}
+
+  // Update inputs object with path of copied files
+  f = READ_INPUTS()
+  UPDATE_DB(f, db)
+  UPDATE_ASSEMBLY(f, assembly)
+  UPDATE_READS(f, r1, r2)
+
 }
 
 
 workflow assembly_only {
+
   to_copy = channel.of(params.sbt, params.assembly)
   destinations = channel.of("db", "assembly.fna")
   
@@ -139,8 +258,15 @@ workflow assembly_only {
     }
     .set { new_paths }
 
-    new_paths.db.view { "$it is in db" }
-    new_paths.assembly.view { "$it is in assembly" }
+  db = new_paths.db.view {}
+  assembly = new_paths.assembly.view {}
+
+  f = READ_INPUTS()
+  UPDATE_DB(f, db)
+  UPDATE_ASSEMBLY(f, assembly)
+
+
+
 }
 
 
@@ -157,9 +283,13 @@ workflow reads_only {
     }
     .set { new_paths }
 
-    new_paths.db.view { "$it is in db" }
-    new_paths.r1.view { "$it is in r1" }
-    new_paths.r2.view { "$it is in r2" }
+  db = new_paths.db.view {}
+  r1 = new_paths.r1.view {}
+  r2 = new_paths.r2.view {}
+
+  f = READ_INPUTS()
+  UPDATE_DB(f, db)
+  UPDATE_READS(f, r1, r2)
 }
 
 
@@ -186,7 +316,4 @@ workflow {
 
     }
   }
-
-  // inputs = READ_INPUTS()
-  // VALIDATE_REF(inputs) | view
 }
