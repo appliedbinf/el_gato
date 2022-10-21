@@ -731,13 +731,14 @@ def blast_momps_allele(seq: str, db: str) -> str:
     allele = "-"
     if res == "":
         # TODO: run blast again with lower identity threshold and return allele*
-        return allele
+        return [allele]
     else:
+        alleles = []
         for match in res.split("\n"):
             (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
             if int(slen) / int(align_len) == 1 and float(pident) == 100:
-                allele = sseqid.replace("mompS_", "")
-        return allele
+                alleles.append(sseqid.replace("mompS_", ""))
+        return alleles
 
 
 def call_momps_mapping(inputs: dict, r1: str, r2: str, threads: int, ref_file: str, outfile: str, filt_file: str = "") -> str:
@@ -831,7 +832,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
     alleles = list(alleles.keys())
 
     if len(alleles) == 1:
-        return alleles[0]
+        return [alleles[0]]
     else:
         primer1 = os.path.join(inputs["out_prefix"], "mompS_primer1.tab")
         with open(primer1, "w") as f:
@@ -851,7 +852,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
             return blast_momps_allele(seq=primer2_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
         else:
             logging.info("In silico PCR returned no results, try mapping route")
-            return "-"
+            return ["-"]
 
 
 def genome_assembly(inputs: dict, r1: str, r2: str, out: str) -> None:
@@ -1046,17 +1047,26 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
     str
         formatted ST + allele profile (and optional header) of the isolate
     """
-    allele_profile = ""
-    for locus in Ref.locus_order:
-        allele_profile += alleles[locus] + "\t"
-    allele_profile = allele_profile.rstrip()
-    allele_profile = inputs["sample_name"] + "\t" + get_st(allele_profile, Ref,
-                                                        profile_file=inputs["profile"]) + "\t" + allele_profile
-    head = "Sample\tST\t" + "\t".join(Ref.locus_order) + "\n"
+    outlines = []
     if header:
-        return head + allele_profile
-    else:
-        return allele_profile
+        outlines.append("Sample\tST\t" + "\t".join(Ref.locus_order) + "\n")
+    for n in range(len(alleles['mompS'])):
+        allele_profile = ""
+        for locus in Ref.locus_order:
+            if locus != "mompS":
+                allele_profile += alleles[locus] + "\t"
+            else:
+                allele_profile += alleles[locus][n] + "\t"
+        allele_profile = allele_profile.rstrip()
+        allele_profile = (inputs["sample_name"] 
+            + "\t" + get_st(allele_profile, Ref,
+                            profile_file=inputs["profile"])
+            + "\t" + allele_profile)
+
+        outlines.append(allele_profile)
+
+    
+    return "\n".join(outlines)
 
 
 def pretty_time_delta(seconds: int):
