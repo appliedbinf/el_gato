@@ -834,7 +834,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
     if len(alleles) == 1:
         return [alleles[0]]
     else:
-        primer1 = os.path.join(inputs["out_prefix"], "mompS_primer1.tab")
+        primer1 = os.path.join(inputs["sbt"], "mompS_primer1.tab")
         with open(primer1, "w") as f:
             f.write("mompS_1\t" + Ref.mompS_primer1)
         ispcr_command = f"isPcr {assembly_file} {primer1} {Ref.ispcr_opt}"
@@ -842,7 +842,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
 
         if primer1_res != "":
             # nested PCR
-            primer2 = os.path.join(inputs["out_prefix"], "mompS_primer2.tab")
+            primer2 = os.path.join(inputs["sbt"], "mompS_primer2.tab")
             with open(primer2, "w") as f:
                 f.write("mompS_2\t" + Ref.mompS_primer2)
             ispcr_command = f"isPcr stdin {primer2} {Ref.ispcr_opt}"
