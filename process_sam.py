@@ -20,13 +20,13 @@ If 2 alleles:
 
 import sys
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 
 class SAM_data(object):
 	"""stores columns of SAM entry as attributes"""
 	def __init__(self, object):
 		self.qname = object.split('\t')[0]
-		self.flag = object.split('\t')[1]
+		self.flag = int(object.split('\t')[1])
 		self.rname = object.split('\t')[2]
 		self.pos = int(object.split('\t')[3])
 		self.mapq = int(object.split('\t')[4])
@@ -76,20 +76,47 @@ class SAM_data(object):
 			elif letter == 'I' or letter == 'S':
 				count += sect_len
 
+	def get_base_calls(self, positions):
+		"""
+		Args:
+			positions: list
+				list of positions of base calls desired
+
+		returns:
+			list
+				base calls
+		"""
+
+		bases = {k:'' for k in range(len(positions))}
+ 
+		for n, p in enumerate(positions):
+			p_mod = p+1 - self.pos
+			if p_mod < 0:
+				continue
+			if p_mod < self.ln:
+				bases[n] = self.seq[p_mod]
+			else: 
+				continue
+
+		return bases
 
 
 
-insam = "reads_vs_momps_ref_filt_4.sam"
+
+
+insam = sys.argv[1] #"reads_vs_momps_ref_filt_4.sam"
 contig_name = "mompS_ref"
 start_pos = 367
 end_pos = 718
 
-contig_dict ={}
+contig_dict = {}
+read_info_dict = defaultdict(list) #{'readname': [SAM_data, SAM_data]}
 
 with open(insam, 'r') as sam:
 	for line in sam.readlines():
 		if line[0] != "@":
 			entry = SAM_data(line)
+			read_info_dict[entry.qname].append(entry)
 			if entry.rname in contig_dict.keys():
 				contig_dict[entry.rname].append(entry)
 			else:
@@ -101,6 +128,8 @@ reads_dict ={
 	'qualities' : {k:[] for k in range(start_pos-1, end_pos)},
 	'readnames' : {k:[] for k in range(start_pos-1, end_pos)}
 }
+
+
 
 
 momps_reads = contig_dict[contig_name]
@@ -136,14 +165,19 @@ for position in range(start_pos-1, end_pos):
 			if num > 0.9*total: ########## THRESHOLD #################
 				seq.append([base])
 			elif num > 0.1*total:
-				seq.append([b for b in count.keys()])
+				seq.append([b for b,c in count.items() if c > 0.1*total])
 				break
  
 num_alleles_per_site = [len(i) for i in seq]
 
 n_multiallelic = len([i for i in num_alleles_per_site if i > 1])
 
-if n_multiallelic == 1:
+if n_multiallelic == 0:
+	allele = "".join([b[0] for b in seq])
+	print(allele)
+
+
+elif n_multiallelic == 1:
 	alleles = ['']*max(num_alleles_per_site)
 	for base in seq:
 		for i in range(max(num_alleles_per_site)):
@@ -151,6 +185,70 @@ if n_multiallelic == 1:
 				alleles[i] += base[0]
 			else:
 				alleles[i] += base[i]
-print("\n".join(alleles))
+	print("\n".join(alleles))
+
+elif n_multiallelic == 2:
+	multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
+	reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+start_pos-1]
+	reads_at_b = reads_dict['readnames'][multi_allelic_idx[1]+start_pos-1]
+	intersect = sorted([i for i in set(reads_at_a).intersection(set(reads_at_b))])
+	conflicting_reads = []
+	read_pair_base_calls = []
+	for read_name in intersect:
+		read_pair = read_info_dict[read_name]
+		calls_list = []
+		for mate in read_pair: # If read is supplementary alignment, ignore.
+			if mate.flag > 2047:
+				continue
+			calls_list.append(mate.get_base_calls(
+				[multi_allelic_idx[0]+start_pos-1, multi_allelic_idx[1]+start_pos-1]
+				))
+
+		agreeing_calls = []
+		for k in range(2):
+			calls = []
+			
+			for mate_calls in calls_list:
+				if mate_calls[k] != '':
+					calls.append(mate_calls[k])
+			if len(set(calls)) > 1:
+				conflicting_reads.append(calls_list)
+				break
+			else:
+				agreeing_calls.append(list(set(calls))[0])
+
+		if len(agreeing_calls) == 2:
+			read_pair_base_calls.append("".join(agreeing_calls))
 
 
+	if len(conflicting_reads) > 0.1 * len(reads_at_a):
+		print("more than 10% of reads disagree with which variant bases"
+			" are in the same gene")
+
+	biallele_results_count = Counter(read_pair_base_calls)
+	total_read_count = sum([v for v in biallele_results_count.values()])
+
+	bialleles = [k for k,v in biallele_results_count.items() if v > 0.1*total_read_count]
+
+	if len(bialleles) > 2:
+		print(f"{len(bialleles)} well-supported mompS alleles identified"
+		" and can't be resolved. Aborting.")
+		sys.exit()
+
+	alleles = ['']*max(num_alleles_per_site)
+	biallic_count = 0
+	for base in seq:
+		for i in range(max(num_alleles_per_site)):
+			if len(base) == 1:
+				alleles[i] += base[0]
+			else:
+				alleles[i] += bialleles[i][biallic_count]
+		if len(base) > 1:
+			biallic_count+=1
+
+	print("\n".join(alleles))
+
+
+
+# M03199:169:000000000-B8KWC:1:1101:28160:15045
+# [646, 706]
