@@ -10,6 +10,7 @@ import sys
 import shutil
 import shlex
 import time
+from collections import defaultdict, Counter
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
@@ -1050,8 +1051,147 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     # return st
 
 
+def read_sam_file(samfile: str):
+    contig_dict = defaultdict(list) #{'contig': [SAM_data, SAM_data]}
+    read_info_dict = defaultdict(list) #{'readname': [SAM_data, SAM_data]}
+
+    with open(samfile, 'r') as sam:
+        for line in sam.readlines():
+            if line[0] == "@":
+                continue
+            
+            entry = SAM_data(line)
+            read_info_dict[entry.qname].append(entry)
+            contig_dict[entry.rname].append(entry)
+
+    return contig_dict, read_info_dict
+
+
+def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
+    momps_reads = contig_dict[ref.name]
+
+    # reads_dict {bases: {pos:base}, qualities: {pos:qual}, readnames: {pos:rname}}
+    reads_dict ={
+        'bases' : {k:[] for k in range(ref.allele_start-1, ref.allele_stop)},
+        'qualities' : {k:[] for k in range(ref.allele_start-1, ref.allele_stop)},
+        'readnames' : {k:[] for k in range(ref.allele_start-1, ref.allele_stop)}
+        }
+
+    for read in momps_reads:
+        if ( 
+            (read.pos <= ref.allele_start and ref.allele_start <= read.end) or
+            (read.pos <= ref.allele_stop and ref.allele_stop <= read.end) or
+            (ref.allele_start <= read.pos and read.end <= ref.allele_stop) or
+            (read.pos <= ref.allele_start and ref.allele_stop <= read.end)
+            ):
+            if read.pos < ref.allele_start:
+                pad = ref.allele_start - read.pos
+            else:
+                pad = 0
+            
+
+            for read_idx in range(pad, min([read.ln - 1, 719-read.pos])):
+                ref_seq_idx = read.pos + read_idx - 1
+                reads_dict['bases'][ref_seq_idx].append(read.seq[read_idx])
+                reads_dict['qualities'][ref_seq_idx].append(read.qual[read_idx])
+                reads_dict['readnames'][ref_seq_idx].append(read.qname)
+
+    seq = []
+
+    for position in range(ref.allele_start-1, ref.allele_stop):
+        count = Counter(reads_dict['bases'][position])
+        if len(count) == 1:
+            seq.append([[b for b in count][0]])
+        else:
+            total = sum([i for i in count.values()])
+            for base, num in count.items():
+                if num > 0.9*total: ########## THRESHOLD #################
+                    seq.append([base])
+                elif num > 0.1*total:
+                    seq.append([b for b,c in count.items() if c > 0.1*total])
+                    break
+
+    num_alleles_per_site = [len(i) for i in seq]
+
+    n_multiallelic = len([i for i in num_alleles_per_site if i > 1])
+
+    if n_multiallelic == 0:
+        alleles = "".join([b[0] for b in seq])
+
+    elif n_multiallelic == 1:
+        alleles = ['']*max(num_alleles_per_site)
+        for base in seq:
+            for i in range(max(num_alleles_per_site)):
+                if len(base) == 1:
+                    alleles[i] += base[0]
+                else:
+                    alleles[i] += base[i]
+
+    elif n_multiallelic == 2:
+        multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
+        reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+ref.allele_start-1]
+        reads_at_b = reads_dict['readnames'][multi_allelic_idx[1]+ref.allele_start-1]
+        intersect = sorted([i for i in set(reads_at_a).intersection(set(reads_at_b))])
+        conflicting_reads = []
+        read_pair_base_calls = []
+        for read_name in intersect:
+            read_pair = read_info_dict[read_name]
+            calls_list = []
+            for mate in read_pair: # If read is supplementary alignment, ignore.
+                if mate.flag > 2047:
+                    continue
+                calls_list.append(mate.get_base_calls(
+                    [multi_allelic_idx[0]+ref.allele_start-1, multi_allelic_idx[1]+ref.allele_start-1]
+                    ))
+
+            agreeing_calls = []
+            for k in range(2):
+                calls = []
+                
+                for mate_calls in calls_list:
+                    if mate_calls[k] != '':
+                        calls.append(mate_calls[k])
+                if len(set(calls)) > 1:
+                    conflicting_reads.append(calls_list)
+                    break
+                else:
+                    agreeing_calls.append(list(set(calls))[0])
+
+            if len(agreeing_calls) == 2:
+                read_pair_base_calls.append("".join(agreeing_calls))
+
+
+        if len(conflicting_reads) > 0.1 * len(reads_at_a):
+            print("more than 10% of reads disagree with which variant bases"
+                " are in the same gene")
+
+        biallele_results_count = Counter(read_pair_base_calls)
+        total_read_count = sum([v for v in biallele_results_count.values()])
+
+        bialleles = [k for k,v in biallele_results_count.items() if v > 0.1*total_read_count]
+
+        if len(bialleles) > 2:
+            print(f"{len(bialleles)} well-supported mompS alleles identified"
+            " and can't be resolved. Aborting.")
+            sys.exit()
+
+        alleles = ['']*max(num_alleles_per_site)
+        biallic_count = 0
+        for base in seq:
+            for i in range(max(num_alleles_per_site)):
+                if len(base) == 1:
+                    alleles[i] += base[0]
+                else:
+                    alleles[i] += bialleles[i][biallic_count]
+            if len(base) > 1:
+                biallic_count+=1
+
+    return alleles
+
+
+
 def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
-    ref: Ref):
+    ref: Ref, db: str):
     """Map reads to mompS and identify one or more alleles
 
     Parameters
@@ -1066,11 +1206,12 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
         Path to output directory
     ref: Ref
         Reference sequence information in Ref instance
+    db: str
+        path to database folder
     Returns
     -------
     list
         Identified mompS alleles
-
     """
 
     # Run BWA mem
@@ -1081,11 +1222,35 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
     # Filter reads that didn't map
     logging.info("Filtering mompS mapped reads .sam file to remove " + 
         "unmapped reads")
-    samtools_view_command = f"samtools view -h -F 0x4 {outdir}/reads_vs_mompS.sam > {outdir}/reads_vs_mompS_filt.sam"
+    samtools_view_command = f"samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_mompS_filt.sam {outdir}/reads_vs_mompS.sam"
     run_command(samtools_view_command, tool='SAMtools view')
 
-    
-    sys.exit()
+    contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_mompS.sam")
+
+    mompS_allele_seqs = process_mompS_reads(contig_dict, read_info_dict, ref)
+
+    mompS_allele_fasta_string = ""
+    for n, seq in enumerate(mompS_allele_seqs):
+        mompS_allele_fasta_string += f">allele_{n+1}\n{seq}\n"
+
+    with open(f"{outdir}/mompS_alleles.fna", "w") as fout:
+        fout.write(mompS_allele_fasta_string)
+
+    # BLAST mompS alleles
+    logging.info("BLASTing mompS alleles against database")
+    blast_command = f"blastn -query {outdir}/mompS_alleles.fna -subject {db}/mompS_alleles.tfa -outfmt '6 std qlen' -perc_identity 100"
+    result = run_command(blast_command, tool='blast', shell=True)
+
+    good_hits = []
+    for line in result.split("\n"):
+        if len(line.strip()) == 0:
+            continue
+        
+        bits = line.split()
+        if float(bits[2]) == 100.00 and bits[3] == bits[12]:
+            good_hits.append(bits[1].replace("mompS_", ""))
+
+    return good_hits
 
 def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
     """Pick the correct analysis path based on the program input supplied
@@ -1140,7 +1305,7 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
             alleles["mompS"] = mompS_allele
         else:
             alleles = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
-            alleles["mompS"] = check_mompS_alleles(r1=inputs["read1"], r2=inputs["read2"], outdir=inputs['out_prefix'], threads=inputs['threads'], ref=ref)
+            alleles["mompS"] = check_mompS_alleles(r1=inputs["read1"], r2=inputs["read2"], outdir=inputs['out_prefix'], threads=inputs['threads'], ref=ref, db=inputs['sbt'])
     else:
         logging.critical(
             "This path should not have been traversed. Is inputs['analysis_path'] being changed somewhere else?")
@@ -1172,7 +1337,7 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
     """
     outlines = []
     if header:
-        outlines.append("Sample\tST\t" + "\t".join(Ref.locus_order) + "\n")
+        outlines.append("Sample\tST\t" + "\t".join(Ref.locus_order))
     for n in range(len(alleles['mompS'])):
         allele_profile = ""
         for locus in Ref.locus_order:
