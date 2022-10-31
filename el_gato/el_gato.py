@@ -1301,7 +1301,7 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
             if mompS_allele == "-":
                 mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                               db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-            alleles = blast_non_momps(assembly_file=inputs["assembly"])
+            alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"])
             alleles["mompS"] = mompS_allele
         else:
             alleles = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
