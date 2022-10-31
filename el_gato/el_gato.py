@@ -37,6 +37,84 @@ class Ref:
     prereq_programs = ["bwa", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py",
                        "stringMLST.py"]
 
+class SAM_data(object):
+    """stores columns of SAM entry as attributes"""
+    def __init__(self, object):
+        self.qname = object.split('\t')[0]
+        self.flag = int(object.split('\t')[1])
+        self.rname = object.split('\t')[2]
+        self.pos = int(object.split('\t')[3])
+        self.mapq = int(object.split('\t')[4])
+        self.cigar = object.split('\t')[5]
+        self.rnext = object.split('\t')[6]
+        self.pnext = object.split('\t')[7]
+        self.seq = object.split('\t')[9]
+        self.qual = object.split('\t')[10]
+        self.ln = len(self.seq)
+        self.end = self.pos + self.ln
+        self.mod_seq = ''
+        self.mod_qual = ''
+
+        self.cigar_mod_read()
+        self.refresh()
+
+
+    def refresh(self):
+        self.seq = self.mod_seq
+        self.qual = self.mod_qual
+        self.ln = len(self.seq)
+        self.end = self.pos + self.ln
+
+    def cigar_mod_read(self):
+        """
+        According to the M, I, and D components of a cigar string, modifies a seq and quality score strings so that they are in register with refernce sequence 
+        returns: modified sequence, modified quality score string
+        """
+        cig_sects = re.findall('[0-9]+[A-Z]', self.cigar)
+
+        count = 0
+
+        for sect in cig_sects:
+            letter = sect[-1]
+            sect_len = int(sect[:-1])
+            
+            if letter == 'M':
+                self.mod_seq += self.seq[count:count+sect_len] # Add corresponding portion of original seq
+                self.mod_qual += self.qual[count:count+sect_len]
+                count += sect_len
+
+            elif letter == 'D':
+                self.mod_seq += '*' * sect_len # Add asterisks for each deleted position relative to the reference sequence
+                self.mod_qual += ' ' * sect_len
+
+
+            elif letter == 'I' or letter == 'S':
+                count += sect_len
+
+    def get_base_calls(self, positions):
+        """
+        Args:
+            positions: list
+                list of positions of base calls desired
+
+        returns:
+            list
+                base calls
+        """
+
+        bases = {k:'' for k in range(len(positions))}
+ 
+        for n, p in enumerate(positions):
+            p_mod = p+1 - self.pos
+            if p_mod < 0:
+                continue
+            if p_mod < self.ln:
+                bases[n] = self.seq[p_mod]
+            else: 
+                continue
+
+        return bases
+
 
 def get_args() -> argparse.ArgumentParser:
 
@@ -77,6 +155,8 @@ def get_args() -> argparse.ArgumentParser:
                         type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"))
     group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
                         action="store_true", required=False, default=False)
+    group2.add_argument("--spades", "-g", help="Runs the SPAdes assembler on paired-end reads (default: %(default)s)", action="store_true", required=False)
+
 
     return parser
 
@@ -161,6 +241,7 @@ def set_inputs(
     if "r" in inputs["analysis_path"]:
         inputs["read1"] = args.read1
         inputs["read2"] = args.read2
+        inputs["spades"] = args.spades
     if "a" in inputs["analysis_path"]:
         inputs["assembly"] = args.assembly
     inputs["threads"] = args.threads
@@ -271,7 +352,8 @@ def get_inputs(inputs: dict):
                 Profile     {inputs["profile"]}
                 Verbose     {inputs["verbose"]}
                 Overwrite   {inputs["overwrite"]}
-                Depth       {inputs["depth"]}\n\n""")
+                Depth       {inputs["depth"]}
+                SPAdes      {inputs["spades"]}\n\n""")
 
 
 def check_program(program_name: str, inputs: dict) -> None:
@@ -485,8 +567,8 @@ def validate_ref(inputs: dict, Ref: Ref) -> None:
             run_command(makeblastdb, f"makeblastdb/{locus}")
 
 
-def run_stringmlst(r1: str, r2: str) -> dict:
-    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {inputs['sbt']}/lp",
+def run_stringmlst(r1: str, r2: str, sbt: str) -> dict:
+    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {sbt}/lp",
                                 "stringMLST").split("\n")
     header = string_output[0].rstrip().split("\t")
     values = string_output[1].rstrip().split("\t")
@@ -928,7 +1010,7 @@ def blast_non_momps(inputs: dict, assembly_file: str) -> dict:
         calls[locus] = allele
 
     if run_string:
-        string_calls = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"])
+        string_calls = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
         for locus in loci:
             if calls[locus] == "-":
                 calls[locus] = string_calls[locus]
@@ -968,7 +1050,38 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     # return st
 
 
-def choose_analysis_path(inputs: dict, ref: str, header: bool = True) -> str:
+def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
+    ref: Ref):
+    """Map reads to mompS and identify one or more alleles
+
+    Parameters
+    ----------
+    r1: str
+        Path to read file 1
+    r2: str
+        Path to read file 2
+    threads: int
+        Number of threads to use
+    outdir: str
+        Path to output directory
+    ref: Ref
+        Reference sequence information in Ref instance
+    Returns
+    -------
+    list
+        Identified mompS alleles
+
+    """
+
+    # Run BWA mem
+    bwa_index_command = f"bwa index {ref.file}"
+    x = run_command(bwa_index_command, tool='bwa index')
+    print(x)
+
+    
+    sys.exit()
+
+def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
     """Pick the correct analysis path based on the program input supplied
 
     Parameters
@@ -1005,19 +1118,23 @@ def choose_analysis_path(inputs: dict, ref: str, header: bool = True) -> str:
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                           db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
     elif inputs["analysis_path"] == "r":
-        inputs = genome_assembly(r1=inputs["read1"], r2=inputs["read2"],
-                        out=os.path.join(inputs["out_prefix"], "run_spades"))
-        mompS_allele = call_momps_mapping(inputs,
-                                          r1=inputs["read1"], 
-                                          r2=inputs["read2"],
-                                          threads=inputs['threads'],
-                                          ref_file=ref.file,
-                                          outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
-        if mompS_allele == "-":
-            mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
-                                          db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-        alleles = blast_non_momps(assembly_file=inputs["assembly"])
-        alleles["mompS"] = mompS_allele
+        if inputs["spades"]:
+            inputs = genome_assembly(r1=inputs["read1"], r2=inputs["read2"],
+                            out=os.path.join(inputs["out_prefix"], "run_spades"))
+            mompS_allele = call_momps_mapping(inputs,
+                                              r1=inputs["read1"], 
+                                              r2=inputs["read2"],
+                                              threads=inputs['threads'],
+                                              ref_file=ref.file,
+                                              outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
+            if mompS_allele == "-":
+                mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                              db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+            alleles = blast_non_momps(assembly_file=inputs["assembly"])
+            alleles["mompS"] = mompS_allele
+        else:
+            alleles = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
+            alleles["mompS"] = check_mompS_alleles(r1=inputs["read1"], r2=inputs["read2"], outdir=inputs['out_prefix'], threads=inputs['threads'], ref=ref)
     else:
         logging.critical(
             "This path should not have been traversed. Is inputs['analysis_path'] being changed somewhere else?")
@@ -1113,7 +1230,8 @@ def main():
         'overwrite' : False,
         'depth' : 3,
         'analysis_path' : "",
-        'logging_buffer_message' : ""
+        'logging_buffer_message' : "",
+        'spades' : False
         }
 
 
