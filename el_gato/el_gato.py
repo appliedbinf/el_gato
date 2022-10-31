@@ -1290,7 +1290,7 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
                                           db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
     elif inputs["analysis_path"] == "r":
         if inputs["spades"]:
-            inputs = genome_assembly(r1=inputs["read1"], r2=inputs["read2"],
+            inputs = genome_assembly(inputs=inputs, r1=inputs["read1"], r2=inputs["read2"],
                             out=os.path.join(inputs["out_prefix"], "run_spades"))
             mompS_allele = call_momps_mapping(inputs,
                                               r1=inputs["read1"], 
