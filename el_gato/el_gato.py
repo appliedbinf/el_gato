@@ -1074,9 +1074,15 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
     """
 
     # Run BWA mem
-    bwa_index_command = f"bwa index {ref.file}"
-    x = run_command(bwa_index_command, tool='bwa index')
-    print(x)
+    logging.info("Mapping reads to mompS reference sequence")
+    bwa_mem_command = f"bwa mem -t {threads} -o {outdir}/reads_vs_mompS.sam {ref.file} {r1} {r2}"
+    run_command(bwa_mem_command, tool='bwa mem')
+
+    # Filter reads that didn't map
+    logging.info("Filtering mompS mapped reads .sam file to remove " + 
+        "unmapped reads")
+    samtools_view_command = f"samtools view -h -F 0x4 {outdir}/reads_vs_mompS.sam > {outdir}/reads_vs_mompS_filt.sam"
+    run_command(samtools_view_command, tool='SAMtools view')
 
     
     sys.exit()
