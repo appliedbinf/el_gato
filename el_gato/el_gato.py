@@ -124,7 +124,7 @@ def get_args() -> argparse.ArgumentParser:
     Requires paired-end reads files and/or a genome assembly.
 
     Notes on arguments:
-    (1) If only reads are provided, de novo assembly is performed and SBT is called using an assembly/mapping/alignment route.
+    (1) If only reads are provided, SBT is called using a mapping/alignment approach.
     (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted. 
     (3) If both reads and an assembly are provided, SBT is called using a combination of assembly and mapping.
     """, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
