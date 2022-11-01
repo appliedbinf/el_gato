@@ -41,7 +41,8 @@ process READ_INPUTS {
     'overwrite' : ${params.overwrite},
     'depth' : ${params.depth},
     'analysis_path' : "${params.analysis_path}",
-    'logging_buffer_message' : "${params.logging_buffer_message}"
+    'logging_buffer_message' : "${params.logging_buffer_message}",
+    'spades' : "${params.spades}"
   }
 
   # Correct input strings for not-provided inputs
@@ -228,6 +229,7 @@ process READS_ONLY_PIPELINE {
   import os
 
   from el_gato import el_gato
+  from el_gato.el_gato import SAM_data
 
   with open("$f") as fin:
     inputs = json.load(fin)
@@ -243,20 +245,38 @@ process READS_ONLY_PIPELINE {
   # Build blast databases and other files
   el_gato.validate_ref(inputs, ref)
 
-  # Run read + assembly pipeline
+  # Choose reads only or assembly followed by reads analysis
+  if inputs['spades']:
+    # Run read + assembly pipeline
 
-  inputs = el_gato.genome_assembly(inputs, r1=inputs["read1"], r2=inputs["read2"],
-                        out=os.path.join(inputs["sbt"], "run_spades"))
+    inputs = el_gato.genome_assembly(inputs, r1=inputs["read1"], r2=inputs["read2"],
+                          out=os.path.join(inputs["sbt"], "run_spades"))
 
-  mompS_allele = el_gato.call_momps_mapping(inputs, r1=inputs["read1"], r2=inputs["read2"],
-                                    threads=inputs['threads'], ref_file=ref.file,
-                                    outfile=os.path.join(inputs["sbt"], inputs["sample_name"]))
-  if mompS_allele == "-":
-      mompS_allele = el_gato.call_momps_pcr(inputs, assembly_file=inputs["assembly"],
-                                    db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-  alleles = el_gato.blast_non_momps(inputs, assembly_file=inputs["assembly"])
-  alleles["mompS"] = mompS_allele
+    mompS_allele = el_gato.call_momps_mapping(inputs, r1=inputs["read1"], r2=inputs["read2"],
+                                      threads=inputs['threads'], ref_file=ref.file,
+                                      outfile=os.path.join(inputs["sbt"], inputs["sample_name"]))
+    if mompS_allele == "-":
+        mompS_allele = el_gato.call_momps_pcr(inputs, assembly_file=inputs["assembly"],
+                                      db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+    alleles = el_gato.blast_non_momps(inputs, assembly_file=inputs["assembly"])
+    alleles["mompS"] = mompS_allele
 
+  else:
+    # Run reads only pipeline
+    alleles = el_gato.run_stringmlst(
+      r1=inputs["read1"],
+      r2=inputs["read2"],
+      sbt=inputs["sbt"]
+      )
+    alleles["mompS"] = el_gato.check_mompS_alleles(
+      r1=inputs["read1"],
+      r2=inputs["read2"],
+      outdir=inputs['out_prefix'],
+      threads=inputs['threads'],
+      ref=ref,
+      db=inputs['sbt']
+      )
+    
   print(el_gato.print_table(inputs,  ref, alleles))
 
   """
