@@ -1,0 +1,23 @@
+#vscode files
+.vscode/*
+
+#blastdbs
+db/*.n*
+
+el_gato/db/*.n*
+
+#stringmlst temp files
+db/lp_*
+db/lp.log
+db/config.txt
+
+el_gato/db/lp_*
+el_gato/db/lp.log
+el_gato/db/config.txt
+
+
+# build files
+build/
+elgato.egg-info/
+el_gato/__pycache__/
+el_gato/elgato.egg-info/
