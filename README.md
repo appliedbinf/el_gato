@@ -78,11 +78,11 @@ Optional arguments:
 
 # Dependencies
 
-[bwa](https://github.com/lh3/bwa)
-[sambamba](https://github.com/biod/sambamba)
-[freebayes](https://github.com/ekg/freebayes)
-[SAMTools](https://github.com/samtools/samtools)
-[BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
-[isPcr](https://users.soe.ucsc.edu/~kent/)
-[SPAdes](http://cab.spbu.ru/software/spades/)
-[stringMLST](https://github.com/jordanlab/stringMLST)
+* [bwa](https://github.com/lh3/bwa)
+* [sambamba](https://github.com/biod/sambamba)
+* [freebayes](https://github.com/ekg/freebayes)
+* [SAMTools](https://github.com/samtools/samtools)
+* [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
+* [isPcr](https://users.soe.ucsc.edu/~kent/)
+* [SPAdes](http://cab.spbu.ru/software/spades/)
+* [stringMLST](https://github.com/jordanlab/stringMLST)
