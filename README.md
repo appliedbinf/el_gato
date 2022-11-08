@@ -11,7 +11,7 @@ Epidemiology of *Legionella*: Genome-bAsed Typing
 
 Currently in development
 Codebase stage: development   
-Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Will Overholt](https://github.com/), [Dev Mashruwala](https://github.com/), [Alan Collins](https://github.com/Alan-Collins)
+Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/), [Alan Collins](https://github.com/Alan-Collins)
 
 # Installation 
 
@@ -19,7 +19,7 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
 
 ```
 # Create environment named elgato and install el_gato.py plus all dependencies
-conda create -n elgato -c bioconda -c appliedbinf elgato
+conda create -n elgato -c bioconda -c conda-forge -c appliedbinf elgato
 
 # Activate the environment to use el_gato.py
 conda activate elgato
