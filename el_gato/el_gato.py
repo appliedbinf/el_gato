@@ -125,7 +125,7 @@ class Allele():
         self.seq = ''
         self.location = ''
         self.fasta_header = ''
-        self.allele_id = None
+        self.allele_id = '-'
 
     def assess_conf(self):
         if self.confidence['for'] > 0:
@@ -1126,22 +1126,33 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                 if allele_found:
                     break
 
-    for allele in alleles_info:
-        for n in range(allele.num_locs):
-            for read_pair in allele.reads_at_locs[n]:
-                reads_for = False # Did either mate support native locus?
-                for mate in read_info_dict[read_pair]:
-                    if "TGGATAAATTATCCAGCCGGACTTC" in mate.seq:
-                        allele.confidence["for"] += 1
-                        reads_for = True
-                        break
-                    elif "GAAGTCCGGCTGGATAATTTATCCA" in mate.seq:
-                        allele.confidence["for"] += 1
-                        reads_for = True
-                        break
-                if not reads_for: # If neither read supports native locus
-                    allele.confidence["against"] += 1
+    all_informative_reads = set(reads_at_locs[0]).union(set(reads_at_locs[1]))
+    if len(reads_at_locs) > 2:
+        for i in range(2, len(reads_at_locs)):
+            all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
+    all_informative_reads = sorted([i for i in all_informative_reads])
 
+    for allele in alleles_info:
+        all_informative_reads = set(allele.reads_at_locs[0]).union(set(allele.reads_at_locs[1]))
+        if len(allele.reads_at_locs) > 2:
+            for i in range(2, len(allele.reads_at_locs)):
+                all_informative_reads = all_informative_reads.union(set(allele.reads_at_locs[i]))
+        all_informative_reads = sorted([i for i in all_informative_reads])
+
+        for read_pair in all_informative_reads[0]:
+            reads_for = False # Did either mate support native locus?
+            for mate in read_info_dict[read_pair]:
+                if "TGGATAAATTATCCAGCCGGACTTC" in mate.seq:
+                    allele.confidence["for"] += 1
+                    reads_for = True
+                    break
+                elif "GAAGTCCGGCTGGATAATTTATCCA" in mate.seq:
+                    allele.confidence["for"] += 1
+                    reads_for = True
+                    break
+            if not reads_for: # If neither read supports native locus
+                allele.confidence["against"] += 1
+    
     return alleles_info
 
 
@@ -1210,15 +1221,18 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
                 else:
                     allele.seq += allele.basecalls[0]
 
-
-    elif n_multiallelic == 2:
+    else:
         multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
-        reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+ref.allele_start-1]
-        reads_at_b = reads_dict['readnames'][multi_allelic_idx[1]+ref.allele_start-1]
-        intersect = sorted([i for i in set(reads_at_a).intersection(set(reads_at_b))])
+        reads_at_locs = [reads_dict['readnames'][idx+ref.allele_start-1] for idx in multi_allelic_idx]
+
+        intersect = set(reads_at_locs[0]).intersection(set(reads_at_locs[1]))
+        for i in range(2, len(reads_at_locs)):
+            intersect = intersect.intersection(set(reads_at_locs[i]))
+
+        intersect = sorted([i for i in intersect])
+
         conflicting_reads = []
         read_pair_base_calls = []
-        call_reads = defaultdict(list)
         for read_name in intersect:
             read_pair = read_info_dict[read_name]
             calls_list = []
@@ -1226,16 +1240,12 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
                 if mate.flag > 2047:
                     continue
                 calls_list.append(mate.get_base_calls(
-                    [multi_allelic_idx[0]+ref.allele_start-1, multi_allelic_idx[1]+ref.allele_start-1]
+                    [idx+ref.allele_start-1 for idx in multi_allelic_idx]
                     ))
-                bases = mate.get_base_calls(
-                    [multi_allelic_idx[0]+ref.allele_start-1])
-                if len(bases) != 0:
-                    call_reads[list(bases.values())[0]].append(mate.qname)
 
-            # Assess base calls of mate reads that map to one or both positions
+            # Assess base calls of mate reads that map to one or more positions
             agreeing_calls = []
-            for k in range(2):
+            for k in range(len(multi_allelic_idx)):
                 calls = []
                 for mate_calls in calls_list:
                     if mate_calls[k] != '':
@@ -1246,11 +1256,10 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
                 else:
                     agreeing_calls.append(calls[0])
 
-            if len(agreeing_calls) == 2:
+            if len(agreeing_calls) == len(multi_allelic_idx):
                 read_pair_base_calls.append("".join(agreeing_calls))
 
-
-        if len(conflicting_reads) > 0.1 * len(reads_at_a):
+        if len(conflicting_reads) > 0.1 * len(reads_at_locs[0]):
             print("more than 10% of reads disagree with which variant bases"
                 " are in the same gene")
 
@@ -1259,14 +1268,13 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
 
         bialleles = [k for k,v in biallele_results_count.items() if v > 0.1*total_read_count]
 
-        # If more than 2 alleles found at more than 2 sites, can't resolve
-        if max([len(a) for a in bialleles]) > 2:
-            print(f"{max([len(a) for a in bialleles])} well-supported mompS alleles identified"
+        # If more than 2 alleles found, can't resolve
+        if len(bialleles) > 2:
+            print(f"{len(bialleles)} well-supported mompS alleles identified"
             " and can't be resolved. Aborting.")
             sys.exit(1)
 
-        alleles = assess_allele_conf(bialleles, [reads_at_a, reads_at_b], multi_allelic_idx, read_info_dict, ref)
-
+        alleles = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
 
         biallic_count = 0
         for base in seq:
@@ -1277,10 +1285,6 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
                     allele.seq += allele.basecalls[biallic_count]
             if len(base) > 1:
                 biallic_count+=1
-
-    else:
-        print("more than 2 multiallelic positions found. Unable to process. Exiting.")
-        sys.exit(1)
 
     for allele in alleles:
         allele.assess_conf()
@@ -1324,7 +1328,7 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
     samtools_view_command = f"samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_mompS_filt.sam {outdir}/reads_vs_mompS.sam"
     run_command(samtools_view_command, tool='SAMtools view')
 
-    contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_mompS.sam")
+    contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_mompS_filt.sam")
 
     mompS_alleles = process_mompS_reads(contig_dict, read_info_dict, ref)
 
