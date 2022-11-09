@@ -116,6 +116,22 @@ class SAM_data(object):
 
         return bases
 
+class Allele():
+    def __init__(self, num: int = 0, basecalls: str = ''):
+        self.num_locs = num
+        self.basecalls = basecalls # base calls at multiallelic sites
+        self.reads_at_locs = [[]]*num # [[reads, at, loc, 1], [reads, at, loc, 2], ...]
+        self.confidence = {"for": 0, "against": 0} # How many reads contain primer sequence? i.e., evidence for native locus
+        self.seq = ''
+        self.location = ''
+        self.fasta_header = ''
+        self.allele_id = '-'
+
+    def assess_conf(self):
+        if self.confidence['for'] > 0:
+            self.location = f"_native_locus_{self.confidence['for']}_reads"
+        elif self.confidence['against'] > 0:
+            self.location = f"_non-native_locus"
 
 def get_args() -> argparse.ArgumentParser:
 
@@ -1067,6 +1083,80 @@ def read_sam_file(samfile: str):
     return contig_dict, read_info_dict
 
 
+def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, ref):
+    """Checks mompS PCR primer presence absence to assess allele location at native locus
+
+    Parameters
+    ----------
+    bialleles : list
+        Bases calls for each alleles at each multiallelic site
+    reads_at_locs: list
+        List of reads that map to each multiallelic site
+    allele_idxs: list
+        Location of each allele within gene of interest
+    read_info_dict: dict
+        {read_name : [SAM_data, SAM_data]}
+        information for all read pairs
+    ref: Ref
+        Information about reference sequence
+
+    Returns
+    -------
+    list
+        list of Allele class instances describing allele characteristics
+    """
+
+    # Make 2 empty Allele instances to store allele info
+    alleles_info = [Allele(len(bialleles[0]), bialleles[0]), Allele(len(bialleles[0]), bialleles[1])]
+
+    for n, reads in enumerate(reads_at_locs):
+        idx = allele_idxs[n]
+        for read in reads:
+            mates = read_info_dict[read]
+            allele_found = False
+            for mate in mates:
+                # Get base call at index.
+                # Index result with 0 as dict returned with k,v per index given
+                b = mate.get_base_calls([idx + ref.allele_start-1])[0]
+                for allele in alleles_info:
+                    if b == allele.basecalls[n]:
+                        allele.reads_at_locs[n].append(read)
+                        allele_found = True
+                        break
+                if allele_found:
+                    break
+
+    all_informative_reads = set(reads_at_locs[0]).union(set(reads_at_locs[1]))
+    if len(reads_at_locs) > 2:
+        for i in range(2, len(reads_at_locs)):
+            all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
+    all_informative_reads = sorted([i for i in all_informative_reads])
+
+    for allele in alleles_info:
+        all_informative_reads = set(allele.reads_at_locs[0]).union(set(allele.reads_at_locs[1]))
+        if len(allele.reads_at_locs) > 2:
+            for i in range(2, len(allele.reads_at_locs)):
+                all_informative_reads = all_informative_reads.union(set(allele.reads_at_locs[i]))
+        all_informative_reads = sorted([i for i in all_informative_reads])
+
+        for read_pair in all_informative_reads[0]:
+            reads_for = False # Did either mate support native locus?
+            for mate in read_info_dict[read_pair]:
+                if "TGGATAAATTATCCAGCCGGACTTC" in mate.seq:
+                    allele.confidence["for"] += 1
+                    reads_for = True
+                    break
+                elif "GAAGTCCGGCTGGATAATTTATCCA" in mate.seq:
+                    allele.confidence["for"] += 1
+                    reads_for = True
+                    break
+            if not reads_for: # If neither read supports native locus
+                allele.confidence["against"] += 1
+    
+    return alleles_info
+
+
+
 def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
     momps_reads = contig_dict[ref.name]
 
@@ -1104,34 +1194,43 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
             seq.append([[b for b in count][0]])
         else:
             total = sum([i for i in count.values()])
-            for base, num in count.items():
-                if num > 0.9*total: ########## THRESHOLD #################
-                    seq.append([base])
-                elif num > 0.1*total:
-                    seq.append([b for b,c in count.items() if c > 0.1*total])
-                    break
+            seq.append(
+                [base for base, num in count.items() if num > 0.1*total]
+                )
+
 
     num_alleles_per_site = [len(i) for i in seq]
 
     n_multiallelic = len([i for i in num_alleles_per_site if i > 1])
 
     if n_multiallelic == 0:
-        alleles = "".join([b[0] for b in seq])
+        alleles = [Allele()]
+        alleles[0].seq = ["".join([b[0] for b in seq])]
 
     elif n_multiallelic == 1:
-        alleles = ['']*max(num_alleles_per_site)
-        for base in seq:
-            for i in range(max(num_alleles_per_site)):
-                if len(base) == 1:
-                    alleles[i] += base[0]
-                else:
-                    alleles[i] += base[i]
-
-    elif n_multiallelic == 2:
         multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
         reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+ref.allele_start-1]
-        reads_at_b = reads_dict['readnames'][multi_allelic_idx[1]+ref.allele_start-1]
-        intersect = sorted([i for i in set(reads_at_a).intersection(set(reads_at_b))])
+        bialleles = seq[multi_allelic_idx[0]]
+        
+        alleles = assess_allele_conf(bialleles, [reads_at_a], multi_allelic_idx, read_info_dict, ref)
+
+        for base in seq:
+            for allele in alleles:
+                if len(base) == 1:
+                    allele.seq += base[0]
+                else:
+                    allele.seq += allele.basecalls[0]
+
+    else:
+        multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
+        reads_at_locs = [reads_dict['readnames'][idx+ref.allele_start-1] for idx in multi_allelic_idx]
+
+        intersect = set(reads_at_locs[0]).intersection(set(reads_at_locs[1]))
+        for i in range(2, len(reads_at_locs)):
+            intersect = intersect.intersection(set(reads_at_locs[i]))
+
+        intersect = sorted([i for i in intersect])
+
         conflicting_reads = []
         read_pair_base_calls = []
         for read_name in intersect:
@@ -1141,13 +1240,13 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
                 if mate.flag > 2047:
                     continue
                 calls_list.append(mate.get_base_calls(
-                    [multi_allelic_idx[0]+ref.allele_start-1, multi_allelic_idx[1]+ref.allele_start-1]
+                    [idx+ref.allele_start-1 for idx in multi_allelic_idx]
                     ))
 
+            # Assess base calls of mate reads that map to one or more positions
             agreeing_calls = []
-            for k in range(2):
+            for k in range(len(multi_allelic_idx)):
                 calls = []
-                
                 for mate_calls in calls_list:
                     if mate_calls[k] != '':
                         calls.append(mate_calls[k])
@@ -1155,13 +1254,12 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
                     conflicting_reads.append(calls_list)
                     break
                 else:
-                    agreeing_calls.append(list(set(calls))[0])
+                    agreeing_calls.append(calls[0])
 
-            if len(agreeing_calls) == 2:
+            if len(agreeing_calls) == len(multi_allelic_idx):
                 read_pair_base_calls.append("".join(agreeing_calls))
 
-
-        if len(conflicting_reads) > 0.1 * len(reads_at_a):
+        if len(conflicting_reads) > 0.1 * len(reads_at_locs[0]):
             print("more than 10% of reads disagree with which variant bases"
                 " are in the same gene")
 
@@ -1170,21 +1268,26 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
 
         bialleles = [k for k,v in biallele_results_count.items() if v > 0.1*total_read_count]
 
+        # If more than 2 alleles found, can't resolve
         if len(bialleles) > 2:
             print(f"{len(bialleles)} well-supported mompS alleles identified"
             " and can't be resolved. Aborting.")
-            sys.exit()
+            sys.exit(1)
 
-        alleles = ['']*max(num_alleles_per_site)
+        alleles = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
+
         biallic_count = 0
         for base in seq:
-            for i in range(max(num_alleles_per_site)):
+            for allele in alleles:
                 if len(base) == 1:
-                    alleles[i] += base[0]
+                    allele.seq += base[0]
                 else:
-                    alleles[i] += bialleles[i][biallic_count]
+                    allele.seq += allele.basecalls[biallic_count]
             if len(base) > 1:
                 biallic_count+=1
+
+    for allele in alleles:
+        allele.assess_conf()
 
     return alleles
 
@@ -1225,13 +1328,14 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
     samtools_view_command = f"samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_mompS_filt.sam {outdir}/reads_vs_mompS.sam"
     run_command(samtools_view_command, tool='SAMtools view')
 
-    contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_mompS.sam")
+    contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_mompS_filt.sam")
 
-    mompS_allele_seqs = process_mompS_reads(contig_dict, read_info_dict, ref)
+    mompS_alleles = process_mompS_reads(contig_dict, read_info_dict, ref)
 
     mompS_allele_fasta_string = ""
-    for n, seq in enumerate(mompS_allele_seqs):
-        mompS_allele_fasta_string += f">allele_{n+1}\n{seq}\n"
+    for n, allele in enumerate(mompS_alleles):
+        allele.fasta_header = f"allele_{n+1}{allele.location}"
+        mompS_allele_fasta_string += f">{allele.fasta_header}\n{allele.seq}\n"
 
     with open(f"{outdir}/mompS_alleles.fna", "w") as fout:
         fout.write(mompS_allele_fasta_string)
@@ -1241,16 +1345,18 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
     blast_command = f"blastn -query {outdir}/mompS_alleles.fna -subject {db}/mompS_alleles.tfa -outfmt '6 std qlen' -perc_identity 100"
     result = run_command(blast_command, tool='blast', shell=True)
 
-    good_hits = []
+
     for line in result.split("\n"):
         if len(line.strip()) == 0:
             continue
         
         bits = line.split()
         if float(bits[2]) == 100.00 and bits[3] == bits[12]:
-            good_hits.append(bits[1].replace("mompS_", ""))
+            for allele in mompS_alleles:
+                if bits[0] == allele.fasta_header:
+                    allele.allele_id = bits[1].replace("mompS_", "")
 
-    return good_hits
+    return mompS_alleles
 
 def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
     """Pick the correct analysis path based on the program input supplied
@@ -1306,6 +1412,7 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
         else:
             alleles = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
             alleles["mompS"] = check_mompS_alleles(r1=inputs["read1"], r2=inputs["read2"], outdir=inputs['out_prefix'], threads=inputs['threads'], ref=ref, db=inputs['sbt'])
+
     else:
         logging.critical(
             "This path should not have been traversed. Is inputs['analysis_path'] being changed somewhere else?")
@@ -1335,6 +1442,37 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
     str
         formatted ST + allele profile (and optional header) of the isolate
     """
+
+    if len(alleles['mompS']) > 1:
+        print("\nWARNING!!!!!!\n\nMultiple mompS alleles found!\n")
+        which_native = ["_native_locus" in a.location for a in alleles['mompS']]
+        if not any(which_native):
+            print("Unable to determine which allele is present in native "
+                + "mompS locus")
+
+        else:
+            if len([i for i in which_native if i]) > 1:
+                print("Found evidence that multiple alleles may exist in a "
+                    + "sequence context that is similar to the native locus."
+                    + " Unable to determine allele locations.\n\n")
+                for allele in alleles['mompS']:
+                    print(f"{allele.confidence['for']} reads indicate that "
+                        + f"allele {allele.allele_id} is present at the "
+                        + "native locus")
+                print("\n\n")
+
+            else:
+                native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
+                non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
+                print(f"Allele {native_allele.allele_id} was determined "
+                    + "to be present in the native mompS locus. "
+                    + f"{native_allele.confidence['for']} reads support this.")
+                for a in non_native_alleles:
+                    print(f"Allele {a.allele_id} was determined not "
+                    + "to be present in the native mompS locus.")
+                print("\n\n")
+
+
     outlines = []
     if header:
         outlines.append("Sample\tST\t" + "\t".join(Ref.locus_order))
@@ -1344,7 +1482,7 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
             if locus != "mompS":
                 allele_profile += alleles[locus] + "\t"
             else:
-                allele_profile += alleles[locus][n] + "\t"
+                allele_profile += alleles[locus][n].allele_id + "\t"
         allele_profile = allele_profile.rstrip()
         allele_profile = (inputs["sample_name"] 
             + "\t" + get_st(allele_profile, Ref,
