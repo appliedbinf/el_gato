@@ -1355,6 +1355,14 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
             for allele in mompS_alleles:
                 if bits[0] == allele.fasta_header:
                     allele.allele_id = bits[1].replace("mompS_", "")
+    if len(mompS_alleles) == 1:
+        logging.info("1 mompS allele identified.")
+    else:
+        logging.info(f"{len(mompS_alleles)} mompS allele identified.")
+    for a in mompS_alleles:
+        logging.info(f"mompS allele '{a.allele_id}' information")
+        logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
+        logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
 
     return mompS_alleles
 
@@ -1444,11 +1452,11 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
     """
 
     if len(alleles['mompS']) > 1:
-        print("\nWARNING!!!!!!\n\nMultiple mompS alleles found!\n")
+        print("\nWARNING!!!!!!\nMultiple mompS alleles found!")
         which_native = ["_native_locus" in a.location for a in alleles['mompS']]
         if not any(which_native):
             print("Unable to determine which allele is present in native "
-                + "mompS locus")
+                + "mompS locus\n")
 
         else:
             if len([i for i in which_native if i]) > 1:
