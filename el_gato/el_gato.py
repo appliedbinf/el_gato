@@ -1432,7 +1432,7 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
     return print_table(inputs,  Ref, alleles, header)
 
 
-def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> str:
+def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     """Formats the allele profile so it's ready for printing
 
     Parameters
@@ -1443,9 +1443,6 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
         Reference sequence information
     alleles : dict
         The allele profile and the ST
-
-    header : bool, optional
-        should the header be returned in the output
 
     Returns
     -------
