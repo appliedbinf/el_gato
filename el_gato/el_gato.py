@@ -1128,11 +1128,11 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                 if allele_found:
                     break
 
-    all_informative_reads = set(reads_at_locs[0])
-    if len(reads_at_locs) > 1:
-        for i in range(1, len(reads_at_locs)):
-            all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
-    all_informative_reads = sorted([i for i in all_informative_reads])
+    # all_informative_reads = set(reads_at_locs[0])
+    # if len(reads_at_locs) > 1:
+    #     for i in range(1, len(reads_at_locs)):
+    #         all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
+    # all_informative_reads = sorted([i for i in all_informative_reads])
 
     for allele in alleles_info:
         all_informative_reads = set(allele.reads_at_locs[0])
@@ -1141,7 +1141,7 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                 all_informative_reads = all_informative_reads.union(set(allele.reads_at_locs[i]))
         all_informative_reads = sorted([i for i in all_informative_reads])
 
-        for read_pair in all_informative_reads[0]:
+        for read_pair in all_informative_reads:
             reads_for = False # Did either mate support native locus?
             for mate in read_info_dict[read_pair]:
                 if "TGGATAAATTATCCAGCCGGACTTC" in mate.seq:
@@ -1368,7 +1368,7 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
 
     return mompS_alleles
 
-def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
+def choose_analysis_path(inputs: dict, ref: Ref) -> str:
     """Pick the correct analysis path based on the program input supplied
 
     Parameters
@@ -1378,9 +1378,6 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
 
     ref: Ref
         Ref class instance
-
-    header : bool, optional
-        should the header be returned in the output
 
     Returns
     -------
@@ -1429,7 +1426,7 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
         if not inputs["verbose"]:
             print(f"Something went wrong with genome assembly. Please check log.")
 
-    return print_table(inputs,  Ref, alleles, header)
+    return print_table(inputs,  Ref, alleles)
 
 
 def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
