@@ -1361,10 +1361,10 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
         logging.info("1 mompS allele identified.")
     else:
         logging.info(f"{len(mompS_alleles)} mompS allele identified.")
-    for a in mompS_alleles:
-        logging.info(f"mompS allele '{a.allele_id}' information")
-        logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
-        logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
+        for a in mompS_alleles:
+            logging.info(f"mompS allele '{a.allele_id}' information")
+            logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
+            logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
 
     return mompS_alleles
 
