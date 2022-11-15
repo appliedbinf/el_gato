@@ -173,6 +173,7 @@ def get_args() -> argparse.ArgumentParser:
     group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
                         action="store_true", required=False, default=False)
     group2.add_argument("--spades", "-g", help="Runs the SPAdes assembler on paired-end reads (default: %(default)s)", action="store_true", required=False)
+    group2.add_argument("--header", "-e", help="Include column headers in the output table (default: %(default)s)", action="store_true", required=False, default=False),
 
 
     return parser
@@ -270,6 +271,7 @@ def set_inputs(
     inputs["verbose"] = args.verbose
     inputs["overwrite"] = args.overwrite
     inputs["depth"] = args.depth
+    inputs["header"] = args.header
     Ref.file = os.path.join(inputs["out_prefix"], Ref.file)
     if args.sample == inputs["sample_name"]:
         if inputs["read1"] is not None:
@@ -1474,8 +1476,11 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
         logging.info(multi_momp_error)
 
     outlines = []
-    if header:
-        outlines.append("Sample\tST\t" + "\t".join(Ref.locus_order))
+    if inputs['header']:
+        header = "Sample\tST\t" + "\t".join(Ref.locus_order)
+        if len(alleles['mompS']) > 1:
+            header += f"\tmompS_min_coverage\tmompS_reads_with_primer"
+        outlines.append(header)
     for n in range(len(alleles['mompS'])):
         allele_profile = ""
         for locus in Ref.locus_order:
@@ -1488,6 +1493,10 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
             + "\t" + get_st(allele_profile, Ref,
                             profile_file=inputs["profile"])
             + "\t" + allele_profile)
+
+        if len(alleles['mompS']) > 1:
+            allele_profile += "\t" + str(min([len(set(i)) for i in alleles["mompS"][n].reads_at_locs])) + "\t" # coverage 
+            allele_profile += str(alleles["mompS"][n].confidence["for"]) + "\t" # primer
 
         outlines.append(allele_profile)
 
@@ -1540,7 +1549,8 @@ def main():
         'depth' : 3,
         'analysis_path' : "",
         'logging_buffer_message' : "",
-        'spades' : False
+        'spades' : False,
+        'header' : True
         }
 
 
