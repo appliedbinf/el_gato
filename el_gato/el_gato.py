@@ -1126,16 +1126,16 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                 if allele_found:
                     break
 
-    all_informative_reads = set(reads_at_locs[0]).union(set(reads_at_locs[1]))
-    if len(reads_at_locs) > 2:
-        for i in range(2, len(reads_at_locs)):
+    all_informative_reads = set(reads_at_locs[0])
+    if len(reads_at_locs) > 1:
+        for i in range(1, len(reads_at_locs)):
             all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
     all_informative_reads = sorted([i for i in all_informative_reads])
 
     for allele in alleles_info:
-        all_informative_reads = set(allele.reads_at_locs[0]).union(set(allele.reads_at_locs[1]))
-        if len(allele.reads_at_locs) > 2:
-            for i in range(2, len(allele.reads_at_locs)):
+        all_informative_reads = set(allele.reads_at_locs[0])
+        if len(allele.reads_at_locs) > 1:
+            for i in range(1, len(allele.reads_at_locs)):
                 all_informative_reads = all_informative_reads.union(set(allele.reads_at_locs[i]))
         all_informative_reads = sorted([i for i in all_informative_reads])
 
@@ -1452,34 +1452,26 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
     """
 
     if len(alleles['mompS']) > 1:
-        print("\nWARNING!!!!!!\nMultiple mompS alleles found!")
+        multi_momp_error = f"\nWARNING!!!!!!\nMultiple mompS alleles found for {inputs['sample_name']}!\n"
         which_native = ["_native_locus" in a.location for a in alleles['mompS']]
         if not any(which_native):
-            print("Unable to determine which allele is present in native "
-                + "mompS locus\n")
+            multi_momp_error += "Unable to determine which allele is present in native mompS locus\n"
 
         else:
             if len([i for i in which_native if i]) > 1:
-                print("Found evidence that multiple alleles may exist in a "
-                    + "sequence context that is similar to the native locus."
-                    + " Unable to determine allele locations.\n\n")
+                multi_momp_error += "Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.\n"
                 for allele in alleles['mompS']:
-                    print(f"{allele.confidence['for']} reads indicate that "
-                        + f"allele {allele.allele_id} is present at the "
-                        + "native locus")
-                print("\n\n")
+                    multi_momp_error += f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus"
 
             else:
                 native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
                 non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
-                print(f"Allele {native_allele.allele_id} was determined "
-                    + "to be present in the native mompS locus. "
-                    + f"{native_allele.confidence['for']} reads support this.")
+                multi_momp_error += f"Allele {native_allele.allele_id} was determined to be present in the native mompS locus. {native_allele.confidence['for']} reads support this."
                 for a in non_native_alleles:
-                    print(f"Allele {a.allele_id} was determined not "
-                    + "to be present in the native mompS locus.")
-                print("\n\n")
+                    multi_momp_error += f"Allele {a.allele_id} was determined not to be present in the native mompS locus."
 
+        sys.stderr.write(multi_momp_error)
+        logging.info(multi_momp_error)
 
     outlines = []
     if header:
