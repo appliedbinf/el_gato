@@ -1144,14 +1144,18 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
         for read_pair in all_informative_reads:
             reads_for = False # Did either mate support native locus?
             for mate in read_info_dict[read_pair]:
-                if "TGGATAAATTATCCAGCCGGACTTC" in mate.seq:
-                    allele.confidence["for"] += 1
-                    reads_for = True
-                    break
-                elif "GAAGTCCGGCTGGATAATTTATCCA" in mate.seq:
-                    allele.confidence["for"] += 1
-                    reads_for = True
-                    break
+                if mate.flag > 2047:
+                    continue
+                
+                if "GAAGTCCGGCTGGATAATTTATCCA" in mate.seq:
+                    if 16 & mate.flag == 16: 
+                        # If 16 in the flag
+                        # i.e., read containing primer mapped in reverse
+                        # meaning mate is 5' of primer
+                        allele.confidence["for"] += 1
+                        reads_for = True
+                        break
+
             if not reads_for: # If neither read supports native locus
                 allele.confidence["against"] += 1
     
@@ -1197,7 +1201,7 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
         else:
             total = sum([i for i in count.values()])
             seq.append(
-                [base for base, num in count.items() if num > 0.1*total]
+                [base for base, num in count.items() if num > 0.35*total]
                 )
 
 
@@ -1268,7 +1272,7 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
         biallele_results_count = Counter(read_pair_base_calls)
         total_read_count = sum([v for v in biallele_results_count.values()])
 
-        bialleles = [k for k,v in biallele_results_count.items() if v > 0.1*total_read_count]
+        bialleles = [k for k,v in biallele_results_count.items() if v > 0.35*total_read_count]
 
         # If more than 2 alleles found, can't resolve
         if len(bialleles) > 2:
@@ -1457,14 +1461,14 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
             if len([i for i in which_native if i]) > 1:
                 multi_momp_error += "Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.\n"
                 for allele in alleles['mompS']:
-                    multi_momp_error += f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus"
+                    multi_momp_error += f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus.\n"
 
             else:
                 native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
                 non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
-                multi_momp_error += f"Allele {native_allele.allele_id} was determined to be present in the native mompS locus. {native_allele.confidence['for']} reads support this."
+                multi_momp_error += f"Allele {native_allele.allele_id} was determined to be present in the native mompS locus. {native_allele.confidence['for']} reads support this.\n"
                 for a in non_native_alleles:
-                    multi_momp_error += f"Allele {a.allele_id} was determined not to be present in the native mompS locus."
+                    multi_momp_error += f"Allele {a.allele_id} was determined not to be present in the native mompS locus.\n"
 
         sys.stderr.write(multi_momp_error)
         logging.info(multi_momp_error)
