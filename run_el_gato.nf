@@ -2,6 +2,8 @@
 nextflow.enable.dsl=2
 
 params.reads_dir = false
+params.threads = 1
+params.out = 'el_gato_out'
 
 process RUN_EL_GATO_READS {
   
@@ -12,7 +14,7 @@ process RUN_EL_GATO_READS {
     tuple val(sampleId), file(reads)
 
   output:
-    stdout
+    path '*_mlst.txt', emit: files
 
   script:
   
@@ -24,8 +26,22 @@ process RUN_EL_GATO_READS {
   -1 $r1 \
   -2 $r2 \
   -o out \
-  -t 1 \
-  -e -w 2>&1
+  -t ${task.cpus} \
+  -w > ${sampleId}_mlst.txt
+  """
+}
+
+process CAT {
+  publishDir params.out, mode: 'copy', overwrite: true
+  input:
+    path files
+
+  output:
+    path 'all_mlst.txt'
+  
+  """
+  printf "Sample\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA_neuAH\tmompS_min_coverage\tmompS_reads_with_primer\n" > all_mlst.txt
+  cat $files >> all_mlst.txt
   """
 }
 
@@ -34,7 +50,8 @@ workflow {
 
   readPairs = Channel.fromFilePairs(params.reads_dir + "/*R{1,2}*.fastq.gz", checkIfExists: true)
 
-  RUN_EL_GATO_READS(readPairs) | view
+  files = RUN_EL_GATO_READS(readPairs).collect()
+  CAT(files)
 
   } else {
     print "Please provide the path to a directory containing paired reads using --reads_dir."
