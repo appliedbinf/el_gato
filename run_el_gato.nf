@@ -7,7 +7,7 @@ params.out = 'el_gato_out'
 
 process RUN_EL_GATO_READS {
   
-  conda "-c bioconda -c appliedbinf elgato=0.1.0"
+  conda "-c bioconda -c appliedbinf elgato=1.1.0"
   cpus 1
 
   input:
