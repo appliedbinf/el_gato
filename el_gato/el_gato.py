@@ -173,6 +173,7 @@ def get_args() -> argparse.ArgumentParser:
     group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
                         action="store_true", required=False, default=False)
     group2.add_argument("--spades", "-g", help="Runs the SPAdes assembler on paired-end reads (default: %(default)s)", action="store_true", required=False)
+    group2.add_argument("--header", "-e", help="Include column headers in the output table (default: %(default)s)", action="store_true", required=False, default=False),
 
 
     return parser
@@ -270,6 +271,7 @@ def set_inputs(
     inputs["verbose"] = args.verbose
     inputs["overwrite"] = args.overwrite
     inputs["depth"] = args.depth
+    inputs["header"] = args.header
     Ref.file = os.path.join(inputs["out_prefix"], Ref.file)
     if args.sample == inputs["sample_name"]:
         if inputs["read1"] is not None:
@@ -1126,20 +1128,20 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                 if allele_found:
                     break
 
-    all_informative_reads = set(reads_at_locs[0]).union(set(reads_at_locs[1]))
-    if len(reads_at_locs) > 2:
-        for i in range(2, len(reads_at_locs)):
-            all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
-    all_informative_reads = sorted([i for i in all_informative_reads])
+    # all_informative_reads = set(reads_at_locs[0])
+    # if len(reads_at_locs) > 1:
+    #     for i in range(1, len(reads_at_locs)):
+    #         all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
+    # all_informative_reads = sorted([i for i in all_informative_reads])
 
     for allele in alleles_info:
-        all_informative_reads = set(allele.reads_at_locs[0]).union(set(allele.reads_at_locs[1]))
-        if len(allele.reads_at_locs) > 2:
-            for i in range(2, len(allele.reads_at_locs)):
+        all_informative_reads = set(allele.reads_at_locs[0])
+        if len(allele.reads_at_locs) > 1:
+            for i in range(1, len(allele.reads_at_locs)):
                 all_informative_reads = all_informative_reads.union(set(allele.reads_at_locs[i]))
         all_informative_reads = sorted([i for i in all_informative_reads])
 
-        for read_pair in all_informative_reads[0]:
+        for read_pair in all_informative_reads:
             reads_for = False # Did either mate support native locus?
             for mate in read_info_dict[read_pair]:
                 if "TGGATAAATTATCCAGCCGGACTTC" in mate.seq:
@@ -1355,10 +1357,18 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
             for allele in mompS_alleles:
                 if bits[0] == allele.fasta_header:
                     allele.allele_id = bits[1].replace("mompS_", "")
+    if len(mompS_alleles) == 1:
+        logging.info("1 mompS allele identified.")
+    else:
+        logging.info(f"{len(mompS_alleles)} mompS allele identified.")
+        for a in mompS_alleles:
+            logging.info(f"mompS allele '{a.allele_id}' information")
+            logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
+            logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
 
     return mompS_alleles
 
-def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
+def choose_analysis_path(inputs: dict, ref: Ref) -> str:
     """Pick the correct analysis path based on the program input supplied
 
     Parameters
@@ -1368,9 +1378,6 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
 
     ref: Ref
         Ref class instance
-
-    header : bool, optional
-        should the header be returned in the output
 
     Returns
     -------
@@ -1419,10 +1426,10 @@ def choose_analysis_path(inputs: dict, ref: Ref, header: bool = True) -> str:
         if not inputs["verbose"]:
             print(f"Something went wrong with genome assembly. Please check log.")
 
-    return print_table(inputs,  Ref, alleles, header)
+    return print_table(inputs,  Ref, alleles)
 
 
-def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> str:
+def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     """Formats the allele profile so it's ready for printing
 
     Parameters
@@ -1434,9 +1441,6 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
     alleles : dict
         The allele profile and the ST
 
-    header : bool, optional
-        should the header be returned in the output
-
     Returns
     -------
     str
@@ -1444,38 +1448,33 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
     """
 
     if len(alleles['mompS']) > 1:
-        print("\nWARNING!!!!!!\n\nMultiple mompS alleles found!\n")
+        multi_momp_error = f"\nWARNING!!!!!!\nMultiple mompS alleles found for {inputs['sample_name']}!\n"
         which_native = ["_native_locus" in a.location for a in alleles['mompS']]
         if not any(which_native):
-            print("Unable to determine which allele is present in native "
-                + "mompS locus")
+            multi_momp_error += "Unable to determine which allele is present in native mompS locus\n"
 
         else:
             if len([i for i in which_native if i]) > 1:
-                print("Found evidence that multiple alleles may exist in a "
-                    + "sequence context that is similar to the native locus."
-                    + " Unable to determine allele locations.\n\n")
+                multi_momp_error += "Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.\n"
                 for allele in alleles['mompS']:
-                    print(f"{allele.confidence['for']} reads indicate that "
-                        + f"allele {allele.allele_id} is present at the "
-                        + "native locus")
-                print("\n\n")
+                    multi_momp_error += f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus"
 
             else:
                 native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
                 non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
-                print(f"Allele {native_allele.allele_id} was determined "
-                    + "to be present in the native mompS locus. "
-                    + f"{native_allele.confidence['for']} reads support this.")
+                multi_momp_error += f"Allele {native_allele.allele_id} was determined to be present in the native mompS locus. {native_allele.confidence['for']} reads support this."
                 for a in non_native_alleles:
-                    print(f"Allele {a.allele_id} was determined not "
-                    + "to be present in the native mompS locus.")
-                print("\n\n")
+                    multi_momp_error += f"Allele {a.allele_id} was determined not to be present in the native mompS locus."
 
+        sys.stderr.write(multi_momp_error)
+        logging.info(multi_momp_error)
 
     outlines = []
-    if header:
-        outlines.append("Sample\tST\t" + "\t".join(Ref.locus_order))
+    if inputs['header']:
+        header = "Sample\tST\t" + "\t".join(Ref.locus_order)
+        if len(alleles['mompS']) > 1:
+            header += f"\tmompS_min_coverage\tmompS_reads_with_primer"
+        outlines.append(header)
     for n in range(len(alleles['mompS'])):
         allele_profile = ""
         for locus in Ref.locus_order:
@@ -1488,6 +1487,10 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict, header: bool = True) -> s
             + "\t" + get_st(allele_profile, Ref,
                             profile_file=inputs["profile"])
             + "\t" + allele_profile)
+
+        if len(alleles['mompS']) > 1:
+            allele_profile += "\t" + str(min([len(set(i)) for i in alleles["mompS"][n].reads_at_locs])) + "\t" # coverage 
+            allele_profile += str(alleles["mompS"][n].confidence["for"]) + "\t" # primer
 
         outlines.append(allele_profile)
 
@@ -1540,7 +1543,8 @@ def main():
         'depth' : 3,
         'analysis_path' : "",
         'logging_buffer_message' : "",
-        'spades' : False
+        'spades' : False,
+        'header' : True
         }
 
 
