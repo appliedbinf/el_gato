@@ -1453,32 +1453,45 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     """
 
     if len(alleles['mompS']) > 1:
-        multi_momp_error = f"\nWARNING!!!!!!\nMultiple mompS alleles found for {inputs['sample_name']}!\n"
+        logging.info(f"\nWARNING!!!!!!\nMultiple mompS alleles found for {inputs['sample_name']}!")
         which_native = ["_native_locus" in a.location for a in alleles['mompS']]
         if not any(which_native):
-            multi_momp_error += "Unable to determine which allele is present in native mompS locus\n"
+            logging.info("Unable to determine which allele is present in native mompS locus")
 
         else:
             if len([i for i in which_native if i]) > 1:
-                multi_momp_error += "Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.\n"
+                logging.info("Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.")
                 for allele in alleles['mompS']:
-                    multi_momp_error += f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus.\n\n"
+                    logging.info(f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus.")
 
             else:
                 native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
                 non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
-                multi_momp_error += f"Allele {native_allele.allele_id} was determined to be present in the native mompS locus. {native_allele.confidence['for']} reads support this.\n"
+                logging.info(f"Allele {native_allele.allele_id} was determined to be the primary mompS allele. {native_allele.confidence['for']} reads support this.")
                 for a in non_native_alleles:
-                    multi_momp_error += f"Allele {a.allele_id} was determined not to be present in the native mompS locus.\n\n"
+                    logging.info(f"Allele {a.allele_id} was determined not to be the secondary mompS allele.")
 
         # Pick primary and secondary allele
-        # If majority of reads contain primer in correct orientation
+        # If ANY reads contain primer in correct orientation
         # That is evidence of primary allele
-        alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > a.confidence['against']]
+        alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > 0]
         if len(alleles['mompS']) > 1:
-            multi_momp_error += "Failed to determine primary mompS allele. See log for details.\n\n"
-        sys.stderr.write(multi_momp_error)
-        logging.info(multi_momp_error)
+            if alleles['mompS'][0].confidence['for'] > 3*alleles['mompS'][1].confidence['for']:
+                alleles['mompS'] = [alleles['mompS'][0]]
+            elif alleles['mompS'][1].confidence['for'] > 3*alleles['mompS'][0].confidence['for']:
+                alleles['mompS'] = [alleles['mompS'][1]]
+            else:
+                logging.info("Failed to determine primary mompS allele as both alleles appear to be flanked by primer in the expected orientation.")
+                # Create blank allele to contain * as allele ID for printing
+                alleles['mompS'] = [Allele()]
+                alleles['mompS'][0].allele_id = ''
+        elif len(alleles['mompS']) == 0:
+            logging.info("Failed to determine primary mompS allele. Primary mompS allele is identified by finding read pairs that cover both biallelic positions and sequencing primer. In this sample, no such reads were found. Perhaps sequencing reads are too short.")
+            # Create blank allele to contain * as allele ID for printing
+            alleles['mompS'] = [Allele()]
+            alleles['mompS'][0].allele_id = ''
+        for allele in alleles['mompS']:
+            allele.allele_id += '*'
 
     outlines = []
     if inputs['header']:
@@ -1495,13 +1508,9 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
                 allele_profile += alleles[locus][n].allele_id + "\t"
         allele_profile = allele_profile.rstrip()
         allele_profile = (inputs["sample_name"] 
-            + "\t" + get_st(allele_profile, Ref,
+            + "\t" + get_st(allele_profile.replace("*",""), Ref,
                             profile_file=inputs["profile"])
             + "\t" + allele_profile)
-
-        if len(alleles['mompS']) > 1:
-            allele_profile += "\t" + str(min([len(set(i)) for i in alleles["mompS"][n].reads_at_locs])) + "\t" # coverage 
-            allele_profile += str(alleles["mompS"][n].confidence["for"]) + "\t" # primer
 
         outlines.append(allele_profile)
 
