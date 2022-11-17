@@ -1142,7 +1142,6 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
         all_informative_reads = sorted([i for i in all_informative_reads])
 
         for read_pair in all_informative_reads:
-            reads_for = False # Did either mate support native locus?
             for mate in read_info_dict[read_pair]:
                 if mate.flag > 2047:
                     continue
@@ -1153,11 +1152,12 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                         # i.e., read containing primer mapped in reverse
                         # meaning mate is 5' of primer
                         allele.confidence["for"] += 1
-                        reads_for = True
-                        break
+                    
+                    else: # Primer indicates secondary allele
+                        allele.confidence['against'] += 1
+                    
+                    break
 
-            if not reads_for: # If neither read supports native locus
-                allele.confidence["against"] += 1
     
     return alleles_info
 
@@ -1369,6 +1369,7 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
             logging.info(f"mompS allele '{a.allele_id}' information")
             logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
             logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
+            logging.info(f"number of reads from this allele containing outtermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}")
 
     return mompS_alleles
 
@@ -1461,15 +1462,21 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
             if len([i for i in which_native if i]) > 1:
                 multi_momp_error += "Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.\n"
                 for allele in alleles['mompS']:
-                    multi_momp_error += f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus.\n"
+                    multi_momp_error += f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus.\n\n"
 
             else:
                 native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
                 non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
                 multi_momp_error += f"Allele {native_allele.allele_id} was determined to be present in the native mompS locus. {native_allele.confidence['for']} reads support this.\n"
                 for a in non_native_alleles:
-                    multi_momp_error += f"Allele {a.allele_id} was determined not to be present in the native mompS locus.\n"
+                    multi_momp_error += f"Allele {a.allele_id} was determined not to be present in the native mompS locus.\n\n"
 
+        # Pick primary and secondary allele
+        # If majority of reads contain primer in correct orientation
+        # That is evidence of primary allele
+        alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > a.confidence['against']]
+        if len(alleles['mompS']) > 1:
+            multi_momp_error += "Failed to determine primary mompS allele. See log for details.\n\n"
         sys.stderr.write(multi_momp_error)
         logging.info(multi_momp_error)
 
