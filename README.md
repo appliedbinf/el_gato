@@ -11,7 +11,7 @@ Epidemiology of *Legionella*: Genome-bAsed Typing
 
 Currently in development
 Codebase stage: development   
-Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), Emily T. Norris [https://github.com/norriset], Anna Gaines [https://github.com/annagaines], [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/), [Alan Collins](https://github.com/Alan-Collins)
+Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/), [Alan Collins](https://github.com/Alan-Collins)
 
 # Installation 
 
