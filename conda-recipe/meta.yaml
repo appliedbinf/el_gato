@@ -30,6 +30,9 @@ requirements:
     - spades==3.15
     - stringmlst==0.6.3
 
+build:
+  noarch: python
+
 test:
   imports:
     - "shlex"
