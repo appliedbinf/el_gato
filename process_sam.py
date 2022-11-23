@@ -119,7 +119,11 @@ all_refs = {
 		'start_pos' : 350,
 		'end_pos' : 752,
 	},
-	"neuA_neuAH_ref": {
+	"neuA_ref": {
+		'start_pos' : 350,
+		'end_pos' : 704,
+	},
+	"neuAh_ref": {
 		'start_pos' : 350,
 		'end_pos' : 704,
 	},
