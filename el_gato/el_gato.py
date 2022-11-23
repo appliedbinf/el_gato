@@ -19,7 +19,43 @@ script_path = os.path.dirname(os.path.abspath(script_filename))
 # TODO: Implement ability to find databases and bin (isPcr really) in the scripts "resource" folder
 # TODO: fix argument names so that they are consistent
 # TODO: add another argument that sets the default prefix for everything instead of setting them one at a time
-# TODO: if only reads are provided, stringMLST should be called for allele calls instead of genome assembly
+
+REF_POSITIONS = {
+    "asd_ref": {        
+        'start_pos' : 350,
+        'end_pos' : 578,
+    },
+    "flaA_ref": {
+        'start_pos' : 350,
+        'end_pos' : 869,
+    },
+    "mip_ref": {
+        'start_pos' : 350,
+        'end_pos' : 752,
+    },
+    "neuA_ref": {
+        'start_pos' : 350,
+        'end_pos' : 704,
+    },
+    "neuAh_ref": {
+        'start_pos' : 350,
+        'end_pos' : 704,
+    },
+    "pilE_ref": {
+        'start_pos' : 350,
+        'end_pos' : 718,
+    },
+    "proA_ref": {
+        'start_pos' : 350,
+        'end_pos' : 754,
+    },
+    "mompS_ref": {
+        'start_pos' : 367,
+        'end_pos' : 718,
+    },
+
+}
+
 
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
@@ -542,60 +578,6 @@ def resume_checkpoint(step):
 '''
 
 
-# TODO: Create the file and indices inside the Input.out_prefix folder
-def validate_ref(inputs: dict, Ref: Ref) -> None:
-    """Checks if the reference files and indices exist, creates them otherwise, returns nothing
-
-    Parameters
-    ----------
-    inputs: dict
-        Run settings
-    Ref: Ref class instance
-        Reference sequence information
-
-    Returns
-    -------
-    None
-        FASTA file, bwa index and faidx index are created if they don't exist, nothing is returned
-
-    """
-    if not os.path.isfile(Ref.file):
-        logging.info("Reference fasta file doesn't exist, creating now")
-        with open(Ref.file, "w") as f:
-            f.write(f">{Ref.name}\n{Ref.seq}\n")
-
-    if not os.path.isfile(Ref.file + ".bwt"):
-        logging.info("Reference fasta index doesn't exist, creating now")
-        run_command(f"bwa index {Ref.file}", "bwa index")
-        run_command(f"samtools faidx {Ref.file}", "samtools faidx")
-
-    if not os.path.isfile(os.path.join(inputs["sbt"], "lp_35.txt")):
-        config_target = os.path.join(inputs["sbt"], "config.txt")
-        with open(config_target, "w") as f:
-            f.write("[loci]\n")
-            for locus in Ref.locus_order:
-                this_locus = os.path.join(inputs["sbt"], locus + inputs["suffix"])
-                f.write(f"{locus}\t{this_locus}\n")
-            f.write(f"[profile]\nprofile\t{inputs['profile']}\n")
-
-        run_command(f"stringMLST.py --buildDB -c {config_target} -k 35 -P {inputs['sbt']}/lp", "stringMLST buildDB")
-
-    for locus in Ref.locus_order:
-        if not os.path.isfile(os.path.join(inputs["sbt"], locus + inputs["suffix"] + ".nhr")):
-            makeblastdb = f"makeblastdb -in {os.path.join(inputs['sbt'], locus + inputs['suffix'])} -dbtype nucl"
-            run_command(makeblastdb, f"makeblastdb/{locus}")
-
-
-def run_stringmlst(r1: str, r2: str, sbt: str) -> dict:
-    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {sbt}/lp",
-                                "stringMLST").split("\n")
-    header = string_output[0].rstrip().split("\t")
-    values = string_output[1].rstrip().split("\t")
-    allele_calls = {}
-    for i in range(len(header)):
-        allele_calls[header[i]] = values[i]
-    return allele_calls
-
 
 def check_coverage(file: str, min_depth: int = 3) -> bool:
     """Checks if sufficient read coverage is present throughout the reference gene
@@ -1023,16 +1005,18 @@ def blast_non_momps(inputs: dict, assembly_file: str) -> dict:
                 (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
                 if int(slen) / int(align_len) == 1 and float(pident) == 100:
                     allele = sseqid.replace(locus + "_", "")
-            if allele == "-":
-                if inputs["analysis_path"] == "ar":
-                    run_string = True
+            # if allele == "-":
+            #     if inputs["analysis_path"] == "ar":
+            #         run_string = True
+            ####################################################################################################################################
+            # Run mapping process
         calls[locus] = allele
 
-    if run_string:
-        string_calls = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
-        for locus in loci:
-            if calls[locus] == "-":
-                calls[locus] = string_calls[locus]
+    # if run_string:
+    #     string_calls = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
+    #     for locus in loci:
+    #         if calls[locus] == "-":
+    #             calls[locus] = string_calls[locus]
 
     return calls
 
@@ -1299,7 +1283,7 @@ def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
 
 
 
-def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
+def map_alleles(r1: str, r2: str, threads: int, outdir: str,
     ref: Ref, db: str):
     """Map reads to mompS and identify one or more alleles
 
@@ -1324,8 +1308,8 @@ def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
     """
 
     # Run BWA mem
-    logging.info("Mapping reads to mompS reference sequence")
-    bwa_mem_command = f"bwa mem -t {threads} -o {outdir}/reads_vs_mompS.sam {ref.file} {r1} {r2}"
+    logging.info("Mapping reads to mompS reference sequence, then filtering unmapped reads from sam file")
+    mapping_command = f"bwa mem -t {threads} -o {outdir}/reads_vs_mompS.sam {db}/ref_gene_regions.fna {r1} {r2}"
     run_command(bwa_mem_command, tool='bwa mem')
 
     # Filter reads that didn't map
@@ -1422,8 +1406,7 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
             alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"])
             alleles["mompS"] = mompS_allele
         else:
-            alleles = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
-            alleles["mompS"] = check_mompS_alleles(r1=inputs["read1"], r2=inputs["read2"], outdir=inputs['out_prefix'], threads=inputs['threads'], ref=ref, db=inputs['sbt'])
+            alleles["mompS"] = map_alleles(r1=inputs["read1"], r2=inputs["read2"], outdir=inputs['out_prefix'], threads=inputs['threads'], ref=ref, db=inputs['sbt'])
 
     else:
         logging.critical(
@@ -1589,9 +1572,6 @@ def main():
     logging.info("Ensuring thread counts are correct")
     inputs = ensure_safe_threads(inputs)
     logging.info("Thread count has been validated")
-
-    logging.info("Checking for reference files")
-    validate_ref(inputs, Ref)
     logging.info("All reference files have been discovered")
     get_inputs(inputs)
     logging.info("Starting analysis")
