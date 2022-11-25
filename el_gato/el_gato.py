@@ -334,16 +334,16 @@ def make_output_directory(inputs: dict):
     if os.path.isdir(inputs["out_prefix"]):
         if inputs["overwrite"]:
             inputs["logging_buffer_message"] += "Output directory exists, removing the existing directory\n"
-            # try:
-            #     shutil.rmtree(inputs["out_prefix"])
-            # except PermissionError:
-            #     print("Failed to remove the existing directory. Do you have write permissions?")
-            #     sys.exit(1)
-            # os.mkdir(inputs["out_prefix"])
-            # inputs["logging_buffer_message"] += f"New output directory created\n"
-        # else:
-        #     print(f"Output directory '{inputs['out_prefix']}' exists and overwrite is turned off. Exiting")
-        #     sys.exit(1)
+            try:
+                shutil.rmtree(inputs["out_prefix"])
+            except PermissionError:
+                print("Failed to remove the existing directory. Do you have write permissions?")
+                sys.exit(1)
+            os.mkdir(inputs["out_prefix"])
+            inputs["logging_buffer_message"] += f"New output directory created\n"
+        else:
+            print(f"Output directory '{inputs['out_prefix']}' exists and overwrite is turned off. Exiting")
+            sys.exit(1)
     else:
         os.mkdir(inputs["out_prefix"])
         inputs["logging_buffer_message"] += f"New output directory created\n"
