@@ -50,8 +50,8 @@ class Ref:
             'end_pos' : 751,
         },
         "neuA": {
-            'start_pos' : 351,
-            'end_pos' : 704,
+            'start_pos' : 350,
+            'end_pos' : 703,
         },
         "neuAh": {
             'start_pos' : 350,
@@ -1206,7 +1206,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             else:
                 total = sum([i for i in count.values()])
                 seq.append(
-                    [base for base, num in count.items() if num > 0.35*total]
+                    [base for base, num in count.items() if num > 0.4*total]
                     )
 
 
