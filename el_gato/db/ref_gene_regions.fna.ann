@@ -1,17 +1,17 @@
 8383 8 11
-0 asd_ref NC_006368.1:2589410-2590581 Legionella pneumophila str. Paris, complete sequence
+0 asd NC_006368.1:2589410-2590581 Legionella pneumophila str. Paris, complete sequence
 0 1172 0
-0 flaA_ref NC_006368.1:1440618-1441498 Legionella pneumophila str. Paris, complete sequence
+0 flaA NC_006368.1:1440618-1441498 Legionella pneumophila str. Paris, complete sequence
 1172 881 0
-0 mip_ref NC_006368.1:959275-960375 Legionella pneumophila str. Paris, complete sequence
+0 mip NC_006368.1:959275-960375 Legionella pneumophila str. Paris, complete sequence
 2053 1101 0
-0 neuA_ref NC_006368.1:914688-915740 Legionella pneumophila str. Paris, complete sequence
+0 neuA NC_006368.1:914688-915740 Legionella pneumophila str. Paris, complete sequence
 3154 1053 0
-0 pilE_ref NC_006368.1:731998-733029 Legionella pneumophila str. Paris, complete sequence
+0 pilE NC_006368.1:731998-733029 Legionella pneumophila str. Paris, complete sequence
 4207 1032 0
-0 proA_ref NC_006368.1:580661-581764 Legionella pneumophila str. Paris, complete sequence
+0 proA NC_006368.1:580661-581764 Legionella pneumophila str. Paris, complete sequence
 5239 1104 0
-0 mompS_ref (null)
+0 mompS (null)
 6343 987 0
-0 neuAh_ref NZ_CP017458.1:924205-925257 Legionella pneumophila subsp. fraseri strain Dallas 1E chromosome, complete genome
+0 neuAh NZ_CP017458.1:924205-925257 Legionella pneumophila subsp. fraseri strain Dallas 1E chromosome, complete genome
 7330 1053 0
