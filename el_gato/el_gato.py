@@ -991,7 +991,7 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
     calls = dict.fromkeys(loci, '')
 
-    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_db/all.tfa -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
+    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
     result = run_command(blast_command, tool='blast', shell=True)
 
     for line in result.strip().split('\n'):
@@ -1361,7 +1361,7 @@ def map_alleles(r1: str, r2: str, threads: int, outdir: str,
     # Run BWA mem
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
     mapping_command = f"bwa mem -t {threads} -A 1 -B 1 {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
-    # run_command(mapping_command, tool='bwa mem', shell=True)
+    run_command(mapping_command, tool='bwa mem', shell=True)
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
 
@@ -1369,7 +1369,7 @@ def map_alleles(r1: str, r2: str, threads: int, outdir: str,
     write_alleles_to_file(alleles, outdir)
     # BLAST alleles
     logging.info("BLASTing identified alleles against database")
-    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_db/all.tfa -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
+    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
     result = run_command(blast_command, tool='blast', shell=True)
     for line in result.strip().split('\n'):
         bits = line.split()
