@@ -170,12 +170,11 @@ def get_args() -> argparse.ArgumentParser:
 
     """ Get commandline arguments """
     parser = argparse.ArgumentParser(description="""Legionella in silico SBT script. 
-    Requires paired-end reads files and/or a genome assembly.
+    Requires paired-end reads files or a genome assembly.
 
     Notes on arguments:
     (1) If only reads are provided, SBT is called using a mapping/alignment approach.
     (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted. 
-    (3) If both reads and an assembly are provided, SBT is called using a combination of assembly and mapping.
     """, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
     group1 = parser.add_argument_group(title='Input files',
                                        description="Please specify either reads files and/or a genome assembly file")
@@ -238,7 +237,7 @@ def check_input_supplied(
         
         Exits the program if required arguments are not supplied or if they are mismatched
     """
-    error = f"""Not enough arguments! The script requires both read files and/or a genome assembly file.\n\nRun {parser.prog} -h to see usage."""
+    error = f"""Wrong arguments! The script requires either a genome assembly file or two paired-end read files.\n\nRun {parser.prog} -h to see usage."""
     if not args.assembly:
         # assembly file is not supplied, make sure both reads file are supplied
         if not args.read1 or not args.read2:
@@ -246,22 +245,11 @@ def check_input_supplied(
             sys.exit(1)
         inputs["analysis_path"] = "r"
         inputs["logging_buffer_message"] += "User supplied both reads files, adopting the assembly/mapping/alignment route\n"
-    elif args.read1:
-        # assembly is supplied, do we have reads1?
-        inputs["analysis_path"] = "a"
-        if args.read2:
-            # we have reads and assembly
-            inputs["analysis_path"] += "r"
-            inputs["logging_buffer_message"] += "User supplied both reads files and the assembly file, adopting the mapping/alignment route\n"
-        else:
-            # reads2 is missing, which is incorrect
-            print(f"Error: {error}")
-            sys.exit(1)
     else:
         # assembly is supplied, read1 is not. Is read2 supplied?
         inputs["analysis_path"] = "a"
-        if args.read2:
-            # only reads2 is supplied, which is incorrect
+        if args.read1 or args.read2:
+            # assembly and reads file(s) is supplied, which is incorrect
             print(f"Error: {error}")
             sys.exit(1)
         inputs["logging_buffer_message"] += "User supplied the assembly file, adopting the alignment/in silico pcr route\n"
@@ -1227,8 +1215,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+allele_start-1]
             bialleles = seq[multi_allelic_idx[0]]
             
-            if locus == 'mompS':
-                alleles[locus] = assess_allele_conf(bialleles, [reads_at_a], multi_allelic_idx, read_info_dict, ref)
+            alleles[locus] = assess_allele_conf(bialleles, [reads_at_a], multi_allelic_idx, read_info_dict, ref)
 
             for base in seq:
                 for allele in alleles[locus]:
@@ -1397,6 +1384,17 @@ def map_alleles(r1: str, r2: str, threads: int, outdir: str,
             logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
             logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
             logging.info(f"number of reads from this allele containing outtermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}")
+    for locus in [i for i in alleles if i != 'mompS']:
+        if len(alleles[locus]) > 1:
+            logging.info(f"{len(alleles[locus])} {locus} alleles identified.")
+            alleles_found = [a.allele_id for a in alleles[locus]]
+            if len(set(alleles_found)) == 1:
+                logging.info(f"both identified {locus} alleles are most similar to allele {alleles_found[0]}. That allele will be reported.")
+            else:
+                logging.info(f"The following {locus} alleles were found: {', '.join(alleles_found)}. It is unclear which is the right allele. It may help to perform QC on your reads and rerun el_gato.")
+                a = Allele()
+                a.allele_id = '?'
+                alleles[locus] = [a]
 
     return alleles
 
@@ -1417,19 +1415,7 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
         formatted ST + allele profile (and optional header) of the isolate
     """
     alleles = {}
-    if inputs["analysis_path"] == "ar":
-        mompS_allele = call_momps_mapping(inputs,
-                                          r1=inputs["read1"],
-                                          r2=inputs["read2"],
-                                          threads=inputs['threads'],
-                                          ref_file=ref.file,
-                                          outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
-        if mompS_allele == "-":
-            mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
-                                          db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-        alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
-        alleles["mompS"] = mompS_allele
-    elif inputs["analysis_path"] == "a":
+    if inputs["analysis_path"] == "a":
         alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                           db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
