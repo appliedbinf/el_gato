@@ -1150,7 +1150,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 sys.exit(1)
     if 'neuA' not in ref.REF_POSITIONS and 'neuAh' not in ref.REF_POSITIONS:
         # Neither had sufficient coverage and were deleted
-        logging.info(f"only {cov}% of {gene} locus was covered by mapped reads. This may indicate a gene deletion or a bad sequencing run. Without full coverage, we can't identify the allele.")
+        logging.info(f"WARNING! Insufficient coverage of neuA to identify the allele. This may indicate a gene deletion or a bad sequencing run.")
         sys.exit(1) 
 
     if 'neuA' in ref.REF_POSITIONS and 'neuAh' in ref.REF_POSITIONS:
