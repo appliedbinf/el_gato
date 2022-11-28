@@ -1136,7 +1136,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     run_command(process_sam_command, tool='samtools', shell=True)
 
     logging.info("Checking coverage of reference loci by mapped reads")
-    coverage_command = f"samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam;"
+    coverage_command = f"samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1"
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True)
     
