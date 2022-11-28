@@ -1143,18 +1143,22 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     # Check coverage of neuA/neuAh regions to infer which is present
 
-    logging.info("Checking coverage of reference loci by mapped reads")
-    coverage_command = f"samtools sort {outdir}/reads_vs_all_ref_filt.sam | samtools coverage -"
+    logging.info("Processing sam file for downstream analysis.")
+    process_sam_command = f"samtools view -Sb {outdir}/reads_vs_all_ref_filt.sam | samtools sort - > {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools index {outdir}/reads_vs_all_ref_filt_sorted.bam"
+    run_command(process_sam_command, tool='samtools', shell=True)
 
-    result = run_command(coverage_command, tool='samtools', shell=True)
+    logging.info("Checking coverage of reference loci by mapped reads")
+    coverage_command = f"samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam;"
+
+    result = run_command(coverage_command, tool='samtools coverage', shell=True)
     
-    for line in result.strip().split('\n')[1:]:
+    for line in result.strip().split('\n')[1::2]:
         gene, _, _, _, _, cov, _, _, _ = line.split()
         if float(cov) != 100.:
             if gene in ['neuA', 'neuAh']:
                 del ref.REF_POSITIONS[gene]
             else:
-                logging.info(f"Insufficient coverage of the neuA locus to identify allele. This may indicate a gene deletion or a bad sequencing run.")
+                logging.info(f"Insufficient coverage of the {gene} locus to identify allele. This may indicate a gene deletion or a bad sequencing run.")
                 sys.exit(1)
     if 'neuA' not in ref.REF_POSITIONS and 'neuAh' not in ref.REF_POSITIONS:
         # Neither had sufficient coverage and were deleted
