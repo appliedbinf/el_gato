@@ -21,7 +21,7 @@ requirements:
     - pip
  
   run:
-    - bwa==0.7.17
+    - bwa-mem2==2.2.1
     - sambamba==0.8.2
     - freebayes
     - samtools==1.15.1
