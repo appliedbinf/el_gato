@@ -34,7 +34,7 @@ class Ref:
     ispcr_opt = "stdout -out=fa -minPerfect=5 -tileSize=6 -maxSize=1200 -stepSize=5"
     mompS_primer1 = "TTGACCATGAGTGGGATTGG\tTGGATAAATTATCCAGCCGGACTTC"
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
-    prereq_programs = ["bwa", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py",
+    prereq_programs = ["bwa-mem2", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py",
                        "stringMLST.py"]
     REF_POSITIONS = {
         "asd": {        
@@ -846,8 +846,8 @@ def call_momps_mapping(inputs: dict, r1: str, r2: str, threads: int, ref_file: s
         filt_file = outfile + ".filtered"
 
     # Map reads to mompS gene
-    bwa_call = f"bwa mem -t {threads} {ref_file} {r1} {r2} -o {outfile}.sam"
-    run_command(bwa_call, "bwa")
+    bwa_call = f"bwa-mem2 mem -t {threads} {ref_file} {r1} {r2} -o {outfile}.sam"
+    run_command(bwa_call, "bwa-mem2")
 
     # Create a separate file containing reads coming from the border regions
     filter_sam_file(samfile=f"{outfile}.sam", outfile=f"{filt_file}.sam")
@@ -1351,8 +1351,8 @@ def map_alleles(r1: str, r2: str, threads: int, outdir: str,
 
     # Run BWA mem
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
-    mapping_command = f"bwa mem -t {threads} -A 1 -B 1 {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
-    run_command(mapping_command, tool='bwa mem', shell=True)
+    mapping_command = f"bwa-mem2 mem -t {threads} -A 1 -B 1 {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
+    run_command(mapping_command, tool='bwa-mem2 mem', shell=True)
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
 
