@@ -1,5 +1,5 @@
 {% set name = "elgato" %}
-{% set version = "1.1.0" %}
+{% set version = "1.2.0" %}
 
 package:
   name: {{ name|lower }}
@@ -28,7 +28,6 @@ requirements:
     - blast==2.13.0
     - ispcr==33.0
     - spades==3.15
-    - stringmlst==0.6.3
 
 build:
   noarch: python
