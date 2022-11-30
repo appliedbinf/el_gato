@@ -19,7 +19,6 @@ script_path = os.path.dirname(os.path.abspath(script_filename))
 # TODO: Implement ability to find databases and bin (isPcr really) in the scripts "resource" folder
 # TODO: fix argument names so that they are consistent
 # TODO: add another argument that sets the default prefix for everything instead of setting them one at a time
-# TODO: if only reads are provided, stringMLST should be called for allele calls instead of genome assembly
 
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
@@ -35,8 +34,42 @@ class Ref:
     ispcr_opt = "stdout -out=fa -minPerfect=5 -tileSize=6 -maxSize=1200 -stepSize=5"
     mompS_primer1 = "TTGACCATGAGTGGGATTGG\tTGGATAAATTATCCAGCCGGACTTC"
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
-    prereq_programs = ["bwa", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py",
+    prereq_programs = ["bwa-mem2", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py",
                        "stringMLST.py"]
+    REF_POSITIONS = {
+        "asd": {        
+            'start_pos' : 351,
+            'end_pos' : 823,
+        },
+        "flaA": {
+            'start_pos' : 351,
+            'end_pos' : 532,
+        },
+        "mip": {
+            'start_pos' : 350,
+            'end_pos' : 751,
+        },
+        "neuA": {
+            'start_pos' : 350,
+            'end_pos' : 703,
+        },
+        "neuAh": {
+            'start_pos' : 350,
+            'end_pos' : 703,
+        },
+        "pilE": {
+            'start_pos' : 351,
+            'end_pos' : 683,
+        },
+        "proA": {
+            'start_pos' : 350,
+            'end_pos' : 754,
+        },
+        "mompS": {
+            'start_pos' : 367,
+            'end_pos' : 718,
+        },
+    }
 
 class SAM_data(object):
     """stores columns of SAM entry as attributes"""
@@ -128,7 +161,9 @@ class Allele():
         self.allele_id = '-'
 
     def assess_conf(self):
-        if self.confidence['for'] > 0:
+        if self.confidence['for'] == 'NA':
+            pass
+        elif self.confidence['for'] > 0:
             self.location = f"_native_locus_{self.confidence['for']}_reads"
         elif self.confidence['against'] > 0:
             self.location = f"_non-native_locus"
@@ -137,12 +172,11 @@ def get_args() -> argparse.ArgumentParser:
 
     """ Get commandline arguments """
     parser = argparse.ArgumentParser(description="""Legionella in silico SBT script. 
-    Requires paired-end reads files and/or a genome assembly.
+    Requires paired-end reads files or a genome assembly.
 
     Notes on arguments:
     (1) If only reads are provided, SBT is called using a mapping/alignment approach.
     (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted. 
-    (3) If both reads and an assembly are provided, SBT is called using a combination of assembly and mapping.
     """, formatter_class=argparse.RawDescriptionHelpFormatter, add_help=False)
     group1 = parser.add_argument_group(title='Input files',
                                        description="Please specify either reads files and/or a genome assembly file")
@@ -205,7 +239,7 @@ def check_input_supplied(
         
         Exits the program if required arguments are not supplied or if they are mismatched
     """
-    error = f"""Not enough arguments! The script requires both read files and/or a genome assembly file.\n\nRun {parser.prog} -h to see usage."""
+    error = f"""Wrong arguments! The script requires either a genome assembly file or two paired-end read files.\n\nRun {parser.prog} -h to see usage."""
     if not args.assembly:
         # assembly file is not supplied, make sure both reads file are supplied
         if not args.read1 or not args.read2:
@@ -213,22 +247,11 @@ def check_input_supplied(
             sys.exit(1)
         inputs["analysis_path"] = "r"
         inputs["logging_buffer_message"] += "User supplied both reads files, adopting the assembly/mapping/alignment route\n"
-    elif args.read1:
-        # assembly is supplied, do we have reads1?
-        inputs["analysis_path"] = "a"
-        if args.read2:
-            # we have reads and assembly
-            inputs["analysis_path"] += "r"
-            inputs["logging_buffer_message"] += "User supplied both reads files and the assembly file, adopting the mapping/alignment route\n"
-        else:
-            # reads2 is missing, which is incorrect
-            print(f"Error: {error}")
-            sys.exit(1)
     else:
         # assembly is supplied, read1 is not. Is read2 supplied?
         inputs["analysis_path"] = "a"
-        if args.read2:
-            # only reads2 is supplied, which is incorrect
+        if args.read1 or args.read2:
+            # assembly and reads file(s) is supplied, which is incorrect
             print(f"Error: {error}")
             sys.exit(1)
         inputs["logging_buffer_message"] += "User supplied the assembly file, adopting the alignment/in silico pcr route\n"
@@ -472,7 +495,7 @@ def ensure_safe_threads(inputs: dict, threads: int = 1) -> dict:
 
 # TODO: implement try-catch for running programs
 # TODO: check if the input-output files are empty prior to running the program
-def run_command(command: str, tool: str = None, stdin: str = None, shell: bool = False) -> str:
+def run_command(command: str, tool: str = None, stdin: str = None, shell: bool = False, desc_file: str = None, desc_header: str = None) -> str:
     """Runs a command, and logs it nicely
 
     Wraps around logging and subprocess.check_output
@@ -491,6 +514,12 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
     shell: bool, optional
         shell option passed to check_output
 
+    desc_file: str, optional
+        filename to write output of command 
+
+    desc_header: str, optional
+        String to write before command output (i.e., narrative description of command)
+
     Returns
     -------
     str
@@ -501,7 +530,6 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
     full_command = command
     if tool is not None:
         logging.info(f"Running {tool}")
-    # result = ""
     if not shell:
         command = shlex.split(command, posix=False)
     if stdin is not None:
@@ -522,79 +550,16 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
         logging.info(f"Finished running {tool}")
     else:
         logging.debug(f"Command log:\n{result}")
+
+    # Write result to desc_file
+    if desc_file:
+        with open(desc_file, 'a') as f:
+            if desc_header:
+                f.write(desc_header + '\n\n')
+            f.write(f"Command:\n\n{full_command}\n\n")
+            f.write(f"Output:\n\n{result}\n\n")
+
     return result
-
-
-'''
-# TODO: add a checkpoint
-def add_checkpoint(step: str) -> None:
-    pass
-
-
-# TODO: check if checkpoint exists
-def check_checkpoint(step):
-    pass
-
-
-# TODO: resume a run from checkpoint
-def resume_checkpoint(step):
-    pass
-'''
-
-
-# TODO: Create the file and indices inside the Input.out_prefix folder
-def validate_ref(inputs: dict, Ref: Ref) -> None:
-    """Checks if the reference files and indices exist, creates them otherwise, returns nothing
-
-    Parameters
-    ----------
-    inputs: dict
-        Run settings
-    Ref: Ref class instance
-        Reference sequence information
-
-    Returns
-    -------
-    None
-        FASTA file, bwa index and faidx index are created if they don't exist, nothing is returned
-
-    """
-    if not os.path.isfile(Ref.file):
-        logging.info("Reference fasta file doesn't exist, creating now")
-        with open(Ref.file, "w") as f:
-            f.write(f">{Ref.name}\n{Ref.seq}\n")
-
-    if not os.path.isfile(Ref.file + ".bwt"):
-        logging.info("Reference fasta index doesn't exist, creating now")
-        run_command(f"bwa index {Ref.file}", "bwa index")
-        run_command(f"samtools faidx {Ref.file}", "samtools faidx")
-
-    if not os.path.isfile(os.path.join(inputs["sbt"], "lp_35.txt")):
-        config_target = os.path.join(inputs["sbt"], "config.txt")
-        with open(config_target, "w") as f:
-            f.write("[loci]\n")
-            for locus in Ref.locus_order:
-                this_locus = os.path.join(inputs["sbt"], locus + inputs["suffix"])
-                f.write(f"{locus}\t{this_locus}\n")
-            f.write(f"[profile]\nprofile\t{inputs['profile']}\n")
-
-        run_command(f"stringMLST.py --buildDB -c {config_target} -k 35 -P {inputs['sbt']}/lp", "stringMLST buildDB")
-
-    for locus in Ref.locus_order:
-        if not os.path.isfile(os.path.join(inputs["sbt"], locus + inputs["suffix"] + ".nhr")):
-            makeblastdb = f"makeblastdb -in {os.path.join(inputs['sbt'], locus + inputs['suffix'])} -dbtype nucl"
-            run_command(makeblastdb, f"makeblastdb/{locus}")
-
-
-def run_stringmlst(r1: str, r2: str, sbt: str) -> dict:
-    string_output = run_command(f"stringMLST.py --predict -1 {r1} -2 {r2} -k 35 -P {sbt}/lp",
-                                "stringMLST").split("\n")
-    header = string_output[0].rstrip().split("\t")
-    values = string_output[1].rstrip().split("\t")
-    allele_calls = {}
-    for i in range(len(header)):
-        allele_calls[header[i]] = values[i]
-    return allele_calls
 
 
 def check_coverage(file: str, min_depth: int = 3) -> bool:
@@ -879,8 +844,8 @@ def call_momps_mapping(inputs: dict, r1: str, r2: str, threads: int, ref_file: s
         filt_file = outfile + ".filtered"
 
     # Map reads to mompS gene
-    bwa_call = f"bwa mem -t {threads} {ref_file} {r1} {r2} -o {outfile}.sam"
-    run_command(bwa_call, "bwa")
+    bwa_call = f"bwa-mem2 mem -t {threads} {ref_file} {r1} {r2} -o {outfile}.sam"
+    run_command(bwa_call, "bwa-mem2")
 
     # Create a separate file containing reads coming from the border regions
     filter_sam_file(samfile=f"{outfile}.sam", outfile=f"{filt_file}.sam")
@@ -992,7 +957,7 @@ def genome_assembly(inputs: dict, r1: str, r2: str, out: str) -> None:
     return inputs
 
 
-def blast_non_momps(inputs: dict, assembly_file: str) -> dict:
+def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
     """Find the rest of alleles (non-mompS) by BLAST search
 
     Parameters
@@ -1001,6 +966,8 @@ def blast_non_momps(inputs: dict, assembly_file: str) -> dict:
         Run settings
     assembly_file : str, optional
         Read1 file name
+    ref: Ref
+        Information about reference sequence
 
     Returns
     -------
@@ -1008,31 +975,36 @@ def blast_non_momps(inputs: dict, assembly_file: str) -> dict:
         dictionary containing locus (key) to allele (value) mapping
     """
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
-    calls = {}
-    run_string = False
-    for locus in loci:
-        db = os.path.join(inputs["sbt"], locus + inputs["suffix"])
-        blastcmd = f"blastn -query {assembly_file} -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
-        res = run_command(blastcmd, f"blastn/{locus}", shell=True).rstrip()
-        allele = "-"
-        if res == "":
-            # TODO: run blast again with lower identity threshold and return allele*
-            allele = "-"
-        else:
-            for match in res.split("\n"):
-                (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
-                if int(slen) / int(align_len) == 1 and float(pident) == 100:
-                    allele = sseqid.replace(locus + "_", "")
-            if allele == "-":
-                if inputs["analysis_path"] == "ar":
-                    run_string = True
-        calls[locus] = allele
+    calls = dict.fromkeys(loci, '')
 
-    if run_string:
-        string_calls = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
-        for locus in loci:
-            if calls[locus] == "-":
-                calls[locus] = string_calls[locus]
+    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
+    desc_header = "Best match of each locus in provided assembly using BLASTN."
+    result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header)
+
+    for line in result.strip().split('\n'):
+        bits = line.split()
+        locus = "_".join(bits[1].split("_")[:-1])
+        if float(bits[2]) == 100.00 and bits[3] == bits[12] and bits[3] == bits[13]:
+            calls[locus] = bits[1].split("_")[-1]
+        else:
+            calls[locus] = bits[1].split("_")[-1]+"*"
+
+    not_found_loci = [k for k,v in calls if v =='']
+
+    if len(not_found_loci) != 0:
+        error_msg = f"The following loci were not found in your assembly: {', '.join(not_found_loci)}\n"
+        if inputs['analysis_path'] == 'r':
+            error_msg += f"The provided reads files will be used to try to identify the loci missing from the assembly."
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg + '\n\n')
+            alleles = map_alleles(inputs=inputs, ref=ref)
+        else:
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg + '\n\n')
+    for locus in not_found_loci:
+        calls[locus] = alleles[locus][0].allele_id
 
     return calls
 
@@ -1061,12 +1033,7 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
             if line.endswith(allele_profile):
                 st = line.split("\t")[0]
                 return st
-    return "-"
-    # following system call does not work correctly, will debug it someday
-    # allele_profile = allele_profile.replace("\t", "\\t")
-    # grep_command = f"grep -P \'{allele_profile}$\' {profile_file}"
-    # st = run_command(grep_command, "Retreiving ST").rstrip().split("\t")[0]
-    # return st
+    return "NF"
 
 
 def read_sam_file(samfile: str):
@@ -1128,12 +1095,6 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                 if allele_found:
                     break
 
-    # all_informative_reads = set(reads_at_locs[0])
-    # if len(reads_at_locs) > 1:
-    #     for i in range(1, len(reads_at_locs)):
-    #         all_informative_reads = all_informative_reads.union(set(reads_at_locs[i]))
-    # all_informative_reads = sorted([i for i in all_informative_reads])
-
     for allele in alleles_info:
         all_informative_reads = set(allele.reads_at_locs[0])
         if len(allele.reads_at_locs) > 1:
@@ -1163,215 +1124,351 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
 
 
 
-def process_mompS_reads(contig_dict: dict, read_info_dict: dict, ref: Ref):
-    momps_reads = contig_dict[ref.name]
+def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str):
 
-    # reads_dict {bases: {pos:base}, qualities: {pos:qual}, readnames: {pos:rname}}
-    reads_dict ={
-        'bases' : {k:[] for k in range(ref.allele_start-1, ref.allele_stop)},
-        'qualities' : {k:[] for k in range(ref.allele_start-1, ref.allele_stop)},
-        'readnames' : {k:[] for k in range(ref.allele_start-1, ref.allele_stop)}
-        }
+    # Check coverage of neuA/neuAh regions to infer which is present
 
-    for read in momps_reads:
-        if ( 
-            (read.pos <= ref.allele_start and ref.allele_start <= read.end) or
-            (read.pos <= ref.allele_stop and ref.allele_stop <= read.end) or
-            (ref.allele_start <= read.pos and read.end <= ref.allele_stop) or
-            (read.pos <= ref.allele_start and ref.allele_stop <= read.end)
-            ):
-            if read.pos < ref.allele_start:
-                pad = ref.allele_start - read.pos
+    logging.info("Processing sam file for downstream analysis.")
+    process_sam_command = f"samtools view -Sb {outdir}/reads_vs_all_ref_filt.sam | samtools sort - > {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools index {outdir}/reads_vs_all_ref_filt_sorted.bam"
+    run_command(process_sam_command, tool='samtools', shell=True)
+
+    logging.info("Checking coverage of reference loci by mapped reads")
+    coverage_command = f"samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1"
+    desc_header = "Assessing coverage of MLST loci by provided sequencing reads."
+
+    result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
+    
+    for line in result.strip().split('\n')[1:]:
+        gene, _, _, _, _, cov, _, _, _ = line.split()
+        if float(cov) != 100.:
+            if gene in ['neuA', 'neuAh']:
+                del ref.REF_POSITIONS[gene]
             else:
-                pad = 0
+                logging.info(f"Insufficient coverage of the {gene} locus to identify allele. This may indicate a gene deletion or a bad sequencing run.")
+                sys.exit(1)
+    if 'neuA' not in ref.REF_POSITIONS and 'neuAh' not in ref.REF_POSITIONS:
+        # Neither had sufficient coverage and were deleted
+        logging.info(f"WARNING! Insufficient coverage of neuA to identify the allele. This may indicate a gene deletion or a bad sequencing run.")
+        sys.exit(1) 
+
+    if 'neuA' in ref.REF_POSITIONS and 'neuAh' in ref.REF_POSITIONS:
+        logging.info("100% coverage of both neuA and neuAh found. Unclear which to use. Aborting.")
+        sys.exit(1)
+
+    alleles = {}
+    for locus in ref.REF_POSITIONS:
+        locus_reads = contig_dict[locus]
+        allele_start = ref.REF_POSITIONS[locus]['start_pos']
+        allele_stop = ref.REF_POSITIONS[locus]['end_pos']
+
+        # reads_dict {bases: {pos:base}, qualities: {pos:qual}, readnames: {pos:rname}}
+        reads_dict ={
+            'bases' : {k:[] for k in range(allele_start-1, allele_stop)},
+            'qualities' : {k:[] for k in range(allele_start-1, allele_stop)},
+            'readnames' : {k:[] for k in range(allele_start-1, allele_stop)}
+            }
+
+        for read in locus_reads:
+            if ( 
+                (read.pos <= allele_start and allele_start <= read.end) or
+                (read.pos <= allele_stop and allele_stop <= read.end) or
+                (allele_start <= read.pos and read.end <= allele_stop) or
+                (read.pos <= allele_start and allele_stop <= read.end)
+                ):
+                if read.pos < allele_start:
+                    pad = allele_start - read.pos
+                else:
+                    pad = 0
+                
+
+                for read_idx in range(pad, min([read.ln - 1, allele_stop+1-read.pos])):
+                    ref_seq_idx = read.pos + read_idx - 1
+                    reads_dict['bases'][ref_seq_idx].append(read.seq[read_idx])
+                    reads_dict['qualities'][ref_seq_idx].append(read.qual[read_idx])
+                    reads_dict['readnames'][ref_seq_idx].append(read.qname)
+
+        seq = []
+
+        for position in range(allele_start-1, allele_stop):
+            count = Counter(reads_dict['bases'][position])
+            if len(count) == 1:
+                seq.append([[b for b in count][0]])
+            else:
+                total = sum([i for i in count.values()])
+                seq.append(
+                    [base for base, num in count.items() if num > 0.3*total]
+                    )
+
+
+        num_alleles_per_site = [len(i) for i in seq]
+
+        n_multiallelic = len([i for i in num_alleles_per_site if i > 1])
+
+        if n_multiallelic == 0:
+            alleles[locus] = [Allele()]
+            alleles[locus][0].seq = "".join([b[0] for b in seq])
+            if locus == 'mompS':
+                # Don't assess confidence if only one allele
+                alleles[locus][0].confidence = {'for': 'NA', 'against': 'NA'}
+
+        elif n_multiallelic == 1:
+            multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
+            reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+allele_start-1]
+            bialleles = seq[multi_allelic_idx[0]]
             
+            alleles[locus] = assess_allele_conf(bialleles, [reads_at_a], multi_allelic_idx, read_info_dict, ref)
 
-            for read_idx in range(pad, min([read.ln - 1, 719-read.pos])):
-                ref_seq_idx = read.pos + read_idx - 1
-                reads_dict['bases'][ref_seq_idx].append(read.seq[read_idx])
-                reads_dict['qualities'][ref_seq_idx].append(read.qual[read_idx])
-                reads_dict['readnames'][ref_seq_idx].append(read.qname)
+            for base in seq:
+                for allele in alleles[locus]:
+                    if len(base) == 1:
+                        allele.seq += base[0]
+                    else:
+                        allele.seq += allele.basecalls[0]
 
-    seq = []
-
-    for position in range(ref.allele_start-1, ref.allele_stop):
-        count = Counter(reads_dict['bases'][position])
-        if len(count) == 1:
-            seq.append([[b for b in count][0]])
         else:
-            total = sum([i for i in count.values()])
-            seq.append(
-                [base for base, num in count.items() if num > 0.35*total]
-                )
+            multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
+            reads_at_locs = [reads_dict['readnames'][idx+allele_start-1] for idx in multi_allelic_idx]
 
+            intersect = set(reads_at_locs[0]).intersection(set(reads_at_locs[1]))
+            for i in range(2, len(reads_at_locs)):
+                intersect = intersect.intersection(set(reads_at_locs[i]))
 
-    num_alleles_per_site = [len(i) for i in seq]
+            intersect = sorted([i for i in intersect])
 
-    n_multiallelic = len([i for i in num_alleles_per_site if i > 1])
+            conflicting_reads = []
+            read_pair_base_calls = []
+            for read_name in intersect:
+                read_pair = read_info_dict[read_name]
+                calls_list = []
+                for mate in read_pair: # If read is supplementary alignment, ignore.
+                    if mate.flag > 2047:
+                        continue
+                    calls_list.append(mate.get_base_calls(
+                        [idx+allele_start-1 for idx in multi_allelic_idx]
+                        ))
 
-    if n_multiallelic == 0:
-        alleles = [Allele()]
-        alleles[0].seq = ["".join([b[0] for b in seq])]
+                # Assess base calls of mate reads that map to one or more positions
+                agreeing_calls = []
+                for k in range(len(multi_allelic_idx)):
+                    calls = []
+                    for mate_calls in calls_list:
+                        if mate_calls[k] != '':
+                            calls.append(mate_calls[k])
+                    if len(set(calls)) > 1:
+                        conflicting_reads.append(calls_list)
+                        break
+                    else:
+                        agreeing_calls.append(calls[0])
 
-    elif n_multiallelic == 1:
-        multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
-        reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+ref.allele_start-1]
-        bialleles = seq[multi_allelic_idx[0]]
-        
-        alleles = assess_allele_conf(bialleles, [reads_at_a], multi_allelic_idx, read_info_dict, ref)
+                if len(agreeing_calls) == len(multi_allelic_idx):
+                    read_pair_base_calls.append("".join(agreeing_calls))
 
-        for base in seq:
-            for allele in alleles:
-                if len(base) == 1:
-                    allele.seq += base[0]
-                else:
-                    allele.seq += allele.basecalls[0]
+            if len(conflicting_reads) > 0.1 * len(reads_at_locs[0]):
+                logging.info(f"more than 10% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
 
-    else:
-        multi_allelic_idx = [n for n,i in enumerate(num_alleles_per_site) if i == 2]
-        reads_at_locs = [reads_dict['readnames'][idx+ref.allele_start-1] for idx in multi_allelic_idx]
+            biallele_results_count = Counter(read_pair_base_calls)
+            total_read_count = sum([v for v in biallele_results_count.values()])
 
-        intersect = set(reads_at_locs[0]).intersection(set(reads_at_locs[1]))
-        for i in range(2, len(reads_at_locs)):
-            intersect = intersect.intersection(set(reads_at_locs[i]))
+            bialleles = [k for k,v in biallele_results_count.items() if v > 0.1*total_read_count]
 
-        intersect = sorted([i for i in intersect])
+            # If more than 2 alleles found, can't resolve
+            if len(bialleles) > 2:
+                logging.info(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.")
+                sys.exit(1)
 
-        conflicting_reads = []
-        read_pair_base_calls = []
-        for read_name in intersect:
-            read_pair = read_info_dict[read_name]
-            calls_list = []
-            for mate in read_pair: # If read is supplementary alignment, ignore.
-                if mate.flag > 2047:
-                    continue
-                calls_list.append(mate.get_base_calls(
-                    [idx+ref.allele_start-1 for idx in multi_allelic_idx]
-                    ))
+            alleles[locus] = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
 
-            # Assess base calls of mate reads that map to one or more positions
-            agreeing_calls = []
-            for k in range(len(multi_allelic_idx)):
-                calls = []
-                for mate_calls in calls_list:
-                    if mate_calls[k] != '':
-                        calls.append(mate_calls[k])
-                if len(set(calls)) > 1:
-                    conflicting_reads.append(calls_list)
-                    break
-                else:
-                    agreeing_calls.append(calls[0])
+            biallic_count = 0
+            for base in seq:
+                for allele in alleles[locus]:
+                    if len(base) == 1:
+                        allele.seq += base[0]
+                    else:
+                        allele.seq += allele.basecalls[biallic_count]
+                if len(base) > 1:
+                    biallic_count+=1
+    
+    # Remove deletions from seq
+    for allele_list in alleles.values():
+        for allele in allele_list:
+            allele.seq = allele.seq.replace("*", "")
 
-            if len(agreeing_calls) == len(multi_allelic_idx):
-                read_pair_base_calls.append("".join(agreeing_calls))
-
-        if len(conflicting_reads) > 0.1 * len(reads_at_locs[0]):
-            print("more than 10% of reads disagree with which variant bases"
-                " are in the same gene")
-
-        biallele_results_count = Counter(read_pair_base_calls)
-        total_read_count = sum([v for v in biallele_results_count.values()])
-
-        bialleles = [k for k,v in biallele_results_count.items() if v > 0.35*total_read_count]
-
-        # If more than 2 alleles found, can't resolve
-        if len(bialleles) > 2:
-            print(f"{len(bialleles)} well-supported mompS alleles identified"
-            " and can't be resolved. Aborting.")
-            sys.exit(1)
-
-        alleles = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
-
-        biallic_count = 0
-        for base in seq:
-            for allele in alleles:
-                if len(base) == 1:
-                    allele.seq += base[0]
-                else:
-                    allele.seq += allele.basecalls[biallic_count]
-            if len(base) > 1:
-                biallic_count+=1
-
-    for allele in alleles:
+    # Assess confidence in mompS alleles
+    for allele in alleles['mompS']:
         allele.assess_conf()
+
+    # rename neuA and neuAH to neuA_neuAH
+    if 'neuA' in alleles:
+        alleles['neuA_neuAH'] = alleles['neuA']
+        del alleles['neuA']
+    else:
+        alleles['neuA_neuAH'] = alleles['neuAh']
+        del alleles['neuAh']
 
     return alleles
 
 
+def write_alleles_to_file(alleles: list, outdir: str):
+    identified_allele_fasta_string = ""
+    for locus, l in alleles.items():
+        if len(l) > 1:
+            for n, allele in enumerate(l):
+                if locus == "mompS":
+                    allele.fasta_header = f"{locus}_{n+1}{allele.location}"
+                else:
+                    allele.fasta_header = f"{locus}_{n+1}"
+                identified_allele_fasta_string += f">{allele.fasta_header}\n{allele.seq}\n"
+        else:
+            allele = l[0]
+            allele.fasta_header = f"{locus}"
+            identified_allele_fasta_string += f">{allele.fasta_header}\n{allele.seq}\n"
 
-def check_mompS_alleles(r1: str, r2: str, threads: int, outdir: str,
-    ref: Ref, db: str):
-    """Map reads to mompS and identify one or more alleles
+    with open(f"{outdir}/identified_alleles.fna", "w") as fout:
+        fout.write(identified_allele_fasta_string)
+
+def map_alleles(inputs: dict, ref: Ref):
+    """Map reads to reference loci sequences and identify one or more alleles
 
     Parameters
     ----------
-    r1: str
-        Path to read file 1
-    r2: str
-        Path to read file 2
-    threads: int
-        Number of threads to use
-    outdir: str
-        Path to output directory
+    inputs: dict
+        run settings
     ref: Ref
         Reference sequence information in Ref instance
-    db: str
-        path to database folder
+    
     Returns
     -------
     list
-        Identified mompS alleles
+        Identified alleles
     """
+    r1 = inputs['read1']
+    r2 = inputs['read2']
+    threads = inputs['threads']
+    outdir = inputs['out_prefix']
+    db = inputs['sbt']
+    sample_name = inputs['sample_name']
+    profile = inputs['profile']
 
     # Run BWA mem
-    logging.info("Mapping reads to mompS reference sequence")
-    bwa_mem_command = f"bwa mem -t {threads} -o {outdir}/reads_vs_mompS.sam {ref.file} {r1} {r2}"
-    run_command(bwa_mem_command, tool='bwa mem')
+    logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
+    mapping_command = f"bwa-mem2 mem -t {threads} -A 1 -B 1 {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
+    run_command(mapping_command, tool='bwa-mem2 mem', shell=True)
 
-    # Filter reads that didn't map
-    logging.info("Filtering mompS mapped reads .sam file to remove " + 
-        "unmapped reads")
-    samtools_view_command = f"samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_mompS_filt.sam {outdir}/reads_vs_mompS.sam"
-    run_command(samtools_view_command, tool='SAMtools view')
+    contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
 
-    contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_mompS_filt.sam")
+    alleles = process_reads(contig_dict, read_info_dict, ref, outdir)
+    write_alleles_to_file(alleles, outdir)
+    # BLAST alleles
+    logging.info("BLASTing identified alleles against database")
+    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
+    desc_header = "Best match of each identified sequence determined using BLASTN"
 
-    mompS_alleles = process_mompS_reads(contig_dict, read_info_dict, ref)
-
-    mompS_allele_fasta_string = ""
-    for n, allele in enumerate(mompS_alleles):
-        allele.fasta_header = f"allele_{n+1}{allele.location}"
-        mompS_allele_fasta_string += f">{allele.fasta_header}\n{allele.seq}\n"
-
-    with open(f"{outdir}/mompS_alleles.fna", "w") as fout:
-        fout.write(mompS_allele_fasta_string)
-
-    # BLAST mompS alleles
-    logging.info("BLASTing mompS alleles against database")
-    blast_command = f"blastn -query {outdir}/mompS_alleles.fna -subject {db}/mompS_alleles.tfa -outfmt '6 std qlen' -perc_identity 100"
-    result = run_command(blast_command, tool='blast', shell=True)
-
-
-    for line in result.split("\n"):
-        if len(line.strip()) == 0:
-            continue
-        
+    result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
+    for line in result.strip().split('\n'):
         bits = line.split()
-        if float(bits[2]) == 100.00 and bits[3] == bits[12]:
-            for allele in mompS_alleles:
-                if bits[0] == allele.fasta_header:
-                    allele.allele_id = bits[1].replace("mompS_", "")
-    if len(mompS_alleles) == 1:
+        if float(bits[2]) == 100.00 and bits[3] == bits[12] and bits[3] == bits[13]:
+            for allele_list in alleles.values():
+                for allele in allele_list:
+                    if bits[0] == allele.fasta_header:
+                        allele.allele_id = bits[1].split("_")[-1]
+        else:
+            for allele_list in alleles.values():
+                for allele in allele_list:
+                    if bits[0] == allele.fasta_header:
+                        allele.allele_id = bits[1].split("_")[-1]+"*"
+
+    if len(alleles['mompS']) == 1:
         logging.info("1 mompS allele identified.")
+        message = "Identified allele information:\n\n1 mompS allele identified.\n\n"
     else:
-        logging.info(f"{len(mompS_alleles)} mompS allele identified.")
-        for a in mompS_alleles:
+        logging.info(f"Identified allele information:\n\n{len(alleles['mompS'])} mompS allele identified.")
+        message = f"{len(alleles['mompS'])} mompS allele identified.\n"
+        for a in alleles['mompS']:
             logging.info(f"mompS allele '{a.allele_id}' information")
             logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
             logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
             logging.info(f"number of reads from this allele containing outtermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}")
+            message += f"mompS allele '{a.allele_id}' information\n"
+            message += f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}\n"
+            message += f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}\n"
+            message += f"number of reads from this allele containing outtermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}\n\n"
+    old_mompS = alleles['mompS']
+    if len(alleles['mompS']) > 1:
+        which_native = ["_native_locus" in a.location for a in alleles['mompS']]
+        if not any(which_native):
+            logging.info("Unable to determine which allele is present in native mompS locus")
 
-    return mompS_alleles
+        else:
+            if len([i for i in which_native if i]) > 1:
+                logging.info("Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.")
+                alleles['mompS'] = [Allele()]
+                alleles['mompS'][0].allele_id = '?'
+ 
+            else:
+                native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
+                non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
+                logging.info(f"Allele {native_allele.allele_id} was determined to be the primary mompS allele. {native_allele.confidence['for']} reads support this.")
+                for a in non_native_alleles:
+                    logging.info(f"Allele {a.allele_id} was determined not to be the secondary mompS allele.")
+
+        # Pick primary and secondary allele
+        # If ANY reads contain primer in correct orientation
+        # That is evidence of primary allele
+        alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > 0]
+        if len(alleles['mompS']) > 1:
+            if alleles['mompS'][0].confidence['for'] > 3*alleles['mompS'][1].confidence['for']:
+                alleles['mompS'] = [alleles['mompS'][0]]
+            elif alleles['mompS'][1].confidence['for'] > 3*alleles['mompS'][0].confidence['for']:
+                alleles['mompS'] = [alleles['mompS'][1]]
+            else:
+                logging.info("Failed to determine primary mompS allele as both alleles appear to be flanked by primer in the expected orientation.")
+                # save mompS info for detailed outfile
+                alleles['mompS'] = [Allele()]
+                alleles['mompS'][0].allele_id = '?'
+        elif len(alleles['mompS']) == 0:
+            logging.info("Failed to determine primary mompS allele. Primary mompS allele is identified by finding read pairs that cover both biallelic positions and sequencing primer. In this sample, no such reads were found. Perhaps sequencing reads are too short.")
+            # save mompS info for detailed outfile
+            alleles['mompS'] = [Allele()]
+            alleles['mompS'][0].allele_id = '?'
+
+    detailed_out = ""
+
+    if inputs['header']:
+        detailed_out += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\tmompS_reads_with_primer\t" + "mompS_reads_without_primer\t\n"
+
+    for flaA in alleles['flaA']:
+        for pilE in alleles['pilE']:
+            for asd in alleles['asd']:
+                for mip in alleles['mip']:
+                    for mompS in old_mompS:
+                        for proA in alleles['proA']:
+                            for neuA_neuAH in alleles['neuA_neuAH']:
+                                allele_profile = '\t'.join([a.allele_id for a in [flaA, pilE, asd, mip, mompS, proA, neuA_neuAH]])
+                                detailed_out +=  (sample_name + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + f"\t{mompS.confidence['for']}\t{mompS.confidence['against']}\n")
+
+    with open(f"{outdir}/detailed_output.txt", 'w') as f:
+        f.write(detailed_out)
+
+    for locus in [i for i in alleles if i != 'mompS']:
+        if len(alleles[locus]) > 1:
+            logging.info(f"{len(alleles[locus])} {locus} alleles identified.")
+            message += f"{len(alleles[locus])} {locus} alleles identified.\n"
+            alleles_found = [a.allele_id for a in alleles[locus]]
+            if len(set(alleles_found)) == 1:
+                logging.info(f"both identified {locus} alleles are most similar to allele {alleles_found[0]}. That allele will be reported.")
+                message += f"both identified {locus} alleles are most similar to allele {alleles_found[0]}. That allele will be reported.\n\n"
+            else:
+                logging.info(f"The following {locus} alleles were found: {', '.join(alleles_found)}. It is unclear which is the right allele. It may help to perform QC on your reads and rerun el_gato.")
+                message += f"The following {locus} alleles were found: {', '.join(alleles_found)}. It is unclear which is the right allele. It may help to perform QC on your reads and rerun el_gato.\n\n"
+                a = Allele()
+                a.allele_id = '?'
+                alleles[locus] = [a]
+
+
+    with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
+            fout.write(message)
+
+    return alleles
 
 def choose_analysis_path(inputs: dict, ref: Ref) -> str:
     """Pick the correct analysis path based on the program input supplied
@@ -1390,20 +1487,8 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
         formatted ST + allele profile (and optional header) of the isolate
     """
     alleles = {}
-    if inputs["analysis_path"] == "ar":
-        mompS_allele = call_momps_mapping(inputs,
-                                          r1=inputs["read1"],
-                                          r2=inputs["read2"],
-                                          threads=inputs['threads'],
-                                          ref_file=ref.file,
-                                          outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
-        if mompS_allele == "-":
-            mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
-                                          db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-        alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"])
-        alleles["mompS"] = mompS_allele
-    elif inputs["analysis_path"] == "a":
-        alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"])
+    if inputs["analysis_path"] == "a":
+        alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                           db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
     elif inputs["analysis_path"] == "r":
@@ -1419,11 +1504,10 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
             if mompS_allele == "-":
                 mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                               db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-            alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"])
+            alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
             alleles["mompS"] = mompS_allele
         else:
-            alleles = run_stringmlst(r1=inputs["read1"], r2=inputs["read2"], sbt=inputs["sbt"])
-            alleles["mompS"] = check_mompS_alleles(r1=inputs["read1"], r2=inputs["read2"], outdir=inputs['out_prefix'], threads=inputs['threads'], ref=ref, db=inputs['sbt'])
+            alleles = map_alleles(inputs=inputs, ref=ref)
 
     else:
         logging.critical(
@@ -1452,47 +1536,6 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
         formatted ST + allele profile (and optional header) of the isolate
     """
 
-    if len(alleles['mompS']) > 1:
-        logging.info(f"\nWARNING!!!!!!\nMultiple mompS alleles found for {inputs['sample_name']}!")
-        which_native = ["_native_locus" in a.location for a in alleles['mompS']]
-        if not any(which_native):
-            logging.info("Unable to determine which allele is present in native mompS locus")
-
-        else:
-            if len([i for i in which_native if i]) > 1:
-                logging.info("Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.")
-                for allele in alleles['mompS']:
-                    logging.info(f"{allele.confidence['for']} reads indicate that allele {allele.allele_id} is present at the native locus.")
-
-            else:
-                native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
-                non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
-                logging.info(f"Allele {native_allele.allele_id} was determined to be the primary mompS allele. {native_allele.confidence['for']} reads support this.")
-                for a in non_native_alleles:
-                    logging.info(f"Allele {a.allele_id} was determined not to be the secondary mompS allele.")
-
-        # Pick primary and secondary allele
-        # If ANY reads contain primer in correct orientation
-        # That is evidence of primary allele
-        alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > 0]
-        if len(alleles['mompS']) > 1:
-            if alleles['mompS'][0].confidence['for'] > 3*alleles['mompS'][1].confidence['for']:
-                alleles['mompS'] = [alleles['mompS'][0]]
-            elif alleles['mompS'][1].confidence['for'] > 3*alleles['mompS'][0].confidence['for']:
-                alleles['mompS'] = [alleles['mompS'][1]]
-            else:
-                logging.info("Failed to determine primary mompS allele as both alleles appear to be flanked by primer in the expected orientation.")
-                # Create blank allele to contain * as allele ID for printing
-                alleles['mompS'] = [Allele()]
-                alleles['mompS'][0].allele_id = ''
-        elif len(alleles['mompS']) == 0:
-            logging.info("Failed to determine primary mompS allele. Primary mompS allele is identified by finding read pairs that cover both biallelic positions and sequencing primer. In this sample, no such reads were found. Perhaps sequencing reads are too short.")
-            # Create blank allele to contain * as allele ID for printing
-            alleles['mompS'] = [Allele()]
-            alleles['mompS'][0].allele_id = ''
-        for allele in alleles['mompS']:
-            allele.allele_id += '*'
-
     outlines = []
     if inputs['header']:
         header = "Sample\tST\t" + "\t".join(Ref.locus_order)
@@ -1503,12 +1546,12 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
         allele_profile = ""
         for locus in Ref.locus_order:
             if locus != "mompS":
-                allele_profile += alleles[locus] + "\t"
+                allele_profile += alleles[locus][0].allele_id + "\t"
             else:
                 allele_profile += alleles[locus][n].allele_id + "\t"
         allele_profile = allele_profile.rstrip()
         allele_profile = (inputs["sample_name"] 
-            + "\t" + get_st(allele_profile.replace("*",""), Ref,
+            + "\t" + get_st(allele_profile, Ref,
                             profile_file=inputs["profile"])
             + "\t" + allele_profile)
 
@@ -1589,9 +1632,6 @@ def main():
     logging.info("Ensuring thread counts are correct")
     inputs = ensure_safe_threads(inputs)
     logging.info("Thread count has been validated")
-
-    logging.info("Checking for reference files")
-    validate_ref(inputs, Ref)
     logging.info("All reference files have been discovered")
     get_inputs(inputs)
     logging.info("Starting analysis")
