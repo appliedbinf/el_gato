@@ -3,7 +3,8 @@ from setuptools import setup
 
 setup(
     name="elgato",
-    version="1.0.0",
+    version="1.2.0",
+    python_requires='>=3.6',
     scripts = ['el_gato/el_gato.py'],
     install_requires=[
         "colorama; platform_system == 'Linux'",
