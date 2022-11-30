@@ -1138,7 +1138,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
     
-    for line in result.strip().split('\n')[1::2]:
+    for line in result.strip().split('\n')[1:]:
         gene, _, _, _, _, cov, _, _, _ = line.split()
         if float(cov) != 100.:
             if gene in ['neuA', 'neuAh']:
@@ -1274,7 +1274,6 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             # If more than 2 alleles found, can't resolve
             if len(bialleles) > 2:
                 logging.info(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.")
-                print(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.")
                 sys.exit(1)
 
             alleles[locus] = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
@@ -1466,7 +1465,7 @@ def map_alleles(inputs: dict, ref: Ref):
                 alleles[locus] = [a]
 
 
-    with open(f"{outdir}/identified_alleles.fna", "w") as fout:
+    with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
             fout.write(message)
 
     return alleles
