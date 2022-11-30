@@ -1216,7 +1216,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             reads_at_a = reads_dict['readnames'][multi_allelic_idx[0]+allele_start-1]
             bialleles = seq[multi_allelic_idx[0]]
             
-            alleles[locus] = assess_allele_conf(bialleles, [reads_at_a], multi_allelic_idx, read_info_dict, ref)
+            if locus == 'mompS':
+                alleles[locus] = assess_allele_conf(bialleles, [reads_at_a], multi_allelic_idx, read_info_dict, ref)
+            else:
+                alleles[locus] = [Allele(len(bialleles[0]), bialleles[i]) for i in range(len(bialleles))]
 
             for base in seq:
                 for allele in alleles[locus]:
@@ -1267,16 +1270,19 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 logging.info(f"more than 10% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
 
             biallele_results_count = Counter(read_pair_base_calls)
-            total_read_count = sum([v for v in biallele_results_count.values()])
+            max_biallele_count = max([v for v in biallele_results_count.values()])
 
-            bialleles = [k for k,v in biallele_results_count.items() if v > 0.1*total_read_count]
+            bialleles = [k for k,v in biallele_results_count.items() if v > 0.66*max_biallele_count]
 
             # If more than 2 alleles found, can't resolve
             if len(bialleles) > 2:
                 logging.info(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.")
                 sys.exit(1)
+            if len(bialleles) > 1 and locus == 'mompS':
+                alleles[locus] = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
 
-            alleles[locus] = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
+            else:
+                alleles[locus] = [Allele(len(bialleles[0]), bialleles[i]) for i in range(len(bialleles))]
 
             biallic_count = 0
             for base in seq:
