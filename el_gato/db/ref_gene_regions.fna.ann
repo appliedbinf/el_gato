@@ -1,4 +1,4 @@
-8383 8 11
+9433 9 11
 0 asd NC_006368.1:2589410-2590581 Legionella pneumophila str. Paris, complete sequence
 0 1172 0
 0 flaA NC_006368.1:1440618-1441498 Legionella pneumophila str. Paris, complete sequence
@@ -15,3 +15,5 @@
 6343 987 0
 0 neuAh NZ_CP017458.1:924205-925257 Legionella pneumophila subsp. fraseri strain Dallas 1E chromosome, complete genome
 7330 1053 0
+0 neuA_206 neuAH Dallas upstream neuA Paris downstream
+8383 1050 0
