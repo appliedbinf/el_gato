@@ -1138,24 +1138,45 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
     
+    alleles = {}
+    cov_results = {}
     for line in result.strip().split('\n')[1:]:
-        gene, _, _, _, _, cov, _, _, _ = line.split()
+        gene, _, _, _, _, cov, depth, _, _ = line.split()
+        cov_results[gene] = {'cov': cov, 'depth': depth}
         if float(cov) != 100.:
             if gene in ['neuA', 'neuAh']:
                 del ref.REF_POSITIONS[gene]
             else:
                 logging.info(f"Insufficient coverage of the {gene} locus to identify allele. This may indicate a gene deletion or a bad sequencing run.")
-                sys.exit(1)
+                a = Allele()
+                a.allele_id = '-'
+                alleles[gene] = [a]
+                del ref.REF_POSITIONS[gene]
+
     if 'neuA' not in ref.REF_POSITIONS and 'neuAh' not in ref.REF_POSITIONS:
         # Neither had sufficient coverage and were deleted
         logging.info(f"WARNING! Insufficient coverage of neuA to identify the allele. This may indicate a gene deletion or a bad sequencing run.")
-        sys.exit(1) 
+        a = Allele()
+        a.allele_id = '-'
+        alleles['neuA_neuAH'] = [a]
 
     if 'neuA' in ref.REF_POSITIONS and 'neuAh' in ref.REF_POSITIONS:
-        logging.info("100% coverage of both neuA and neuAh found. Unclear which to use. Aborting.")
-        sys.exit(1)
+        # Try to use depth to determine the right one to use
+        if cov_results['neuA']['depth'] > 3*cov_results['neuAh']['depth']:
+            logging.info(f"mean coverage of neuA is greater. Using neuA.")
+            del ref.REF_POSITIONS['neuAH']
+        elif cov_results['neuAh']['depth'] > 3*cov_results['neuA']['depth']:
+            logging.info(f"mean coverage of neuAH is greater. Using neuAH.")
+            del ref.REF_POSITIONS['neuA']
+        else:
+            logging.info("100% coverage of both neuA and neuAh found. Unclear which to use.")
+            a = Allele()
+            a.allele_id = '?'
+            alleles['neuA_neuAH'] = [a]
+            del ref.REF_POSITIONS['neuA']
+            del ref.REF_POSITIONS['neuAH']
 
-    alleles = {}
+    
     for locus in ref.REF_POSITIONS:
         locus_reads = contig_dict[locus]
         allele_start = ref.REF_POSITIONS[locus]['start_pos']
@@ -1307,7 +1328,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     if 'neuA' in alleles:
         alleles['neuA_neuAH'] = alleles['neuA']
         del alleles['neuA']
-    else:
+    elif 'neuAh' in alleles:
         alleles['neuA_neuAH'] = alleles['neuAh']
         del alleles['neuAh']
 
