@@ -29,8 +29,8 @@ requirements:
     - ispcr==33.0
     - spades==3.15
 
-build:
-  noarch: python
+# build:
+#   noarch: python
 
 test:
   imports:
