@@ -57,6 +57,10 @@ class Ref:
             'start_pos' : 350,
             'end_pos' : 703,
         },
+        "neuA_206": {
+            'start_pos' : 350,
+            'end_pos' : 700,
+        },
         "pilE": {
             'start_pos' : 351,
             'end_pos' : 683,
@@ -1133,7 +1137,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     run_command(process_sam_command, tool='samtools', shell=True)
 
     logging.info("Checking coverage of reference loci by mapped reads")
-    coverage_command = f"samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1"
+    coverage_command = f"samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuA_206:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1"
     desc_header = "Assessing coverage of MLST loci by provided sequencing reads."
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
@@ -1142,10 +1146,13 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     cov_results = {}
     for line in result.strip().split('\n')[1:]:
         gene, _, _, _, _, cov, depth, _, _ = line.split()
+        cov = float(cov)
+        depth = float(depth)
         cov_results[gene] = {'cov': cov, 'depth': depth}
-        if float(cov) != 100.:
-            if gene in ['neuA', 'neuAh']:
-                del ref.REF_POSITIONS[gene]
+        if cov != 100.:
+            if 'neuA' in gene:
+                if cov < 99:
+                    del ref.REF_POSITIONS[gene]
             else:
                 logging.info(f"Insufficient coverage of the {gene} locus to identify allele. This may indicate a gene deletion or a bad sequencing run.")
                 a = Allele()
@@ -1153,28 +1160,27 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 alleles[gene] = [a]
                 del ref.REF_POSITIONS[gene]
 
-    if 'neuA' not in ref.REF_POSITIONS and 'neuAh' not in ref.REF_POSITIONS:
-        # Neither had sufficient coverage and were deleted
+    if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) == 0:
+        # No neuA loci had sufficient coverage and were deleted
         logging.info(f"WARNING! Insufficient coverage of neuA to identify the allele. This may indicate a gene deletion or a bad sequencing run.")
         a = Allele()
         a.allele_id = '-'
         alleles['neuA_neuAH'] = [a]
 
-    if 'neuA' in ref.REF_POSITIONS and 'neuAh' in ref.REF_POSITIONS:
+    if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) > 1:
+        cov_sorted = sorted(
+            [(k,v['depth']) for k,v in cov_results.items],
+            key=lambda x: x[1],
+            reverse=True)
         # Try to use depth to determine the right one to use
-        if cov_results['neuA']['depth'] > 3*cov_results['neuAh']['depth']:
-            logging.info(f"mean coverage of neuA is greater. Using neuA.")
-            del ref.REF_POSITIONS['neuAH']
-        elif cov_results['neuAh']['depth'] > 3*cov_results['neuA']['depth']:
-            logging.info(f"mean coverage of neuAH is greater. Using neuAH.")
-            del ref.REF_POSITIONS['neuA']
+        # if highest depth locus more than 3* the depth of next highest, keep
+        if cov_sorted[0][1] > 3*cov_sorted[1][1]:
+            logging.info(f"mean coverage of {cov_sorted[0][0]} is greater. Using {cov_sorted[0][0]}.")
+            for gene in cov_sorted[1:]:
+                del ref.REF_POSITIONS[gene[0]]
         else:
-            logging.info("100% coverage of both neuA and neuAh found. Unclear which to use.")
-            a = Allele()
-            a.allele_id = '?'
-            alleles['neuA_neuAH'] = [a]
-            del ref.REF_POSITIONS['neuA']
-            del ref.REF_POSITIONS['neuAH']
+            logging.info("Analysis of read mapping to neuA locus variants was unsuccessful. Unclear which to use.")
+
 
     
     for locus in ref.REF_POSITIONS:
@@ -1258,6 +1264,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 intersect = intersect.intersection(set(reads_at_locs[i]))
 
             intersect = sorted([i for i in intersect])
+            print(intersect)
+            sys.exit()
 
             conflicting_reads = []
             read_pair_base_calls = []
@@ -1286,6 +1294,9 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
                 if len(agreeing_calls) == len(multi_allelic_idx):
                     read_pair_base_calls.append("".join(agreeing_calls))
+                else:
+                    print(len(agreeing_calls), len(multi_allelic_idx))
+                    sys.exit()
 
             if len(conflicting_reads) > 0.1 * len(reads_at_locs[0]):
                 logging.info(f"more than 10% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
@@ -1324,13 +1335,16 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     for allele in alleles['mompS']:
         allele.assess_conf()
 
+    neuAs = [l for l in alleles if 'neuA' in l and l != 'neuA_neuAH']
+    if len(neuAs) > 1:
+        neuA_list = []
+        for neu in neuAs:
+            neuA_list += alleles[neu]
+            del alleles[neu]
     # rename neuA and neuAH to neuA_neuAH
-    if 'neuA' in alleles:
-        alleles['neuA_neuAH'] = alleles['neuA']
-        del alleles['neuA']
-    elif 'neuAh' in alleles:
-        alleles['neuA_neuAH'] = alleles['neuAh']
-        del alleles['neuAh']
+    elif len(neuAs) == 1:
+        alleles['neuA_neuAH'] = alleles[neuAs[0]]
+        del alleles[neuAs[0]]
 
     return alleles
 
