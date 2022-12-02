@@ -1288,12 +1288,16 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                         break
                     else:
                         agreeing_calls.append(calls[0])
+                if len(agreeing_calls) != 0:
+                    read_pair_base_calls.append("".join(agreeing_calls))
 
-                read_pair_base_calls.append("".join(agreeing_calls))
 
-
-            if len(conflicting_reads) > 0.1 * len(reads_at_locs[0]):
-                logging.info(f"more than 10% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
+            if len(conflicting_reads) > 0.33 * len(reads_at_locs[0]):
+                logging.info(f"more than 33% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
+                a = Allele()
+                a.allele_id = '?'
+                alleles[locus] = [a]
+                continue
 
             biallele_results_count = Counter(read_pair_base_calls)
             max_biallele_count = max([v for v in biallele_results_count.values()])
