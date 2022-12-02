@@ -21,6 +21,7 @@ requirements:
     - pip
  
   run:
+    - python >=3.8
     - bwa-mem2==2.2.1
     - samtools==1.15.1
     - blast==2.13.0
