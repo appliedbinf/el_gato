@@ -22,12 +22,9 @@ requirements:
  
   run:
     - bwa-mem2==2.2.1
-    - sambamba==0.8.2
-    - freebayes
     - samtools==1.15.1
     - blast==2.13.0
     - ispcr==33.0
-    - spades==3.15
 
 # build:
 #   noarch: python
