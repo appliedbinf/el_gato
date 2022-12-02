@@ -797,16 +797,17 @@ def blast_momps_allele(seq: str, db: str) -> str:
     logging.debug(f"Looking for \n{seq}")
     blastcmd = f"blastn -query - -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
     res = run_command(blastcmd, "blastn/mompS", seq, shell=True).rstrip()
-    allele = "-"
     if res == "":
         # TODO: run blast again with lower identity threshold and return allele*
-        return [allele]
+        return [Allele()]
     else:
         alleles = []
         for match in res.split("\n"):
             (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
             if int(slen) / int(align_len) == 1 and float(pident) == 100:
-                alleles.append(sseqid.replace("mompS_", ""))
+                a = Allele()
+                a.allele_id = sseqid.replace("mompS_", "")
+                alleles.append(a)
         return alleles
 
 
@@ -865,8 +866,9 @@ def call_momps_mapping(inputs: dict, r1: str, r2: str, threads: int, ref_file: s
     allele_seq = allele_seq[(Ref.allele_start - 1):Ref.allele_stop]
 
     mompS_allele = blast_momps_allele(seq=allele_seq, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-    if mompS_allele != "-":
-        mompS_allele += allele_confidence
+    for allele in mompS_allele:
+        if allele.allele_id != "-":
+            allele.allele_id += allele_confidence
 
     return mompS_allele
 
@@ -891,7 +893,6 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
     """
     blast_command = f"blastn -db {db} -outfmt '6 sseqid slen length pident' -query {assembly_file} -perc_identity 100"
     res = run_command(blast_command, "blastn/mompS", shell=True).rstrip().split("\n")
-    # res = [line.rstrip().split("\t")[1] for line in res]
 
     alleles = {}
     for match in res:
@@ -904,24 +905,19 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
         return [alleles[0]]
     else:
         primer1 = os.path.join(inputs["sbt"], "mompS_primer1.tab")
-        with open(primer1, "w") as f:
-            f.write("mompS_1\t" + Ref.mompS_primer1)
         ispcr_command = f"isPcr {assembly_file} {primer1} {Ref.ispcr_opt}"
         primer1_res = run_command(ispcr_command, "mompS2 primer1")
 
         if primer1_res != "":
             # nested PCR
             primer2 = os.path.join(inputs["sbt"], "mompS_primer2.tab")
-            with open(primer2, "w") as f:
-                f.write("mompS_2\t" + Ref.mompS_primer2)
             ispcr_command = f"isPcr stdin {primer2} {Ref.ispcr_opt}"
-            primer2_res = run_command(ispcr_command, "mompS2 primer2", primer1_res).rstrip()#.split("\n")
-            # primer2_res = "".join(primer2_res[1:])
+            primer2_res = run_command(ispcr_command, "mompS2 primer2", primer1_res).rstrip()
             logging.debug(f"Found the sequence: {primer2_res}")
             return blast_momps_allele(seq=primer2_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
         else:
             logging.info("In silico PCR returned no results, try mapping route")
-            return ["-"]
+            return [Allele()]
 
 
 def genome_assembly(inputs: dict, r1: str, r2: str, out: str) -> None:
@@ -980,19 +976,21 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
     calls = dict.fromkeys(loci, '')
 
-    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
+    blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
     desc_header = "Best match of each locus in provided assembly using BLASTN."
     result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header)
 
     for line in result.strip().split('\n'):
         bits = line.split()
         locus = "_".join(bits[1].split("_")[:-1])
-        if float(bits[2]) == 100.00 and bits[3] == bits[12] and bits[3] == bits[13]:
-            calls[locus] = bits[1].split("_")[-1]
+        a = Allele()
+        if float(bits[2]) == 100.00 and bits[3] == bits[13]:
+            a.allele_id = bits[1].split("_")[-1]
         else:
-            calls[locus] = bits[1].split("_")[-1]+"*"
+            a.allele_id = bits[1].split("_")[-1]+"*"
+        calls[locus] = [a]
 
-    not_found_loci = [k for k,v in calls if v =='']
+    not_found_loci = [k for k,v in calls.items() if v =='']
 
     if len(not_found_loci) != 0:
         error_msg = f"The following loci were not found in your assembly: {', '.join(not_found_loci)}\n"
@@ -1007,7 +1005,7 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
             with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
                 f.write(error_msg + '\n\n')
     for locus in not_found_loci:
-        calls[locus] = alleles[locus][0].allele_id
+        calls[locus] = alleles[locus][0]
 
     return calls
 
@@ -1470,23 +1468,9 @@ def map_alleles(inputs: dict, ref: Ref):
             alleles['mompS'] = [Allele()]
             alleles['mompS'][0].allele_id = '?'
 
-    detailed_out = ""
-
-    if inputs['header']:
-        detailed_out += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\tmompS_reads_with_primer\t" + "mompS_reads_without_primer\t\n"
-
-    for flaA in alleles['flaA']:
-        for pilE in alleles['pilE']:
-            for asd in alleles['asd']:
-                for mip in alleles['mip']:
-                    for mompS in old_mompS:
-                        for proA in alleles['proA']:
-                            for neuA_neuAH in alleles['neuA_neuAH']:
-                                allele_profile = '\t'.join([a.allele_id for a in [flaA, pilE, asd, mip, mompS, proA, neuA_neuAH]])
-                                detailed_out +=  (sample_name + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + f"\t{mompS.confidence['for']}\t{mompS.confidence['against']}\n")
-
-    with open(f"{outdir}/detailed_output.txt", 'w') as f:
-        f.write(detailed_out)
+    temp_alleles = alleles.copy()
+    temp_alleles['mompS'] = old_mompS
+    write_detailed_out(inputs=inputs, alleles=temp_alleles, header=True, confidence=True)
 
     for locus in [i for i in alleles if i != 'mompS']:
         if len(alleles[locus]) > 1:
@@ -1509,6 +1493,31 @@ def map_alleles(inputs: dict, ref: Ref):
 
     return alleles
 
+def write_detailed_out(inputs: dict, alleles: dict, header: bool, confidence: bool):
+    detailed_out = ""
+
+    if header:
+        if confidence:
+            detailed_out += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\tmompS_reads_with_primer\t" + "mompS_reads_without_primer\n"
+        else:
+            detailed_out += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\n"
+
+    for flaA in alleles['flaA']:
+        for pilE in alleles['pilE']:
+            for asd in alleles['asd']:
+                for mip in alleles['mip']:
+                    for mompS in alleles['mompS']:
+                        for proA in alleles['proA']:
+                            for neuA_neuAH in alleles['neuA_neuAH']:
+                                allele_profile = '\t'.join([a.allele_id for a in [flaA, pilE, asd, mip, mompS, proA, neuA_neuAH]])
+                                if confidence:
+                                    detailed_out += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + f"\t{mompS.confidence['for']}\t{mompS.confidence['against']}\n")
+                                else:
+                                     detailed_out += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + "\n")
+
+    with open(f"{inputs['out_prefix']}/detailed_output.txt", 'w') as f:
+        f.write(detailed_out)
+
 def choose_analysis_path(inputs: dict, ref: Ref) -> str:
     """Pick the correct analysis path based on the program input supplied
 
@@ -1530,6 +1539,12 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
         alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                           db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+        write_detailed_out(inputs=inputs, alleles=alleles, header=True, confidence=False)
+        for locus, a in alleles.items():
+            if len(a) > 1:
+                a = Allele()
+                a.allele_id = '?'
+                alleles[locus] = [a]
     elif inputs["analysis_path"] == "r":
         if inputs["spades"]:
             inputs = genome_assembly(inputs=inputs, r1=inputs["read1"], r2=inputs["read2"],
