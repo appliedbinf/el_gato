@@ -7,7 +7,7 @@ params.threads = 1
 params.out = 'el_gato_out'
 
 process RUN_EL_GATO_READS {
-  conda "-c bioconda -c appliedbinf elgato=1.2.0"
+  conda "-c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
 
@@ -43,7 +43,7 @@ process RUN_EL_GATO_READS {
 }
 
 process RUN_EL_GATO_ASSEMBLIES {
-  conda "-c bioconda -c appliedbinf elgato=1.2.0"
+  conda "-c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
 
@@ -58,7 +58,6 @@ process RUN_EL_GATO_ASSEMBLIES {
   """
   sample_id=$assembly
   sample_id=\${sample_id%.*}
-  mkdir \${sample_id}_out/
 
   el_gato.py \
   -a $assembly \
