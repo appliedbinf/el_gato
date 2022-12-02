@@ -34,8 +34,7 @@ class Ref:
     ispcr_opt = "stdout -out=fa -minPerfect=5 -tileSize=6 -maxSize=1200 -stepSize=5"
     mompS_primer1 = "TTGACCATGAGTGGGATTGG\tTGGATAAATTATCCAGCCGGACTTC"
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
-    prereq_programs = ["bwa-mem2", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py",
-                       "stringMLST.py"]
+    prereq_programs = ["bwa-mem2", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py"]
     REF_POSITIONS = {
         "asd": {        
             'start_pos' : 351,
@@ -1264,8 +1263,6 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 intersect = intersect.intersection(set(reads_at_locs[i]))
 
             intersect = sorted([i for i in intersect])
-            print(intersect)
-            sys.exit()
 
             conflicting_reads = []
             read_pair_base_calls = []
@@ -1292,11 +1289,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     else:
                         agreeing_calls.append(calls[0])
 
-                if len(agreeing_calls) == len(multi_allelic_idx):
-                    read_pair_base_calls.append("".join(agreeing_calls))
-                else:
-                    print(len(agreeing_calls), len(multi_allelic_idx))
-                    sys.exit()
+                read_pair_base_calls.append("".join(agreeing_calls))
+
 
             if len(conflicting_reads) > 0.1 * len(reads_at_locs[0]):
                 logging.info(f"more than 10% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
