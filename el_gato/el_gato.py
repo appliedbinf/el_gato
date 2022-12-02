@@ -894,15 +894,17 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
     blast_command = f"blastn -db {db} -outfmt '6 sseqid slen length pident' -query {assembly_file} -perc_identity 100"
     res = run_command(blast_command, "blastn/mompS", shell=True).rstrip().split("\n")
 
-    alleles = {}
+    alleles = []
     for match in res:
         (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
         if int(align_len) / int(slen) == 1 and float(pident) == 100:
-            alleles[sseqid.replace("mompS_", "")] = 1
-    alleles = list(alleles.keys())
+            alleles.append(sseqid.replace("mompS_", ""))
+    alleles = [i for i in set(alleles)]
 
     if len(alleles) == 1:
-        return [alleles[0]]
+        a = Allele()
+        a.allele_id = alleles[0]
+        return [a]
     else:
         primer1 = os.path.join(inputs["sbt"], "mompS_primer1.tab")
         ispcr_command = f"isPcr {assembly_file} {primer1} {Ref.ispcr_opt}"
@@ -1555,11 +1557,12 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
                                               threads=inputs['threads'],
                                               ref_file=ref.file,
                                               outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
-            if mompS_allele == "-":
+            if mompS_allele[0] == "-":
                 mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                               db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
             alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
             alleles["mompS"] = mompS_allele
+            write_detailed_out(inputs=inputs, alleles=alleles, header=True, confidence=False)
         else:
             alleles = map_alleles(inputs=inputs, ref=ref)
 
