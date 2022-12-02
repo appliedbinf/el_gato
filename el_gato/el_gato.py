@@ -15,11 +15,6 @@ t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
 
-
-# TODO: Implement ability to find databases and bin (isPcr really) in the scripts "resource" folder
-# TODO: fix argument names so that they are consistent
-# TODO: add another argument that sets the default prefix for everything instead of setting them one at a time
-
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
     name = "Paris_mompS_R"
@@ -34,7 +29,7 @@ class Ref:
     ispcr_opt = "stdout -out=fa -minPerfect=5 -tileSize=6 -maxSize=1200 -stepSize=5"
     mompS_primer1 = "TTGACCATGAGTGGGATTGG\tTGGATAAATTATCCAGCCGGACTTC"
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
-    prereq_programs = ["bwa-mem2", "sambamba", "freebayes", "samtools", "makeblastdb", "blastn", "isPcr", "spades.py"]
+    prereq_programs = ["bwa-mem2", "samtools", "makeblastdb", "blastn", "isPcr"]
     REF_POSITIONS = {
         "asd": {        
             'start_pos' : 351,
@@ -209,7 +204,6 @@ def get_args() -> argparse.ArgumentParser:
                         type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"))
     group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
                         action="store_true", required=False, default=False)
-    group2.add_argument("--spades", "-g", help="Runs the SPAdes assembler on paired-end reads (default: %(default)s)", action="store_true", required=False)
     group2.add_argument("--header", "-e", help="Include column headers in the output table (default: %(default)s)", action="store_true", required=False, default=False),
 
 
@@ -285,7 +279,6 @@ def set_inputs(
     if "r" in inputs["analysis_path"]:
         inputs["read1"] = args.read1
         inputs["read2"] = args.read2
-        inputs["spades"] = args.spades
     if "a" in inputs["analysis_path"]:
         inputs["assembly"] = args.assembly
     inputs["threads"] = args.threads
@@ -397,8 +390,7 @@ def get_inputs(inputs: dict):
                 Profile     {inputs["profile"]}
                 Verbose     {inputs["verbose"]}
                 Overwrite   {inputs["overwrite"]}
-                Depth       {inputs["depth"]}
-                SPAdes      {inputs["spades"]}\n\n""")
+                Depth       {inputs["depth"]}\n\n""")
 
 
 def check_program(program_name: str, inputs: dict) -> None:
@@ -419,11 +411,10 @@ def check_program(program_name: str, inputs: dict) -> None:
     logging.info(f"Checking for program {program_name}")
     path = shutil.which(program_name)
     if path is None:
-        if program_name != "spades.py" or inputs["analysis_path"] == "r":
-            logging.critical(f"Program {program_name} not found! Cannot continue; dependency not fulfilled.")
-            if not inputs["verbose"]:
-                print(f"Program {program_name} not found! Cannot continue; dependency not fulfilled.")
-            sys.exit(1)
+        logging.critical(f"Program {program_name} not found! Cannot continue; dependency not fulfilled.")
+        if not inputs["verbose"]:
+            print(f"Program {program_name} not found! Cannot continue; dependency not fulfilled.")
+        sys.exit(1)
 
 
 def check_files(inputs: dict) -> None:
@@ -496,8 +487,6 @@ def ensure_safe_threads(inputs: dict, threads: int = 1) -> dict:
     return inputs
 
 
-# TODO: implement try-catch for running programs
-# TODO: check if the input-output files are empty prior to running the program
 def run_command(command: str, tool: str = None, stdin: str = None, shell: bool = False, desc_file: str = None, desc_header: str = None) -> str:
     """Runs a command, and logs it nicely
 
@@ -565,219 +554,6 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
     return result
 
 
-def check_coverage(file: str, min_depth: int = 3) -> bool:
-    """Checks if sufficient read coverage is present throughout the reference gene
-
-    Parameters
-    ----------
-    file : str
-        BAM file to be processed for coverage
-
-    min_depth: int, optional
-        Minimum depth to be checked against
-
-    Returns
-    -------
-    bool
-        returns True if all positions have coverage above minimum, False otherwise
-    """
-    logging.info(f"Computing coverage for {file}")
-    depth = subprocess.check_output(
-        f"samtools depth -a -r {Ref.name}:{Ref.allele_start}-{Ref.allele_stop} {file}".split(" "), stderr=subprocess.DEVNULL).decode(
-        "utf-8").split("\n")
-    for d in depth:
-        d = d.rstrip().split("\t")
-        if len(d) < 3:
-            break
-        if int(d[2]) < min_depth:
-            logging.warning(f"Low depth base (depth={d[2]}) found in {file}, at pos {d[0]}:{d[1]}.")
-            return False
-
-    logging.info(f"File {file} passes depth check.")
-    return True
-
-
-def call_variants(inputs: dict, prefix: str) -> bool:
-    """Call variants from SAM file
-
-    Goes through the following steps:
-    1. SAM to BAM (sambamba)
-    2. sort SAM (sambamba)
-    3. call variants using Freebayes
-    4. check_coverage
-
-    Parameters
-    ----------
-    inputs: dict
-        Run settings
-
-    prefix : str
-        prefix of the SAM file
-
-    Returns
-    -------
-    bool
-        returns True if all positions in the alignment have read coverage above minimum, False otherwise
-    """
-    # SAM -> BAM and sort
-    sam2bam = f"sambamba view -f bam -S -t {inputs['threads']} -o {prefix}.bam {prefix}.sam"
-    run_command(sam2bam, "sambamba SAM to BAM conversion")
-
-    sort_bam = f"sambamba sort -t {inputs['threads']} {prefix}.bam"
-    run_command(sort_bam, "sambamba sort BAM")
-
-    # Call variants
-    freebayes_call = f"freebayes -v {prefix}.vcf -f {Ref.file} {prefix}.sorted.bam"
-    run_command(freebayes_call, "freebayes")
-
-    # Check that there is coverage across the entire gene region
-    return check_coverage(file=f"{prefix}.sorted.bam")
-
-
-def filter_sam_file(samfile: str, outfile: str) -> None:
-    """Creates SAM files for full set and filtered set
-
-    Full set = SAM generated using all the reads data
-    Fultered set = Reads are subsetted to only include reads originating from mompS2, SAM file is generated from them
-
-    Parameters
-    ----------
-    samfile : str
-        SAM file to be processed for coverage
-
-    outfile : str
-        name of the output file
-
-    Returns
-    -------
-    None
-        End points are SAM files
-    """
-    # find proper read pairs
-    proper_pairs = f"samtools view -h -f 0x2 {samfile}"
-    proper_pairs = run_command(proper_pairs, "samtools view").rstrip().split("\n")
-
-    reads_of_interest = {}  # this dict will hold the read IDs that are in the mompS2 gene
-    header_text = ""  # header text to be printed as is in the output file
-    all_reads = {}  # this dict will hold all the reads in the input file
-    for line in proper_pairs:
-        if line.startswith("@"):
-            header_text += line + "\n"
-            continue
-        cols = line.rstrip().split("\t")
-        read_id = cols[0]
-        read_start = int(cols[3])
-
-        if read_id in all_reads:
-            all_reads[read_id] += line
-        else:
-            all_reads[read_id] = line
-
-        region_start = Ref.flank_start
-        # TODO: Improve region_end calculation
-        # region_end is a way to check that one of the pair is in the right flank.
-        # a better way of checking this will be to look at the right-most mapping position
-        region_end = Ref.flank_stop - int(re.search(r"\d+M", cols[5]).group()[:-1])
-        if read_start < region_start or read_start > region_end:
-            reads_of_interest[read_id] = 1
-
-    with open(outfile, "w") as fh:
-        fh.write(header_text)
-        for row in all_reads:
-            if row in reads_of_interest:
-                fh.write(all_reads[row] + "\n")
-
-
-def vcf_to_fasta(full_vcf: str, filtered_vcf: str) -> str:
-    """Creates a sequence out of the VCF file
-
-    Processes the VCF file and make changes to the reference allele according to the variants discovered in
-    VCF file.
-
-    Parameters
-    ----------
-    full_vcf : str
-        VCF file generated from the full read set
-
-    filtered_vcf : str
-        VCF file generated from the filtered mompS2 specific read set/SAM file. Used to resolve conflicting calls.
-
-    Returns
-    -------
-    str
-        Gene sequence (not the allele) as constructued from the two vcf files
-    """
-    this_seq = ""
-    start_anchor = 0
-
-    filtered_call = {}
-    with open(filtered_vcf, "r") as f:
-        logging.debug("Reading in filtered VCF file")
-        for line in f:
-            if line.startswith("#"):
-                continue
-            (_, pos, _, ref, alt, _, _, info, _, gt) = line.rstrip().split("\t")
-            pos = int(pos)
-            # TODO: implement try-catch for scenario when ab can not be converted to float
-            ab = float(re.search("AB=[0-9.,]+;", info).group()[3:-1])
-            # if ab == 0:
-            # homozygous call
-            filtered_call[pos] = alt
-            filtered_call[f"{pos}_ab"] = ab
-            logging.debug(f"Added {alt} at pos {pos}")
-
-    with open(full_vcf, "r") as f:
-        logging.debug(f"Detailed track of changes from VCF to FASTA")
-        for line in f:
-            if line.startswith("#"):
-                continue
-            (_, pos, _, ref, alt, _, _, info, _, gt) = line.rstrip().split("\t")
-            pos = int(pos)
-            # check if this position is within the typing allele
-            if Ref.allele_start <= pos <= Ref.allele_stop:
-                # check for zygosity
-                ab = re.search("AB=[0-9.,]+;", info).group()[3:-1]
-                logging.debug(f"looking for pos {pos} with ab = {ab}")
-                if re.search(",", ab) or float(ab) != 0:
-                    # heterozygous call
-                    # Two scenarios:
-                    # 1. POS exist in filtered file          => add the alternative base from filtered_vcf
-                    # 2. POS doesn't exist in filtered file  => add the reference base
-                    if pos in filtered_call:
-                        if re.search(",", ab):
-                            this_seq += Ref.seq[start_anchor:(pos - 1)] + filtered_call[pos]
-                            logging.debug(f"block 1.1: {start_anchor}-{pos - 1}: {Ref.seq[start_anchor:(pos - 1)]}")
-                            logging.debug(f"block 1.1: {pos}: {ref} to {filtered_call[pos]}")
-                            start_anchor = pos - 1 + len(ref)
-                        elif filtered_call[f"{pos}_ab"] == 0 or filtered_call[f"{pos}_ab"] > float(ab):
-                            this_seq += Ref.seq[start_anchor:(pos - 1)] + alt
-                            logging.debug(f"block 1.2: {start_anchor}-{pos - 1}: {Ref.seq[start_anchor:(pos - 1)]}")
-                            logging.debug(f"block 1.2: {pos}: {ref} to {alt}")
-                            start_anchor = pos - 1 + len(ref)
-                        else:
-                            pos -= 1  # 0-based in list
-                            this_seq += Ref.seq[start_anchor:pos] + ref
-                            logging.debug(f"block 1.3: {start_anchor}-{pos}: {Ref.seq[start_anchor:pos]}")
-                            logging.debug(f"block 1.3: {pos}: {ref} stays")
-                            start_anchor = pos + len(ref)
-                    else:
-                        pos -= 1  # 0-based in list
-                        this_seq += Ref.seq[start_anchor:pos] + ref
-                        logging.debug(f"block 2: {start_anchor}-{pos}: {Ref.seq[start_anchor:pos]}")
-                        logging.debug(f"block 2: {pos}: {ref} stays")
-                        start_anchor = pos + len(ref)
-                else:
-                    # homozygous call
-                    pos -= 1  # 0-based in list
-                    this_seq += Ref.seq[start_anchor:pos] + alt
-                    logging.debug(f"block 3: {start_anchor}-{pos}: {Ref.seq[start_anchor:pos]}")
-                    logging.debug(f"block 3: {pos}: {ref} to {alt}")
-                    start_anchor = pos + len(ref)
-
-    this_seq += Ref.seq[start_anchor:]
-    return this_seq
-
-
 def blast_momps_allele(seq: str, db: str) -> str:
     """BLAST the mompS allele in the isolate to find the allele number
 
@@ -809,68 +585,6 @@ def blast_momps_allele(seq: str, db: str) -> str:
                 a.allele_id = sseqid.replace("mompS_", "")
                 alleles.append(a)
         return alleles
-
-
-def call_momps_mapping(inputs: dict, r1: str, r2: str, threads: int, ref_file: str, outfile: str, filt_file: str = "") -> str:
-    """Finds the mompS allele number using the mapping strategy
-
-    Adopts the mapping based strategy to identify the allele present in the current isolate
-
-    Parameters
-    ----------
-    inputs: dict
-        Run settings
-
-    r1 : str, optional
-        Read1 file name
-
-    r2 : str, optional
-        Read2 file name
-
-    threads: int
-        num threads
-
-    ref_file: str
-        path to ref file
-
-    outfile : str, optional
-        Output prefix
-
-    filt_file : str, optional
-        Prefix to be used for filtered SAM and VCF file
-
-    Returns
-    -------
-    str
-        Gene sequence (not the allele) as constructued from the two vcf files
-    """
-    if filt_file == "":
-        filt_file = outfile + ".filtered"
-
-    # Map reads to mompS gene
-    bwa_call = f"bwa-mem2 mem -t {threads} {ref_file} {r1} {r2} -o {outfile}.sam"
-    run_command(bwa_call, "bwa-mem2")
-
-    # Create a separate file containing reads coming from the border regions
-    filter_sam_file(samfile=f"{outfile}.sam", outfile=f"{filt_file}.sam")
-
-    # Call variants
-    full_coverage = call_variants(inputs, prefix=outfile)
-    filtered_coverage = call_variants(inputs, prefix=filt_file)
-
-    allele_confidence = ""
-    if not (full_coverage or filtered_coverage):
-        allele_confidence = "?"
-
-    allele_seq = vcf_to_fasta(full_vcf=outfile + ".vcf", filtered_vcf=filt_file + ".vcf")
-    allele_seq = allele_seq[(Ref.allele_start - 1):Ref.allele_stop]
-
-    mompS_allele = blast_momps_allele(seq=allele_seq, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-    for allele in mompS_allele:
-        if allele.allele_id != "-":
-            allele.allele_id += allele_confidence
-
-    return mompS_allele
 
 
 def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
@@ -920,42 +634,6 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
         else:
             logging.info("In silico PCR returned no results, try mapping route")
             return [Allele()]
-
-
-def genome_assembly(inputs: dict, r1: str, r2: str, out: str) -> None:
-    """Perform de novo genome assembly using spades
-
-    Parameters
-    ----------
-    inputs: dict
-        Run settings
-
-    r1 : str
-        Read1 file name
-
-    r2 : str
-        Read2 file name
-
-    out : str
-        output directory name for spades
-
-    Returns
-    -------
-    dict
-        inputs object with updated assembly location
-    """
-    assembly_command = f"spades.py -1 {r1} -2 {r2} -o {out} --careful -t {inputs['threads']}"
-    run_command(assembly_command, "spades")
-    assem = os.path.join(out, "scaffolds.fasta")
-    if not os.path.isfile(assem):
-        logging.critical(f"Something went wrong with genome assembly. Please check log.")
-        if not inputs["verbose"]:
-            print(f"Something went wrong with genome assembly. Please check log.")
-        sys.exit(1)
-    inputs["assembly"] = assem
-    logging.debug(f"Setting assembly path to {inputs['assembly']}")
-
-    return inputs
 
 
 def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
@@ -1124,7 +802,6 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
 
     
     return alleles_info
-
 
 
 def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str):
@@ -1495,7 +1172,10 @@ def map_alleles(inputs: dict, ref: Ref):
 
     return alleles
 
+
 def write_detailed_out(inputs: dict, alleles: dict, header: bool, confidence: bool):
+    """ Write possible combinations of alleles and corresponding ST to file
+    """
     detailed_out = ""
 
     if header:
@@ -1548,23 +1228,7 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
                 a.allele_id = '?'
                 alleles[locus] = [a]
     elif inputs["analysis_path"] == "r":
-        if inputs["spades"]:
-            inputs = genome_assembly(inputs=inputs, r1=inputs["read1"], r2=inputs["read2"],
-                            out=os.path.join(inputs["out_prefix"], "run_spades"))
-            mompS_allele = call_momps_mapping(inputs,
-                                              r1=inputs["read1"], 
-                                              r2=inputs["read2"],
-                                              threads=inputs['threads'],
-                                              ref_file=ref.file,
-                                              outfile=os.path.join(inputs["out_prefix"], inputs["sample_name"]))
-            if mompS_allele[0] == "-":
-                mompS_allele = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
-                                              db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-            alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
-            alleles["mompS"] = mompS_allele
-            write_detailed_out(inputs=inputs, alleles=alleles, header=True, confidence=False)
-        else:
-            alleles = map_alleles(inputs=inputs, ref=ref)
+        alleles = map_alleles(inputs=inputs, ref=ref)
 
     else:
         logging.critical(
@@ -1644,6 +1308,7 @@ def pretty_time_delta(seconds: int):
     else:
         return f"{seconds}s"
 
+
 def main():
     """ Main code """
 
@@ -1663,7 +1328,6 @@ def main():
         'depth' : 3,
         'analysis_path' : "",
         'logging_buffer_message' : "",
-        'spades' : False,
         'header' : True
         }
 
