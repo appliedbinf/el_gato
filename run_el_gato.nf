@@ -91,7 +91,7 @@ process CAT {
 workflow {
   if (params.reads_dir) {
 
-    readPairs = Channel.fromFilePairs(params.reads_dir + "/*R{1,2}*.fastq.gz", checkIfExists: true)
+    readPairs = Channel.fromFilePairs(params.reads_dir + "/*R{1,2}*.fastq*", checkIfExists: true)
 
     files = RUN_EL_GATO_READS(readPairs).collect()
     CAT(files)
