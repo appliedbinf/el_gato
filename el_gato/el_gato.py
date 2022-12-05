@@ -1149,7 +1149,7 @@ def map_alleles(inputs: dict, ref: Ref):
 
     temp_alleles = alleles.copy()
     temp_alleles['mompS'] = old_mompS
-    write_detailed_out(inputs=inputs, alleles=temp_alleles, header=True, confidence=True)
+    write_possible_mlsts(inputs=inputs, alleles=temp_alleles, header=True, confidence=True)
 
     for locus in [i for i in alleles if i != 'mompS']:
         if len(alleles[locus]) > 1:
@@ -1173,16 +1173,16 @@ def map_alleles(inputs: dict, ref: Ref):
     return alleles
 
 
-def write_detailed_out(inputs: dict, alleles: dict, header: bool, confidence: bool):
+def write_possible_mlsts(inputs: dict, alleles: dict, header: bool, confidence: bool):
     """ Write possible combinations of alleles and corresponding ST to file
     """
-    detailed_out = ""
+    possible_mlsts = ""
 
     if header:
         if confidence:
-            detailed_out += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\tmompS_reads_with_primer\t" + "mompS_reads_without_primer\n"
+            possible_mlsts += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\tmompS_reads_with_primer\t" + "mompS_reads_without_primer\n"
         else:
-            detailed_out += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\n"
+            possible_mlsts += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\n"
 
     for flaA in alleles['flaA']:
         for pilE in alleles['pilE']:
@@ -1193,12 +1193,12 @@ def write_detailed_out(inputs: dict, alleles: dict, header: bool, confidence: bo
                             for neuA_neuAH in alleles['neuA_neuAH']:
                                 allele_profile = '\t'.join([a.allele_id for a in [flaA, pilE, asd, mip, mompS, proA, neuA_neuAH]])
                                 if confidence:
-                                    detailed_out += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + f"\t{mompS.confidence['for']}\t{mompS.confidence['against']}\n")
+                                    possible_mlsts += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + f"\t{mompS.confidence['for']}\t{mompS.confidence['against']}\n")
                                 else:
-                                     detailed_out += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + "\n")
+                                     possible_mlsts += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + "\n")
 
-    with open(f"{inputs['out_prefix']}/detailed_output.txt", 'w') as f:
-        f.write(detailed_out)
+    with open(f"{inputs['out_prefix']}/possible_mlsts.txt", 'w') as f:
+        f.write(possible_mlsts)
 
 def choose_analysis_path(inputs: dict, ref: Ref) -> str:
     """Pick the correct analysis path based on the program input supplied
@@ -1221,7 +1221,7 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
         alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
                                           db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-        write_detailed_out(inputs=inputs, alleles=alleles, header=True, confidence=False)
+        write_possible_mlsts(inputs=inputs, alleles=alleles, header=True, confidence=False)
         for locus, a in alleles.items():
             if len(a) > 1:
                 a = Allele()
