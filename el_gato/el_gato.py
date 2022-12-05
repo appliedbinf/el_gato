@@ -610,6 +610,8 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
 
     alleles = []
     for match in res:
+        if len(res.split('\t')) == 0:
+            continue
         (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
         if int(align_len) / int(slen) == 1 and float(pident) == 100:
             alleles.append(sseqid.replace("mompS_", ""))
@@ -632,7 +634,10 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
             logging.debug(f"Found the sequence: {primer2_res}")
             return blast_momps_allele(seq=primer2_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
         else:
-            logging.info("In silico PCR returned no results, try mapping route")
+            error_msg = f"BLAST and in silico PCR returned no results. mompS may be missing from your assembly"
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg + '\n\n')
             return [Allele()]
 
 
@@ -674,19 +679,11 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
 
     if len(not_found_loci) != 0:
         error_msg = f"The following loci were not found in your assembly: {', '.join(not_found_loci)}\n"
-        if inputs['analysis_path'] == 'r':
-            error_msg += f"The provided reads files will be used to try to identify the loci missing from the assembly."
-            logging.info(error_msg)
-            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-                f.write(error_msg + '\n\n')
-            alleles = map_alleles(inputs=inputs, ref=ref)
-        else:
-            logging.info(error_msg)
-            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-                f.write(error_msg + '\n\n')
-            alleles = {k: [Allele()] for k in loci}
+        logging.info(error_msg)
+        with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+            f.write(error_msg + '\n\n')
         for locus in not_found_loci:
-            calls[locus] = alleles[locus][0]
+            calls[locus] = [Allele()]
 
     return calls
 
