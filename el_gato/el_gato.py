@@ -610,7 +610,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
 
     alleles = []
     for match in res:
-        if len(match.split('\t')) == 0:
+        if len(match.split('\t')) == 1:
             continue
         (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
         if int(align_len) / int(slen) == 1 and float(pident) == 100:
