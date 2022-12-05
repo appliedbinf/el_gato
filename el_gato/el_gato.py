@@ -554,7 +554,7 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
     return result
 
 
-def blast_momps_allele(seq: str, db: str) -> str:
+def blast_momps_allele(seq: str, db: str) -> list:
     """BLAST the mompS allele in the isolate to find the allele number
 
     Parameters
@@ -585,7 +585,7 @@ def blast_momps_allele(seq: str, db: str) -> str:
         return [a]
 
 
-def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
+def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> list:
     """Find the mompS gene using an in silico PCR procedure
 
     Parameters
