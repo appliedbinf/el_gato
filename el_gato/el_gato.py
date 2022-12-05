@@ -684,6 +684,7 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
             logging.info(error_msg)
             with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
                 f.write(error_msg + '\n\n')
+            alleles = {k: [Allele()] for k in loci}
         for locus in not_found_loci:
             calls[locus] = alleles[locus][0]
 
