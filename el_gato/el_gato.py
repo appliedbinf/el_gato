@@ -571,20 +571,18 @@ def blast_momps_allele(seq: str, db: str) -> str:
         mompS allele number
     """
     logging.debug(f"Looking for \n{seq}")
-    blastcmd = f"blastn -query - -db {db} -outfmt '6 sseqid slen length pident' -perc_identity 100"
+    blastcmd = f"blastn -query - -db {db} -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
     res = run_command(blastcmd, "blastn/mompS", seq, shell=True).rstrip()
     if res == "":
-        # TODO: run blast again with lower identity threshold and return allele*
         return [Allele()]
     else:
-        alleles = []
-        for match in res.split("\n"):
-            (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
-            if int(slen) / int(align_len) == 1 and float(pident) == 100:
-                a = Allele()
-                a.allele_id = sseqid.replace("mompS_", "")
-                alleles.append(a)
-        return alleles
+        bits = res.split()
+        a = Allele()
+        if float(bits[2]) == 100.00 and bits[3] == bits[13]:
+            a.allele_id = bits[1].split("_")[-1]
+        else:
+            a.allele_id = bits[1].split("_")[-1]+"*"
+        return [a]
 
 
 def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> str:
