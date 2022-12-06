@@ -7,7 +7,7 @@ Epidemiology of *Legionella*: Genome-bAsed Typing
 * [Quickstart guide](#Quickstart-guide)
    * [A typical run](#A-typical-run)   
 * [Output](#Output)
-      [stdout (MLST profile)](#stdout-(MLST-profile))
+     * [stdout (MLST profile)](#stdout-(MLST-profile))
 
 * [Using Nextflow](#Using-nextflow)
    * [Input files](#Input-files)
