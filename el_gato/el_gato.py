@@ -1134,14 +1134,18 @@ def map_alleles(inputs: dict, ref: Ref):
                 alleles['mompS'] = [alleles['mompS'][1]]
             else:
                 logging.info("Failed to determine primary mompS allele as both alleles appear to be flanked by primer in the expected orientation.")
+                message += "Failed to determine primary mompS allele as both alleles appear to be flanked by primer in the expected orientation.\n\n"
                 # save mompS info for detailed outfile
                 alleles['mompS'] = [Allele()]
                 alleles['mompS'][0].allele_id = '?'
         elif len(alleles['mompS']) == 0:
-            logging.info("Failed to determine primary mompS allele. Primary mompS allele is identified by finding read pairs that cover both biallelic positions and sequencing primer. In this sample, no such reads were found. Perhaps sequencing reads are too short.")
-            # save mompS info for detailed outfile
-            alleles['mompS'] = [Allele()]
-            alleles['mompS'][0].allele_id = '?'
+            # If only one allele has reads with primer in the wrong orientation, use the other one
+            alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['against'] == 0]
+            if len(alleles['mompS']) != 1:
+                logging.info("Failed to determine primary mompS allele. Primary mompS allele is identified by finding read pairs that cover both biallelic positions and sequencing primer. In this sample, no such reads were found. Perhaps sequencing reads are too short.")
+                message += "Failed to determine primary mompS allele. Primary mompS allele is identified by finding read pairs that cover both biallelic positions and sequencing primer. In this sample, no such reads were found. Perhaps sequencing reads are too short.\n\n"
+                alleles['mompS'] = [Allele()]
+                alleles['mompS'][0].allele_id = '?'
 
     temp_alleles = alleles.copy()
     temp_alleles['mompS'] = old_mompS
