@@ -188,6 +188,8 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 
 If the above process is unable to identify the correct sequence, a ? will be returned as the *mompS* allele and information about the steps in this process will be reported in the [possible_mlsts.txt](#possible_mlsts.txt), [intermediate_outputs.txt](#intermediate_outputs.txt), [identified_alleles.fna](#identified_alleles.fna), and [run.log](#run.log) files.
 
+![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
+
 # Dependencies
 
 * [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2)
