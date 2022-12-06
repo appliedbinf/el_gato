@@ -585,7 +585,7 @@ def blast_momps_allele(seq: str, db: str) -> list:
         return [a]
 
 
-def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> list:
+def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
     """Find the mompS gene using an in silico PCR procedure
 
     Parameters
@@ -595,48 +595,35 @@ def call_momps_pcr(inputs: dict, assembly_file: str, db: str) -> list:
     assembly_file : str, optional
         Read1 file name
 
-    db : str, optional
-        Read2 file name
-
     Returns
     -------
     str
         mompS allele number
     """
-    blast_command = f"blastn -db {db} -outfmt '6 sseqid slen length pident' -query {assembly_file} -perc_identity 100"
-    res = run_command(blast_command, "blastn/mompS", shell=True).rstrip().split("\n")
+    primer1 = os.path.join(inputs["sbt"], "mompS_primer1.tab")
+    ispcr_command = f"isPcr {assembly_file} {primer1} {Ref.ispcr_opt}"
+    primer1_res = run_command(ispcr_command, "mompS2 primer1")
 
-    alleles = []
-    for match in res:
-        if len(match.split('\t')) == 1:
-            continue
-        (sseqid, slen, align_len, pident) = match.rstrip().split("\t")
-        if int(align_len) / int(slen) == 1 and float(pident) == 100:
-            alleles.append(sseqid.replace("mompS_", ""))
-    alleles = [i for i in set(alleles)]
-
-    if len(alleles) == 1:
-        a = Allele()
-        a.allele_id = alleles[0]
-        return [a]
+    if primer1_res != "":
+        # nested PCR
+        primer2 = os.path.join(inputs["sbt"], "mompS_primer2.tab")
+        ispcr_command = f"isPcr stdin {primer2} {Ref.ispcr_opt}"
+        primer2_res = run_command(ispcr_command, "mompS2 primer2", primer1_res).rstrip()
+        logging.debug(f"Found the sequence: {primer2_res}")
+        a_list = []
+        for pcr_res in primer2_res.split(">")[1:]:
+            a_list += blast_momps_allele(seq=">"+pcr_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+        identified_mompS_msg = f"mompS alleles identified: {', '.join([a.allele_id for a in a_list])}"
+        with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+            f.write(identified_mompS_msg + "\n\n")
+        logging.info(identified_mompS_msg)
+        return a_list 
     else:
-        primer1 = os.path.join(inputs["sbt"], "mompS_primer1.tab")
-        ispcr_command = f"isPcr {assembly_file} {primer1} {Ref.ispcr_opt}"
-        primer1_res = run_command(ispcr_command, "mompS2 primer1")
-
-        if primer1_res != "":
-            # nested PCR
-            primer2 = os.path.join(inputs["sbt"], "mompS_primer2.tab")
-            ispcr_command = f"isPcr stdin {primer2} {Ref.ispcr_opt}"
-            primer2_res = run_command(ispcr_command, "mompS2 primer2", primer1_res).rstrip()
-            logging.debug(f"Found the sequence: {primer2_res}")
-            return blast_momps_allele(seq=primer2_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
-        else:
-            error_msg = f"BLAST and in silico PCR returned no results. mompS may be missing from your assembly"
-            logging.info(error_msg)
-            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-                f.write(error_msg + '\n\n')
-            return [Allele()]
+        error_msg = f"BLAST and in silico PCR returned no results. mompS may be missing from your assembly"
+        logging.info(error_msg)
+        with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+            f.write(error_msg + '\n\n')
+        return [Allele()]
 
 
 def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
@@ -1219,8 +1206,7 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
     alleles = {}
     if inputs["analysis_path"] == "a":
         alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
-        alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"],
-                                          db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+        alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"])
         write_possible_mlsts(inputs=inputs, alleles=alleles, header=True, confidence=False)
         for locus, a in alleles.items():
             if len(a) > 1:
