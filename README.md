@@ -18,7 +18,7 @@ Epidemiology of *Legionella*: Genome-bAsed Typing
 
 Currently in development
 Codebase stage: development   
-Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/), [Alan Collins](https://github.com/Alan-Collins)
+Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/dmashruwala), [Alan Collins](https://github.com/Alan-Collins)
 
 # Installation 
 
@@ -72,7 +72,7 @@ The ST column can contain two kinds of values. If the identified MLST correspond
 
 For each gene, if an exact allele match is found in the database, the corresponding allele number is reported. Alternatively, the following symbols may also be reported:
 
-| Symbol | Meaining |
+| Symbol | Meaning |
 |:------:|:---------|
 | *      | No exact allele match was found. The closest match allele is reported with an asterisk. |
 | -      | Some or all of the locus is missing. No match can be found. |
