@@ -95,7 +95,7 @@ El_gato calls other programs to perform intermediate analyses. The outputs of th
 
 ## identified_alleles.fna
 
-When running el_gato on reads, the sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
+The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
 
 ## run.log
 
