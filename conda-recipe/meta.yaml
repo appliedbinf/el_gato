@@ -1,5 +1,5 @@
 {% set name = "elgato" %}
-{% set version = "1.5.0" %}
+{% set version = "1.6.0" %}
 
 package:
   name: {{ name|lower }}
@@ -26,6 +26,7 @@ requirements:
     - samtools==1.15.1
     - blast==2.13.0
     - ispcr==33.0
+    - nextflow
 
 # build:
 #   noarch: python
