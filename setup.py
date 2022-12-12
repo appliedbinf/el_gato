@@ -3,12 +3,15 @@ from setuptools import setup
 
 setup(
     name="elgato",
-    version="1.5.0",
-    python_requires='>=3.6',
-    scripts = ['el_gato/el_gato.py'],
+    version="1.6.0",
+    python_requires='>=3.8',
+    scripts = [
+        'el_gato/el_gato.py',
+        'run_el_gato.nf'
+    ],
     install_requires=[
         "colorama; platform_system == 'Linux'",
-        "importlib-metadata; python_version < '3.8'",
+        "importlib-metadata; python_version <= '3.8'",
     ],
     packages = ["el_gato"],
     package_dir={"": "./"}
