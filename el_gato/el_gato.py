@@ -210,6 +210,54 @@ def get_args() -> argparse.ArgumentParser:
     return parser
 
 
+def fasta_to_dict(FASTA_file: str) -> dict:
+    """Read a fasta file into a dict 
+
+    Dict has headers (minus the > symbol) as keys and the associated 
+    sequence as values.
+    
+    Args:
+      FASTA_file: str 
+        path to fasta format file
+
+    Returns:
+      dict: 
+        dict of format {fasta_header : sequence}
+
+    Raises:
+      TypeError: If FASTA_file is not a str
+      OSError: If FASTA_file is not the path to an existing file
+    """
+    
+    if type(FASTA_file) is not str:
+        raise TypeError(
+            "FASTA_file must be str, not {}.".format(type(FASTA_file).__name__))
+
+    if not os.path.exists(FASTA_file):
+        raise OSError(
+            "FASTA_file must be the path to an existing file.")
+
+
+    fasta_dict = {}
+    with open(FASTA_file, 'r') as f:
+        multifasta = f.read()
+    f.close()
+    fastas = multifasta.split(">")
+    trimmed_fastas = []
+    for i in fastas:
+        if len(i) != 0:
+            trimmed_fastas.append(i)
+
+    fastas = trimmed_fastas
+
+    for i in fastas:
+        header = i.split("\n")[0]
+        seq = "".join(i.split("\n")[1:])
+        fasta_dict[header] = seq
+
+    return fasta_dict
+
+
 def check_input_supplied(
         args: argparse.ArgumentParser,
         parser: argparse.ArgumentParser,
