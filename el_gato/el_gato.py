@@ -258,6 +258,44 @@ def fasta_to_dict(FASTA_file: str) -> dict:
     return fasta_dict
 
 
+def rev_comp(string) -> str:
+    """Reverse complement a string of nucleotide sequence
+    
+    Args:
+      string: str
+          Nucleotide sequence
+
+    Returns:
+      str:
+        reverse complement of given nucleotide sequence
+    
+    Raises:
+      TypeError: If string is not str.
+
+    """
+    if type(string) is not str:
+        raise TypeError(
+            "string must be str, not {}.".format(type(string).__name__))
+
+    rev_str = ''
+    rev_comp_lookup = {
+    "A" : "T", 
+    "T" : "A", 
+    "C" : "G", 
+    "G" : "C", 
+    "a" : "t", 
+    "t" : "a", 
+    "c" : "g", 
+    "g" : "c",
+    }
+    for i in reversed(string):
+        if i in "ATCGatcg":
+            rev_str += rev_comp_lookup[i]
+        else:
+            rev_str += i
+    return rev_str
+
+
 def check_input_supplied(
         args: argparse.ArgumentParser,
         parser: argparse.ArgumentParser,
@@ -630,6 +668,8 @@ def blast_momps_allele(seq: str, db: str) -> list:
             a.allele_id = bits[1].split("_")[-1]
         else:
             a.allele_id = bits[1].split("_")[-1]+"*"
+        a.seq = "".join(seq.split("\n")[1:])[93:445].upper()
+
         return [a]
 
 
@@ -694,18 +734,35 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
     calls = dict.fromkeys(loci, '')
 
+    assembly_dict = fasta_to_dict(assembly_file)
+
     blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
     desc_header = "Best match of each locus in provided assembly using BLASTN."
     result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header)
 
     for line in result.strip().split('\n'):
         bits = line.split()
+
+        # Find best match in db
         locus = "_".join(bits[1].split("_")[:-1])
         a = Allele()
         if float(bits[2]) == 100.00 and bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]
         else:
             a.allele_id = bits[1].split("_")[-1]+"*"
+
+        # Extract sequence of allele from assembly
+        ass_contig = bits[0]
+        ass_start = int(bits[6])
+        ass_end = int(bits[7])
+        db_start = int(bits[8])
+        db_end = int(bits[9])
+
+        if db_start < db_end:
+            a.seq = assembly_dict[ass_contig][ass_start-1:ass_end]
+        else:
+            a.seq = rev_comp(assembly_dict[ass_contig][ass_start-1:ass_end])
+        
         calls[locus] = [a]
 
     not_found_loci = [k for k,v in calls.items() if v =='']
@@ -1256,6 +1313,7 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
         alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"])
         write_possible_mlsts(inputs=inputs, alleles=alleles, header=True, confidence=False)
+        write_alleles_to_file(alleles, inputs['out_prefix'])
         for locus, a in alleles.items():
             if len(a) > 1:
                 a = Allele()
