@@ -10,6 +10,7 @@ process RUN_EL_GATO_READS {
   conda "-c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
+  label 'elgato'
 
   input:
     tuple val(sampleId), file(reads)
@@ -46,6 +47,7 @@ process RUN_EL_GATO_ASSEMBLIES {
   conda "-c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
+  label 'elgato'
 
   input:
     path assembly
