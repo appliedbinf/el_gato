@@ -84,7 +84,7 @@ process CAT {
   
   """
   printf "Sample\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA_neuAH\n" > all_mlst.txt
-  cat \$(ls ${files} | grep mlst) >> all_mlst.txt
+  cat \$(ls ${files} | grep mlst | grep -v possible_mlsts) >> all_mlst.txt
   """
 }
 
