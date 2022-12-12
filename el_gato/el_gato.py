@@ -924,9 +924,12 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 alleles[gene] = [a]
                 del ref.REF_POSITIONS[gene]
 
+    cov_msg = ""
+
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) == 0:
         # No neuA loci had sufficient coverage and were deleted
         logging.info(f"WARNING! Insufficient coverage of neuA to identify the allele. This may indicate a gene deletion or a bad sequencing run.")
+        cov_msg += "minimum coverage of neuA locus is 0." + "\n"
         a = Allele()
         a.allele_id = '-'
         alleles['neuA_neuAH'] = [a]
@@ -945,7 +948,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         else:
             logging.info("Analysis of read mapping to neuA locus variants was unsuccessful. Unclear which to use.")
 
-
+    
     
     for locus in ref.REF_POSITIONS:
         locus_reads = contig_dict[locus]
@@ -979,9 +982,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     reads_dict['readnames'][ref_seq_idx].append(read.qname)
 
         seq = []
-
+        cov = []
         for position in range(allele_start-1, allele_stop):
-            count = Counter(reads_dict['bases'][position])
+            count = Counter(reads_dict['bases'][position])  
+            cov.append(sum([n for n in count.values()]))
             if len(count) == 1:
                 seq.append([[b for b in count][0]])
             else:
@@ -989,7 +993,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 seq.append(
                     [base for base, num in count.items() if num > 0.3*total]
                     )
+        min_cov = min(cov)
 
+        cov_msg += f"minimum coverage of {locus} locus is {min_cov}." + '\n'
+        logging.info(f"minimum coverage of {locus} locus is {min_cov}.")
 
         num_alleles_per_site = [len(i) for i in seq]
 
@@ -1059,6 +1066,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
             if len(conflicting_reads) > 0.33 * len(reads_at_locs[0]):
                 logging.info(f"more than 33% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
+                with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
+                    f.write(f"\nmore than 33% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}\n\n")
                 a = Allele()
                 a.allele_id = '?'
                 alleles[locus] = [a]
@@ -1072,6 +1081,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             # If more than 2 alleles found, can't resolve
             if len(bialleles) > 2:
                 logging.info(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.")
+                with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
+                    f.write(f"\nERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.\n\n")
                 sys.exit(1)
             if len(bialleles) > 1 and locus == 'mompS':
                 alleles[locus] = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
@@ -1089,6 +1100,9 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 if len(base) > 1:
                     biallic_count+=1
     
+    with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
+        f.write(cov_msg + "\n\n")
+
     # Remove deletions from seq
     for allele_list in alleles.values():
         for allele in allele_list:
