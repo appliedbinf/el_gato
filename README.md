@@ -101,6 +101,12 @@ The sequence of all identified alleles are written to this file. If more than on
 
 Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered.
 
+## reads_vs_all_ref_filt_sorted.bam (reads only)
+
+When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the MLST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to get a better understanding of the information used by el_gato to make allele calls. Additionally, if any loci were not properly resolved, this file is a good starting point for figuring out why.
+
+N.B., a SAM file is also present. This is the same information as in the BAM file.
+
 # Using nextflow
 
 We provide a simple nextflow workflow to run el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
