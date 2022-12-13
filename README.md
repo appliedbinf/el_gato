@@ -8,7 +8,11 @@ Epidemiology of *Legionella*: Genome-bAsed Typing
    * [A typical run](#A-typical-run)   
 * [Output](#Output)
      * [stdout (MLST profile)](#stdout-(MLST-profile))
-
+     * [possible_mlsts.txt](#possible_mlsts.txt)
+     * [intermediate_outputs.txt](#intermediate_outputs.txt)
+     * [identified_alleles.fna](#identified_alleles.fna)
+     * [run.log](#run.log)
+     * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sorted.bam-(reads-only))
 * [Using Nextflow](#Using-nextflow)
    * [Input files](#Input-files)
    * [Output files](#Output-files)
