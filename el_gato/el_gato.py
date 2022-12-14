@@ -936,7 +936,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) > 1:
         cov_sorted = sorted(
-            [(k,v['depth']) for k,v in cov_results.items],
+            [(k,v['depth']) for k,v in cov_results.items()],
             key=lambda x: x[1],
             reverse=True)
         # Try to use depth to determine the right one to use
@@ -984,7 +984,14 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         seq = []
         cov = []
         for position in range(allele_start-1, allele_stop):
-            count = Counter(reads_dict['bases'][position])  
+            good_basecalls = [
+                base for base, qual in zip(
+                    reads_dict['bases'][position],
+                    reads_dict['qualities'][position]
+                    )
+                if ord(qual)-33 > 20 # Assuming Phred 33...
+                ]
+            count = Counter(good_basecalls)
             cov.append(sum([n for n in count.values()]))
             if len(count) == 1:
                 seq.append([[b for b in count][0]])
@@ -1066,8 +1073,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
             if len(conflicting_reads) > 0.33 * len(reads_at_locs[0]):
                 logging.info(f"more than 33% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}")
-                with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
-                    f.write(f"\nmore than 33% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}\n\n")
+                cov_message += f"\nmore than 33% of reads disagree with which variant bases are in the same gene for {locus.split('_')[0]}\n\n"
                 a = Allele()
                 a.allele_id = '?'
                 alleles[locus] = [a]
