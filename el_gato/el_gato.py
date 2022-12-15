@@ -1005,7 +1005,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         if min_cov == 0:
             msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has 0 coverage and can't be resolved"
             logging.info(msg)
-            cov_message += f"\n{msg}\n\n"
+            cov_msg += f"\n{msg}\n\n"
             a = Allele()
             a.allele_id = '?'
             alleles[locus] = [a]
@@ -1197,6 +1197,12 @@ def map_alleles(inputs: dict, ref: Ref):
     desc_header = "Best match of each identified sequence determined using BLASTN"
 
     result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
+    if len(result) == 0:
+        logging.info("WARNING: No allele matches found in the database. Can't resolve any alleles!")
+        with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
+            fout.write("WARNING: No allele matches found in the database. Can't resolve any alleles!")
+        return alleles
+        
     for line in result.strip().split('\n'):
         bits = line.split()
         if float(bits[2]) == 100.00 and bits[3] == bits[12] and bits[3] == bits[13]:
