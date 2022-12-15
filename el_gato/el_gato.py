@@ -1002,6 +1002,15 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     )
         min_cov = min(cov)
 
+        if min_cov == 0:
+            msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has 0 coverage and can't be resolved"
+            logging.info(msg)
+            cov_message += f"\n{msg}\n\n"
+            a = Allele()
+            a.allele_id = '?'
+            alleles[locus] = [a]
+            continue
+
         cov_msg += f"minimum coverage of {locus} locus is {min_cov}." + '\n'
         logging.info(f"minimum coverage of {locus} locus is {min_cov}.")
 
