@@ -1,5 +1,5 @@
 {% set name = "elgato" %}
-{% set version = "1.9.0" %}
+{% set version = "1.10.0" %}
 
 package:
   name: {{ name|lower }}
@@ -22,7 +22,7 @@ requirements:
  
   run:
     - python >=3.8
-    - bwa-mem2==2.2.1
+    - minimap2==2.24
     - samtools==1.15.1
     - blast==2.13.0
     - ispcr==33.0
