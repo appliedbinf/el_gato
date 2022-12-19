@@ -1184,8 +1184,8 @@ def map_alleles(inputs: dict, ref: Ref):
 
     # Run BWA mem
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
-    mapping_command = f"bwa-mem2 mem -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
-    run_command(mapping_command, tool='bwa-mem2 mem', shell=True)
+    mapping_command = f"minimap2 -ax sr -t {threads} -A 1 -B 1 {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
+    run_command(mapping_command, tool='minimap2 -ax sr', shell=True)
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
 
