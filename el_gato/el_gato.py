@@ -1239,9 +1239,7 @@ def map_alleles(inputs: dict, ref: Ref):
 
         else:
             if len([i for i in which_native if i]) > 1:
-                logging.info("Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Unable to determine allele locations.")
-                alleles['mompS'] = [Allele()]
-                alleles['mompS'][0].allele_id = '?'
+                logging.info("Found evidence that multiple alleles may exist in a sequence context that is similar to the native locus. Trying to determine allele locations.")
  
             else:
                 native_allele = [a for a in alleles['mompS'] if "_native_locus" in a.location][0]
