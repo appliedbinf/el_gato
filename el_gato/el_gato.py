@@ -29,7 +29,7 @@ class Ref:
     ispcr_opt = "stdout -out=fa -minPerfect=5 -tileSize=6 -maxSize=1200 -stepSize=5"
     mompS_primer1 = "TTGACCATGAGTGGGATTGG\tTGGATAAATTATCCAGCCGGACTTC"
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
-    prereq_programs = ["bwa-mem2", "samtools", "makeblastdb", "blastn", "isPcr"]
+    prereq_programs = ["minimap2", "samtools", "makeblastdb", "blastn", "isPcr"]
     REF_POSITIONS = {
         "asd": {        
             'start_pos' : 351,
