@@ -130,6 +130,12 @@ When running on a directory of reads, files are associated as pairs using the pa
 
 When running on a directory of assemblies, all files in the target directory will be processed and there are no filename restrictions.
 
+While el gato performs Q20 processing for reads, it is highly recommended to perform preferred QA/QC on input files. 
+
+````
+Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
+````
+
 ## Output files
 
 At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each directory is named with a sample name and contains output files specific to tht sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample. [See the Output section](#Output) for more details.
@@ -173,12 +179,6 @@ When processing an assembly, only *mompS* requires extra processing. The other 6
 
 When processing reads, both *mompS* and *neuA*/*neuAh* must be processed separately. The other 5 loci are processed by mapping the provided reads to reference loci from *L. pneumophila* strain Paris and identifying the consensus sequence. Alleles are then identified using BLASTn.
 
-We highly recommend performing QA/QC on reads using your preferred method before processing via el gato.  
-
-````
-Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
-````
-
 ### neuA/neuAh
 
 [The sequence of *neuA*/*neuAh* loci can differ dramatically.](https://doi.org/10.1111/1469-0691.12459) The differences in sequence between *neuA*/*neuAh* alleles is sufficient that reads from some alleles will not map to others. Accordingly, we map reads to three reference sequences that cover the sequence variation currently represented in the SBT. The three reference alleles used are the *neuA* allele from strain Paris (neuA_1), the *neuAh* allele from strain Dallas-1E (neuA_201) and a chimeric sequence composed of sequence 5' of the *neuA* locus from strain Paris, the sequence of allele neuA_206, and sequence 3' of the *neuA* locus from strain Dallas-1E.
@@ -208,7 +208,7 @@ If the above process is unable to identify the correct sequence, a ? will be ret
 
 # Dependencies
 
-* [bwa-mem2](https://github.com/bwa-mem2/bwa-mem2)
+* [minimap2](https://github.com/lh3/minimap2)
 * [SAMTools](https://github.com/samtools/samtools)
 * [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
 * [isPcr](https://users.soe.ucsc.edu/~kent/)
