@@ -177,7 +177,6 @@ We highly recommend performing QA/QC on reads using your preferred method before
 
 ````
 Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
-
 ````
 
 ### neuA/neuAh
