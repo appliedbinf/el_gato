@@ -173,8 +173,12 @@ When processing an assembly, only *mompS* requires extra processing. The other 6
 
 When processing reads, both *mompS* and *neuA*/*neuAh* must be processed separately. The other 5 loci are processed by mapping the provided reads to reference loci from *L. pneumophila* strain Paris and identifying the consensus sequence. Alleles are then identified using BLASTn.
 
-We highly recommend performing QA/QC on reads before processing via el gato.  
-Example: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
+We highly recommend performing QA/QC on reads using your preferred method before processing via el gato.  
+
+````
+Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
+
+````
 
 ### neuA/neuAh
 
