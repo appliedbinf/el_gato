@@ -131,10 +131,10 @@ We provide a singularity container that can be run using the nextflow workflow f
 
 ```
 # Reads
-nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory> -profile sge,singularity -c nextflow.config
+nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
 
 # Assemblies
-nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile sge,singularity -c nextflow.config
+nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
 
 ```
 ## Input files
