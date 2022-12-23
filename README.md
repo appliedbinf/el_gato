@@ -115,6 +115,8 @@ N.B., a SAM file is also present. This is the same information as in the BAM fil
 
 We provide a simple nextflow workflow to run el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
 
+Uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file to run nextflow
+
 ```
 # Reads
 nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory>
