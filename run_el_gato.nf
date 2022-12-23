@@ -7,7 +7,7 @@ params.threads = 1
 params.out = 'el_gato_out'
 
 process RUN_EL_GATO_READS {
-  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
+  //conda "-c conda-forge -c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
   label 'elgato'
@@ -44,7 +44,7 @@ process RUN_EL_GATO_READS {
 }
 
 process RUN_EL_GATO_ASSEMBLIES {
-  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
+  //conda "-c conda-forge -c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
   label 'elgato'
