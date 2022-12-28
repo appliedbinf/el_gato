@@ -707,11 +707,46 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
         logging.info(identified_mompS_msg)
         return a_list 
     else:
-        error_msg = f"BLAST and in silico PCR returned no results. mompS may be missing from your assembly"
+        # try BLAST without isPCR
+        error_msg = f"in silico PCR returned no results. The region around mompS may be missing from your assembly"
         logging.info(error_msg)
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
             f.write(error_msg + '\n\n')
-        return [Allele()]
+        blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/mompS_alleles.tfa -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
+        desc_header = "Best match of mompS in provided assembly using BLASTN."
+        result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header)
+        if result != "":
+            error_msg = f"BLAST identified mompS"
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg + '\n\n')
+            bits = result.strip().split()
+            a = Allele()
+            if float(bits[2]) == 100.00 and bits[3] == bits[13]:
+                a.allele_id = bits[1].split("_")[-1]
+            else:
+                a.allele_id = bits[1].split("_")[-1]+"*"
+
+            # Extract sequence of allele from assembly
+            ass_contig = bits[0]
+            ass_start = int(bits[6])
+            ass_end = int(bits[7])
+            db_start = int(bits[8])
+            db_end = int(bits[9])
+
+            if db_start < db_end:
+                a.seq = assembly_dict[ass_contig][ass_start-1:ass_end]
+            else:
+                a.seq = rev_comp(assembly_dict[ass_contig][ass_start-1:ass_end])
+            
+            return [a]
+
+        else:
+            error_msg = f"BLAST and in silico PCR returned no results. mompS may be missing from your assembly"
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg + '\n\n')
+            return [Allele()]
 
 
 def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
