@@ -712,7 +712,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
         logging.info(error_msg)
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
             f.write(error_msg + '\n\n')
-        blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/mompS_alleles.tfa -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
+        blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/mompS_alleles.tfa -outfmt '6 std qlen slen sseqid sseq' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
         desc_header = "Best match of mompS in provided assembly using BLASTN."
         result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header)
         if result != "":
@@ -734,10 +734,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
             db_start = int(bits[8])
             db_end = int(bits[9])
 
-            if db_start < db_end:
-                a.seq = assembly_dict[ass_contig][ass_start-1:ass_end]
-            else:
-                a.seq = rev_comp(assembly_dict[ass_contig][ass_start-1:ass_end])
+            a.seq = bits[15]
             
             return [a]
 
