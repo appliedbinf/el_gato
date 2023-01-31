@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="elgato",
-    version="1.10.2",
+    version="1.10.3",
     python_requires='>=3.8',
     scripts = [
         'el_gato/el_gato.py',
