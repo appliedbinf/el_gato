@@ -624,11 +624,12 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
             logging.critical(f"CRITICAL ERROR! The following command had an improper exit: \n{full_command}\n")
             sys.exit(1)
 
+    pretty_result = prettify(result)
     if tool is not None:
-        logging.debug(f"Command log for {tool}:\n{result}")
+        logging.debug(f"Command log for {tool}:\n{pretty_result}")
         logging.info(f"Finished running {tool}")
     else:
-        logging.debug(f"Command log:\n{result}")
+        logging.debug(f"Command log:\n{pretty_result}")
 
     # Write result to desc_file
     if desc_file:
@@ -636,7 +637,7 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
             if desc_header:
                 f.write(desc_header + '\n\n')
             f.write(f"Command:\n\n{full_command}\n\n")
-            f.write(f"Output:\n\n{result}\n\n")
+            f.write(f"Output:\n\n{pretty_result}\n\n")
 
     return result
 
