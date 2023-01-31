@@ -623,6 +623,7 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
         except subprocess.CalledProcessError:
             logging.critical(f"CRITICAL ERROR! The following command had an improper exit: \n{full_command}\n")
             sys.exit(1)
+
     if tool is not None:
         logging.debug(f"Command log for {tool}:\n{result}")
         logging.info(f"Finished running {tool}")
@@ -639,6 +640,24 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
 
     return result
 
+
+def prettify(text, delim="\t"):
+    lines = text.split("\n")
+    # calculate padding for each column
+    col_pad = defaultdict(int)
+    for line in lines:
+        for n, col in enumerate(line.split(delim)):
+            col_pad[n] = max(col_pad[n], len(col))
+
+    # Build new, padded output
+    padded_text = ""
+    for line in lines:
+        line_new = []
+        for n, col in enumerate(line.split(delim)): 
+            line_new.append(col.ljust(col_pad[n]+2))
+        padded_text += "".join(line_new) + "\n"
+
+    return padded_text
 
 def blast_momps_allele(seq: str, db: str) -> list:
     """BLAST the mompS allele in the isolate to find the allele number
@@ -937,7 +956,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     desc_header = "Assessing coverage of MLST loci by provided sequencing reads."
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
-    
+
     alleles = {}
     cov_results = {}
     for line in result.strip().split('\n')[1:]:
