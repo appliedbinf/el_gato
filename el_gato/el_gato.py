@@ -681,7 +681,7 @@ def blast_momps_allele(seq: str, db: str) -> list:
     """
     logging.debug(f"Looking for \n{seq}")
     blastcmd = f"blastn -query - -db {db} -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
-    column_headers = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen sseqid"
+    column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid"
     res = run_command(blastcmd, "blastn/mompS", seq, shell=True, column_headers=column_headers).rstrip()
     if res == "":
         return [Allele()]
@@ -738,7 +738,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
             f.write(error_msg + '\n\n')
         blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/mompS_alleles.tfa -outfmt '6 std qlen slen sseqid sseq' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
         desc_header = "Best match of mompS in provided assembly using BLASTN."
-        column_headers = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen sseqid sseq"
+        column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid\tsseq"
         result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header, column_headers=column_headers)
         if result != "":
             error_msg = f"BLAST identified mompS"
@@ -795,7 +795,7 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
 
     blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
     desc_header = "Best match of each locus in provided assembly using BLASTN."
-    column_headers = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen sseqid"
+    column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid"
     result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header, column_headers=column_headers)
 
     for line in result.strip().split('\n'):
@@ -1253,7 +1253,7 @@ def map_alleles(inputs: dict, ref: Ref):
     logging.info("BLASTing identified alleles against database")
     blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
     desc_header = "Best match of each identified sequence determined using BLASTN"
-    column_headers = "qseqid sseqid pident length mismatch gapopen qstart qend sstart send evalue bitscore qlen slen"
+    column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
 
     result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header, column_headers=column_headers)
     if len(result) == 0:
