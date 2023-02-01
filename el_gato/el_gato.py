@@ -1297,12 +1297,12 @@ def map_alleles(inputs: dict, ref: Ref):
         for a in alleles['mompS']:
             logging.info(f"mompS allele '{a.allele_id}' information")
             logging.info(f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}")
-            logging.info(f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}")
-            logging.info(f"number of reads from this allele containing outtermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}")
+            logging.info(f"number of reads from this allele containing outermost reverse primer sequence: {a.confidence['for']}")
+            logging.info(f"number of reads from this allele containing outermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}")
             message += f"mompS allele '{a.allele_id}' information\n"
             message += f"lowest coverage of bialleleic site: {min([len(set(i)) for i in a.reads_at_locs])}\n"
-            message += f"number of reads from this allele containing outtermost reverse primer sequence: {a.confidence['for']}\n"
-            message += f"number of reads from this allele containing outtermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}\n\n"
+            message += f"number of reads from this allele containing outermost reverse primer sequence: {a.confidence['for']}\n"
+            message += f"number of reads from this allele containing outermost reverse primer sequence in the reverse orientation (indicating this is the secondary allele): {a.confidence['against']}\n\n"
     old_mompS = alleles['mompS']
     if len(alleles['mompS']) > 1:
         which_native = ["_native_locus" in a.location for a in alleles['mompS']]
