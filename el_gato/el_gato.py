@@ -502,6 +502,19 @@ def check_program(program_name: str, inputs: dict) -> None:
             print(f"Program {program_name} not found! Cannot continue; dependency not fulfilled.")
         sys.exit(1)
 
+    if "blast" in program_name:
+        # only 1 '-'' for blast arguments
+        command = f"{program_name} -version | head -1"
+    elif program_name == "isPcr":
+        # No version retrieval option. pull from usage head instead.
+        command = 'isPcr 2>&1 | head -1 | grep -Po "(?<=v )\S+"'
+    elif program_name == "samtools":
+        # only want the first two lines
+        command = "samtools --version | head -1"
+    else:
+        command = f"{program_name} --version"
+    version = result = subprocess.check_output(command, shell=True, stderr=subprocess.DEVNULL, encoding='utf-8')
+    logging.info(f"{program_name} version is {version.strip()}")
 
 def check_files(inputs: dict) -> None:
     """Checks if all the input files exists; exits if file not found or if file is a directory
