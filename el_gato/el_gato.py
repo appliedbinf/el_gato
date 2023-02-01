@@ -1377,7 +1377,7 @@ def write_possible_mlsts(inputs: dict, alleles: dict, header: bool, confidence: 
 
     if header:
         if confidence:
-            possible_mlsts += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\tmompS_reads_with_primer\t" + "mompS_reads_without_primer\n"
+            possible_mlsts += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\tmompS_reads_support\t" + "mompS_reads_against\n"
         else:
             possible_mlsts += "Sample\tST\t" + "\t".join(Ref.locus_order) + "\n"
 
