@@ -70,7 +70,7 @@ Upon the completion of a run, el_gato.py will print the identified MLST of your 
 
 ## stdout (MLST profile)
 
-MLST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with -e). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
+MLST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e`). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
 
 The ST column can contain two kinds of values. If the identified MLST corresponds to a profile found in the database, the corresponding number is given. If no matching MLST profile is found, "NF" is reported.
 
@@ -97,6 +97,42 @@ El_gato calls other programs to perform intermediate analyses. The outputs of th
 * BLAST output indicating the best match for identified alleles.
 * Important logging information.
 
+Headers are included in outputs for samtools coverage and blast results. Header definitions are as follows:
+
+### samtools coverage headers
+
+| Column header | Meaning                                              |
+|---------------|------------------------------------------------------|
+| rname         | locus name                                           |
+| startpos      | Start position                                       |
+| endpos        | End position                                         |
+| numreads      | Number reads aligned to the region (after filtering) |
+| covbases      | Number of covered bases with depth >= 1              |
+| coverage      | Percentage of covered bases [0..100]                 |
+| meandepth     | Mean depth of coverage                               |
+| meanbaseq     | Mean baseQ in covered region                         |
+| meanmapq      | Mean mapQ of selected reads                          |
+
+### BLASTn output headers
+
+| Column header | Meaning                             |
+|---------------|-------------------------------------|
+| qseqid        | query sequence id                   |
+| sseqid        | subject (matched allele) id         |
+| pident        | percentage of identical matches     |
+| length        | alignment length (sequence overlap) |
+| mismatch      | number of mismatches                |
+| gapopen       | number of gap openings              |
+| qstart        | start of alignment in query         |
+| qend          | end of alignment in query           |
+| sstart        | start of alignment in subject       |
+| send          | end of alignment in subject         |
+| evalue        | expect value                        |
+| bitscore      | bit score                           |
+| qlen          | query sequence length               |
+| slen          | subject sequence length             |
+| sseq          | aligned part of subject sequence    |
+
 ## identified_alleles.fna
 
 The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
@@ -104,6 +140,8 @@ The sequence of all identified alleles are written to this file. If more than on
 ## run.log
 
 Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered.
+
+Some command outputs have headers included. ([See the relevant part of the intermediate_outputs.txt section for column definitions](#intermediate_outputstxt))
 
 ## reads_vs_all_ref_filt_sorted.bam (reads only)
 
@@ -156,22 +194,46 @@ At the completion of a run, the specified output directory (default: el_gato_out
 
 # Usage
 
-```
-Required arguments:  
---read1 (paired end read1)  
---read2 (paired end read2)  
---assembly (assembly file)  
+Usage is printed when running el_gato.py with `-h` or `--help`.
 
-Optional arguments:   
---out (output folder name)  
---help, -h (help)  
---threads, -t (threads (default: 1))  
---sample, -n (sample name)    
---overwrite, -w (overwrites output folder name)   
---sbt, -s (database containing SBT allele and mapping files))   
---suffix, -x (suffix of SBT allele files (default: _alleles.tfa))  
---profile, -p (name of allele profile in ST mapping file)   
---verbose -v (print what the script is doing (default: False))    
+```
+usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help] [--threads THREADS] [--depth DEPTH]
+                  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT] [--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header]
+
+Legionella in silico SBT script.
+    Requires paired-end reads files or a genome assembly.
+
+    Notes on arguments:
+    (1) If only reads are provided, SBT is called using a mapping/alignment approach.
+    (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted.
+    
+Input files:
+  Please specify either reads files and/or a genome assembly file
+
+  --read1 Read 1 file, -1 Read 1 file
+                        Input Read 1 (forward) file
+  --read2 Read 2 file, -2 Read 2 file
+                        Input Read 2 (reverse) file
+  --assembly Assembly file, -a Assembly file
+                        Input assembly fasta file
+
+Optional arguments:
+  --help, -h            Show this help message and exit
+  --threads THREADS, -t THREADS
+                        Number of threads to run the programs (default: 1)
+  --depth DEPTH, -d DEPTH
+                        Variant read depth cutoff (default: 3)
+  --out OUT, -o OUT     Output folder name (default: out)
+  --sample SAMPLE, -n SAMPLE
+                        Sample name (default: <Inferred from input file>)
+  --overwrite, -w       Overwrite output directory (default: False)
+  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files (default: .../el_gato/el_gato/db)
+  --suffix SUFFIX, -x SUFFIX
+                        Suffix of SBT allele files (default: _alleles.tfa)
+  --profile PROFILE, -p PROFILE
+                        Name of allele profile to ST mapping file (default: .../el_gato/el_gato/db/lpneumophila.txt)
+  --verbose, -v         Print what the script is doing (default: False)
+  --header, -e          Include column headers in the output table (default: False)   
 ```
 
 # Approach
@@ -215,7 +277,7 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
    c. One sequence has no associated reads with the primer in either orientation, but the other has associated reads with the primer in only the wrong orientation.
 6. The allele of both identified sequences is then identified using BLASTn.
 
-If the above process is unable to identify the correct sequence, a ? will be returned as the *mompS* allele and information about the steps in this process will be reported in the [possible_mlsts.txt](#possible_mlsts.txt), [intermediate_outputs.txt](#intermediate_outputs.txt), [identified_alleles.fna](#identified_alleles.fna), and [run.log](#run.log) files.
+If the above process is unable to identify the correct sequence, a ? will be returned as the *mompS* allele and information about the steps in this process will be reported in the [possible_mlsts.txt](#possible_mlststxt), [intermediate_outputs.txt](#intermediate_outputstxt), [identified_alleles.fna](#identified_allelesfna), and [run.log](#runlog) files.
 
 ![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
 
