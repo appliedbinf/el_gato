@@ -254,6 +254,11 @@ When processing an assembly, only *mompS* requires extra processing. The other 6
 
 When processing reads, both *mompS* and *neuA*/*neuAh* must be processed separately. The other 5 loci are processed by mapping the provided reads to reference loci from *L. pneumophila* strain Paris and identifying the consensus sequence. Alleles are then identified using BLASTn.
 
+A couple of quality control steps are applied when processing the reads that map to each locus:
+
+   1. Base quality. Any bases with quality scores below 20 are not included when calculating coverage at each position or identifying alternate base calls. The lowest number of bases with quality over 20 that map to a single position is reported in the log for each locus.
+   2. Coverage. After excluding low quality bases, if < 100% of a locus has at least 1 read covering it (<99% for *neuA*/*neuAh* - see below), then no attempt to identify the allele is made an a "-" will be reported. This is done to avoid returning an incorrect call. No minimum depth cutoff is applied.
+
 ### neuA/neuAh
 
 [The sequence of *neuA*/*neuAh* loci can differ dramatically.](https://doi.org/10.1111/1469-0691.12459) The differences in sequence between *neuA*/*neuAh* alleles is sufficient that reads from some alleles will not map to others. Accordingly, we map reads to three reference sequences that cover the sequence variation currently represented in the SBT. The three reference alleles used are the *neuA* allele from strain Paris (neuA_1), the *neuAh* allele from strain Dallas-1E (neuA_201) and a chimeric sequence composed of sequence 5' of the *neuA* locus from strain Paris, the sequence of allele neuA_206, and sequence 3' of the *neuA* locus from strain Dallas-1E.
