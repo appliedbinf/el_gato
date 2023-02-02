@@ -248,7 +248,7 @@ When processing an assembly, only *mompS* requires extra processing. The other 6
 
 ### mompS
 
-[*mompS* is sometimes present in two copies in *Legionella pneumophila*](https://doi.org/10.1016/j.cmi.2017.01.002) and therefore requires additional processing. When typing *L. pneumophila* using Sanger sequencing, primers are used that amplify only the correct *mompS* locus. We therefore use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The pimers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLASTn.
+[*mompS* is sometimes present in two copies in *Legionella pneumophila*](https://doi.org/10.1016/j.cmi.2017.01.002) and therefore requires additional processing. When typing *L. pneumophila* using Sanger sequencing, primers are used that amplify only the correct *mompS* locus. We therefore use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The primers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLASTn.
 
 ## Reads
 
