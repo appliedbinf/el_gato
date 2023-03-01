@@ -181,7 +181,7 @@ When running on a directory of reads, files are associated as pairs using the pa
 
 When running on a directory of assemblies, all files in the target directory will be processed and there are no filename restrictions.
 
-While el gato performs Q20 processing for reads, it is highly recommended to perform preferred QA/QC on input files. 
+While el_gato performs Q20 processing for reads, it is highly recommended to perform preferred QA/QC on input files. 
 
 ````
 Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
