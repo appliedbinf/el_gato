@@ -279,7 +279,7 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 5. The number of reads associated with each sequence that contain the primer *mompS*-1116R in the correct orientation is counted and compared. The correct allele is then decided using the following criteria:
    a. Only one sequence has associated reads with correctly oriented primer.
    b. One sequence has more than three times as many reads with correctly oriented primer as the other.
-   c. One sequence has no associated reads with the primer in either orientation, but the other has associated reads with the primer in only the wrong orientation.
+   c. One sequence has no associated reads with the primer in either orientation, but the other has associated reads with the primer in only the wrong orientation. In this case, the sequence with no associated reads with the primer in either orientation is considered the primary locus. 
 6. The allele of both identified sequences is then identified using BLASTn.
 
 If the above process is unable to identify the correct sequence, a ? will be returned as the *mompS* allele and information about the steps in this process will be reported in the [possible_mlsts.txt](#possible_mlststxt), [intermediate_outputs.txt](#intermediate_outputstxt), [identified_alleles.fna](#identified_allelesfna), and [run.log](#runlog) files.
