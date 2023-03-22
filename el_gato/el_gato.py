@@ -1,4 +1,4 @@
-#!/home/dmashruwala3/work/conda/env-467f874d85bfb197845d13e32efd070c/bin/python
+#!/usr/bin/env python3
 import argparse
 import inspect
 import logging
