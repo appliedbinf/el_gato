@@ -1,4 +1,4 @@
-#!/home/dmashruwala3/work/conda/env-467f874d85bfb197845d13e32efd070c/bin/python
+#!/usr/bin/env python3
 import argparse
 import inspect
 import logging
@@ -848,6 +848,7 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
 
     return calls
 
+
 def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     """Looks for the ST in the allele profile table (simple look-up)
 
@@ -865,11 +866,6 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     str
         ST number
     """
-    novel = "NV" # all 7 target genes were found, but not present in the profile - probably a novel sequence type
-    possible = "PS" # one or multiple target genes have a closest match found - it's possible this profile is present
-    not_found = "NF" # one or more of the target genes were unidentifiable - ST is also unidentifiable as a result
-    ambiguous = "AB" # one or more of the target genes have multiple alleles found - ST is ambiguous due to multiple alleles
-    
     with open(profile_file, "r") as f:
         f.readline()
         for line in f:
@@ -877,17 +873,7 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
             if line.endswith(allele_profile):
                 st = line.split("\t")[0]
                 return st
-#    return "NF"
-    
-    if allele_profile not in profile_file:
-        if "-" in allele_profile:
-            return not_found
-        if "?" in allele_profile:
-            return ambiguous
-        if "*" in allele_profile:
-            return possible
-        else:
-            return novel
+    return "NF"
 
 
 def read_sam_file(samfile: str):
