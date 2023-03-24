@@ -865,10 +865,10 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     str
         ST number
     """
-    novel = "NV" # all 7 target genes were found, but not present in the profile - probably a novel sequence type
-    possible = "PS" # one or multiple target genes have a closest match found - it's possible this profile is present
-    not_found = "NF" # one or more of the target genes were unidentifiable - ST is also unidentifiable as a result
-    ambiguous = "AB" # one or more of the target genes have multiple alleles found - ST is ambiguous due to multiple alleles
+    novel_ST = "Novel ST" # all 7 target genes were found, but not present in the profile - probably a novel sequence type
+    novel_allele = "Novel ST*" # one or multiple target genes have a novel allele found
+    not_found = "NF-" # one or more of the target genes were unidentifiable - ST is also unidentifiable as a result
+    multiple = "NF?" # one or more of the target genes have multiple alleles found - ST is ambiguous due to multiple alleles
     
     with open(profile_file, "r") as f:
         f.readline()
@@ -878,16 +878,13 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
                 st = line.split("\t")[0]
                 return st
 #    return "NF"
-    
-    if allele_profile not in profile_file:
-        if "-" in allele_profile:
-            return not_found
-        if "?" in allele_profile:
-            return ambiguous
-        if "*" in allele_profile:
-            return possible
-        else:
-            return novel
+            if "-" in allele_profile:
+                return not_found
+            elif "?" in allele_profile:
+                return multiple
+            elif "*" in allele_profile:
+                return novel_allele
+    return novel_ST
 
 
 def read_sam_file(samfile: str):
