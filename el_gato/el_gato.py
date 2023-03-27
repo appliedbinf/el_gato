@@ -870,6 +870,13 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     not_found = "NF-" # one or more of the target genes were unidentifiable - ST is also unidentifiable as a result
     multiple = "NF?" # one or more of the target genes have multiple alleles found - ST is ambiguous due to multiple alleles
     
+    if "-" in allele_profile:
+        return not_found
+    elif "?" in allele_profile:
+        return multiple
+    elif "*" in allele_profile:
+         return novel_allele
+      
     with open(profile_file, "r") as f:
         f.readline()
         for line in f:
@@ -878,12 +885,12 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
                 st = line.split("\t")[0]
                 return st
 #    return "NF"
-    if "-" in allele_profile:
-        return not_found
-    elif "?" in allele_profile:
-        return multiple
-    elif "*" in allele_profile:
-         return novel_allele
+#    if "-" in allele_profile:
+#        return not_found
+#    elif "?" in allele_profile:
+#        return multiple
+#    elif "*" in allele_profile:
+#         return novel_allele
     return novel_ST
 
 
