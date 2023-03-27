@@ -884,13 +884,6 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
             if line.endswith(allele_profile):
                 st = line.split("\t")[0]
                 return st
-#    return "NF"
-#    if "-" in allele_profile:
-#        return not_found
-#    elif "?" in allele_profile:
-#        return multiple
-#    elif "*" in allele_profile:
-#         return novel_allele
     return novel_ST
 
 
