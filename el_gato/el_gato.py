@@ -848,7 +848,6 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
 
     return calls
 
-
 def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     """Looks for the ST in the allele profile table (simple look-up)
 
@@ -866,6 +865,18 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     str
         ST number
     """
+    novel_ST = "Novel ST" # all 7 target genes were found, but not present in the profile - probably a novel sequence type
+    novel_allele = "Novel ST*" # one or multiple target genes have a novel allele found
+    not_found = "NF-" # one or more of the target genes were unidentifiable - ST is also unidentifiable as a result
+    multiple = "NF?" # one or more of the target genes have multiple alleles found - ST is ambiguous due to multiple alleles
+    
+    if "-" in allele_profile:
+        return not_found
+    elif "?" in allele_profile:
+        return multiple
+    elif "*" in allele_profile:
+         return novel_allele
+      
     with open(profile_file, "r") as f:
         f.readline()
         for line in f:
@@ -873,7 +884,7 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
             if line.endswith(allele_profile):
                 st = line.split("\t")[0]
                 return st
-    return "NF"
+    return novel_ST
 
 
 def read_sam_file(samfile: str):
@@ -972,7 +983,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     run_command(process_sam_command, tool='samtools', shell=True)
 
     logging.info("Checking coverage of reference loci by mapped reads")
-    coverage_command = f"samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam; samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1; samtools coverage -r neuA_206:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1"
+    coverage_command = f"samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | cut -f 1,4,5,6,7,8,9; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_206:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9"
     desc_header = "Assessing coverage of MLST loci by provided sequencing reads."
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
@@ -980,7 +991,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     alleles = {}
     cov_results = {}
     for line in result.strip().split('\n')[1:]:
-        gene, _, _, _, _, cov, depth, _, _ = line.split()
+        gene, _, _, cov, depth, _, _ = line.split()
         cov = float(cov)
         depth = float(depth)
         cov_results[gene] = {'cov': cov, 'depth': depth}
