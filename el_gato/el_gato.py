@@ -214,6 +214,51 @@ def get_args() -> argparse.ArgumentParser:
     return parser
 
 
+def fasta_to_dict(FASTA_file: str) -> dict: 
+    """Read a fasta file into a dict    
+    Dict has headers (minus the > symbol) as keys and the associated    
+    sequence as values. 
+        
+    Args:   
+      FASTA_file: str   
+        path to fasta format file   
+    Returns:    
+      dict:     
+        dict of format {fasta_header : sequence}    
+    Raises: 
+      TypeError: If FASTA_file is not a str 
+      OSError: If FASTA_file is not the path to an existing file    
+    """ 
+
+    if type(FASTA_file) is not str: 
+        raise TypeError(    
+            "FASTA_file must be str, not {}.".format(type(FASTA_file).__name__))    
+
+    if not os.path.exists(FASTA_file):  
+        raise OSError(  
+            "FASTA_file must be the path to an existing file.") 
+
+
+    fasta_dict = {} 
+    with open(FASTA_file, 'r') as f:    
+        multifasta = f.read()   
+    f.close()   
+    fastas = multifasta.split(">")  
+    trimmed_fastas = [] 
+    for i in fastas:    
+        if len(i) != 0: 
+            trimmed_fastas.append(i)    
+
+    fastas = trimmed_fastas 
+
+    for i in fastas:    
+        header = i.split()[0]   
+        seq = "".join(i.split("\n")[1:])    
+        fasta_dict[header] = seq    
+
+    return fasta_dict
+
+
 def rev_comp(string) -> str:
     """Reverse complement a string of nucleotide sequence
     
@@ -760,6 +805,8 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
     calls = dict.fromkeys(loci, '')
 
+    assembly_dict = fasta_to_dict(assembly_file)
+
     blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
     desc_header = "Best match of each locus in provided assembly using BLASTN."
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid"
@@ -783,6 +830,11 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
         db_start = int(bits[8])
         db_end = int(bits[9])
         
+        if db_start < db_end:
+            a.seq = assembly_dict[ass_contig][ass_start-1:ass_end]
+        else:
+            a.seq = rev_comp(assembly_dict[ass_contig][ass_start-1:ass_end])
+
         calls[locus] = [a]
 
     not_found_loci = [k for k,v in calls.items() if v =='']
