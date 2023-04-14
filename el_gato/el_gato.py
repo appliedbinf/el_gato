@@ -718,8 +718,10 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
             a = Allele()
             if float(bits[2]) == 100.00 and bits[3] == bits[13]:
                 a.allele_id = bits[1].split("_")[-1]
-            else:
+            elif bits[3] == bits[13]:
                 a.allele_id = bits[1].split("_")[-1]+"*"
+            else:
+                a.allele_id = "-"
 
             # Extract sequence of allele from assembly
             ass_contig = bits[0]
@@ -773,8 +775,10 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
         a = Allele()
         if float(bits[2]) == 100.00 and bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]
-        else:
+        elif bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]+"*"
+        else:
+            a.allele_id = "-"
 
         # Extract sequence of allele from assembly
         ass_contig = bits[0]
