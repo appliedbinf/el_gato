@@ -57,7 +57,7 @@ class Ref:
         },
         "neuA_211": {
             'start_pos' : 350,
-            'end_pos' : 700,
+            'end_pos' : 703,
         },
         "pilE": {
             'start_pos' : 351,
