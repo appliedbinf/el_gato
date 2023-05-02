@@ -677,11 +677,14 @@ def prettify(text, delim="\t"):
 
     return padded_text
 
-def blast_momps_allele(seq: str, db: str) -> list:
+def blast_momps_allele(inputs: dict, seq: str, db: str) -> list:
     """BLAST the mompS allele in the isolate to find the allele number
 
     Parameters
     ----------
+    inputs: dict
+        Run settings
+
     seq : str
         mompS allele sequence found in the isolate
 
@@ -707,6 +710,13 @@ def blast_momps_allele(seq: str, db: str) -> list:
         else:
             a.allele_id = bits[1].split("_")[-1]+"*"
         a.seq = "".join(seq.split("\n")[1:])[93:445].upper()
+
+        if "n" in a.seq or "N" in a.seq:
+            error_msg = f"The sequence of locus mompS contains Ns and cannot be confidently determined\n"
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg)
+            a.allele_id = "-"
 
         return [a]
 
@@ -738,7 +748,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
         logging.debug(f"Found the sequence: {primer2_res}")
         a_list = []
         for pcr_res in primer2_res.split(">")[1:]:
-            a_list += blast_momps_allele(seq=">"+pcr_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+            a_list += blast_momps_allele(inputs=inputs, seq=">"+pcr_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
         identified_mompS_msg = f"mompS alleles identified: {', '.join([a.allele_id for a in a_list])}"
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
             f.write(identified_mompS_msg + "\n\n")
@@ -776,6 +786,13 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
             db_end = int(bits[9])
 
             a.seq = bits[15]
+
+            if "n" in a.seq or "N" in a.seq:
+                error_msg = f"The sequence of locus mompS contains Ns and cannot be confidently determined\n"
+                logging.info(error_msg)
+                with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                    f.write(error_msg)
+                a.allele_id = "-"
             
             return [a]
 
@@ -838,6 +855,15 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
             a.seq = assembly_dict[ass_contig][ass_start-1:ass_end]
         else:
             a.seq = rev_comp(assembly_dict[ass_contig][ass_start-1:ass_end])
+
+        # check for Ns
+
+        if "n" in a.seq or "N" in a.seq:
+            error_msg = f"The sequence of locus {locus} contains Ns and cannot be confidently determined\n"
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg)
+            a.allele_id = "-"
 
         calls[locus] = [a]
 
