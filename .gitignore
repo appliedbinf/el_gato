@@ -10,6 +10,8 @@ el_gato/db/lp_*
 el_gato/db/lp.log
 el_gato/db/config.txt
 
+#igv index file
+el_gato/db/ref_gene_regions.fna.fai
 
 # build files
 build/
