@@ -707,8 +707,15 @@ def blast_momps_allele(inputs: dict, seq: str, db: str) -> list:
         a = Allele()
         if float(bits[2]) == 100.00 and bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]
-        else:
+        elif bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]+"*"
+        else:
+            error_msg = f"The sequence of locus mompS did not return a full length match in the database\n"
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg)
+            a.allele_id = "-"
+
         a.seq = "".join(seq.split("\n")[1:])[93:445].upper()
 
         if "n" in a.seq or "N" in a.seq:
@@ -776,6 +783,10 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
             elif bits[3] == bits[13]:
                 a.allele_id = bits[1].split("_")[-1]+"*"
             else:
+                error_msg = f"The sequence of locus mompS did not return a full length match in the database\n"
+                logging.info(error_msg)
+                with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                    f.write(error_msg)
                 a.allele_id = "-"
 
             # Extract sequence of allele from assembly
@@ -842,6 +853,10 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
         elif bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]+"*"
         else:
+            error_msg = f"The sequence of locus {locus} did not return a full length match in the database\n"
+            logging.info(error_msg)
+            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+                f.write(error_msg)
             a.allele_id = "-"
 
         # Extract sequence of allele from assembly
