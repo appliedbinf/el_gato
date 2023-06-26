@@ -59,6 +59,10 @@ class Ref:
             'start_pos' : 350,
             'end_pos' : 703,
         },
+        "neuA_212": {
+            'start_pos' : 350,
+            'end_pos' : 700,
+        },
         "pilE": {
             'start_pos' : 351,
             'end_pos' : 683,
@@ -412,13 +416,13 @@ def make_output_directory(inputs: dict):
             except PermissionError:
                 print("Failed to remove the existing directory. Do you have write permissions?")
                 sys.exit(1)
-            os.mkdir(inputs["out_prefix"])
+            os.makedirs(inputs["out_prefix"])
             inputs["logging_buffer_message"] += f"New output directory created\n"
         else:
             print(f"Output directory '{inputs['out_prefix']}' exists and overwrite is turned off. Exiting")
             sys.exit(1)
     else:
-        os.mkdir(inputs["out_prefix"])
+        os.makedirs(inputs["out_prefix"])
         inputs["logging_buffer_message"] += f"New output directory created\n"
 
 
@@ -1029,7 +1033,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     run_command(process_sam_command, tool='samtools', shell=True)
 
     logging.info("Checking coverage of reference loci by mapped reads")
-    coverage_command = f"samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | cut -f 1,4,5,6,7,8,9; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_207:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_211:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9"
+    coverage_command = f"samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | cut -f 1,4,5,6,7,8,9; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_207:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_211:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_212:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9"
     desc_header = "Assessing coverage of MLST loci by provided sequencing reads."
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
@@ -1218,8 +1222,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
             biallele_results_count = Counter(read_pair_base_calls)
             max_biallele_count = max([v for v in biallele_results_count.values()])
-
-            bialleles = [k for k,v in biallele_results_count.items() if v > 0.66*max_biallele_count]
+            bialleles = [k for k,v in biallele_results_count.items() if v > 0.2*max_biallele_count]
 
             # If more than 2 alleles found, can't resolve
             if len(bialleles) > 2:
@@ -1364,6 +1367,16 @@ def map_alleles(inputs: dict, ref: Ref):
     if len(alleles['mompS']) > 1:
         which_native = ["_native_locus" in a.location for a in alleles['mompS']]
         if not any(which_native):
+            # try excluding based on other locus being called as not native
+            which_not_native = ["_non-native_locus" in a.location for a in alleles['mompS']]
+            if any(which_not_native):
+                which_native = ["_non-native_locus" not in a.location for a in alleles['mompS']]
+        # If we now have a native allele identified, add _native_locus_ to the allele.location
+        if any(which_native):
+            native_index = [i for i, x in enumerate(which_native) if x][0]
+            a = alleles["mompS"][native_index]
+            a.location += "_native_locus"
+        if not any(which_native):
             logging.info("Unable to determine which allele is present in native mompS locus")
 
         else:
@@ -1375,13 +1388,13 @@ def map_alleles(inputs: dict, ref: Ref):
                 non_native_alleles = [a for a in alleles['mompS'] if "_native_locus" not in a.location]
                 logging.info(f"Allele {native_allele.allele_id} was determined to be the primary mompS allele. {native_allele.confidence['for']} reads support this.")
                 for a in non_native_alleles:
-                    logging.info(f"Allele {a.allele_id} was determined not to be the secondary mompS allele.")
+                    logging.info(f"Allele {a.allele_id} was determined not to be the primary mompS allele.")
 
         # Pick primary and secondary allele
         # If ANY reads contain primer in correct orientation
         # That is evidence of primary allele
-        alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > 0]
-        if len(alleles['mompS']) > 1:
+        for_alleles = len([a for a in alleles['mompS'] if a.confidence['for'] > 0])
+        if for_alleles > 1:
             if alleles['mompS'][0].confidence['for'] > 3*alleles['mompS'][1].confidence['for']:
                 alleles['mompS'] = [alleles['mompS'][0]]
             elif alleles['mompS'][1].confidence['for'] > 3*alleles['mompS'][0].confidence['for']:
@@ -1392,7 +1405,7 @@ def map_alleles(inputs: dict, ref: Ref):
                 # save mompS info for detailed outfile
                 alleles['mompS'] = [Allele()]
                 alleles['mompS'][0].allele_id = '?'
-        elif len(alleles['mompS']) == 0:
+        elif for_alleles == 0:
             # If only one allele has reads with primer in the wrong orientation, use the other one
             alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['against'] == 0]
             if len(alleles['mompS']) != 1:
@@ -1400,7 +1413,8 @@ def map_alleles(inputs: dict, ref: Ref):
                 message += "Failed to determine primary mompS allele. Primary mompS allele is identified by finding read pairs that cover both biallelic positions and sequencing primer. In this sample, no such reads were found. Perhaps sequencing reads are too short.\n\n"
                 alleles['mompS'] = [Allele()]
                 alleles['mompS'][0].allele_id = '?'
-
+        else:
+            alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > 0]
     temp_alleles = alleles.copy()
     temp_alleles['mompS'] = old_mompS
     write_possible_mlsts(inputs=inputs, alleles=temp_alleles, header=True, confidence=True)
