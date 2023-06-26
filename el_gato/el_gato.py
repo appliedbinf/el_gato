@@ -1222,7 +1222,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
             biallele_results_count = Counter(read_pair_base_calls)
             max_biallele_count = max([v for v in biallele_results_count.values()])
-            bialleles = [k for k,v in biallele_results_count.items() if v > 0.2*max_biallele_count]
+            bialleles = [k for k,v in biallele_results_count.items() if v > max(0.2*max_biallele_count, 2)]
 
             # If more than 2 alleles found, can't resolve
             if len(bialleles) > 2:
