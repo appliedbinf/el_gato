@@ -10,6 +10,7 @@ import sys
 import shutil
 import shlex
 import time
+import math
 from collections import defaultdict, Counter
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -591,7 +592,15 @@ def ensure_safe_threads(inputs: dict, threads: int = 1) -> dict:
     return inputs
 
 
-def run_command(command: str, tool: str = None, stdin: str = None, shell: bool = False, desc_file: str = None, desc_header: str = None, column_headers: str = "") -> str:
+def run_command(command: str,
+        tool: str = None,
+        stdin: str = None,
+        shell: bool = False,
+        desc_file: str = None,
+        desc_header: str = None,
+        column_headers: str = "",
+        log_output: bool = True
+        ) -> str:
     """Runs a command, and logs it nicely
 
     Wraps around logging and subprocess.check_output
@@ -619,6 +628,9 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
     column_headers: str, optional
         Line of text to prepend to command output in log and intermediate_outputs.txt
 
+    log_output: bool, optional
+        Whether to log the output of the command
+
     Returns
     -------
     str
@@ -645,20 +657,24 @@ def run_command(command: str, tool: str = None, stdin: str = None, shell: bool =
             logging.critical(f"CRITICAL ERROR! The following command had an improper exit: \n{full_command}\n")
             sys.exit(1)
 
-    pretty_result = prettify("\n".join([column_headers, result]))
-    if tool is not None:
-        logging.debug(f"Command log for {tool}:\n{pretty_result}")
-        logging.info(f"Finished running {tool}")
-    else:
-        logging.debug(f"Command log:\n{pretty_result}")
+    if log_output:
+        pretty_result = prettify("\n".join([column_headers, result]))
+        if tool is not None:
+            logging.debug(f"Command log for {tool}:\n{pretty_result}")
+            logging.info(f"Finished running {tool}")
+        else:
+            logging.debug(f"Command log:\n{pretty_result}")
 
-    # Write result to desc_file
-    if desc_file:
-        with open(desc_file, 'a') as f:
-            if desc_header:
-                f.write(desc_header + '\n\n')
-            f.write(f"Command:\n\n{full_command}\n\n")
-            f.write(f"Output:\n\n{pretty_result}\n\n")
+         # Write result to desc_file
+        if desc_file:
+            with open(desc_file, 'a') as f:
+                if desc_header:
+                    f.write(desc_header + '\n\n')
+                f.write(f"Command:\n\n{full_command}\n\n")
+                f.write(f"Output:\n\n{pretty_result}\n\n")
+    else:
+        if tool is not None:
+            logging.info(f"Finished running {tool}")
 
     return result
 
@@ -819,6 +835,67 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
             return [Allele()]
 
 
+def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh: float = 80.) -> str:
+    """Find the best blast hits for each locus. Return all hits from different locations in genome
+    
+    Parameters
+    ----------
+    blastresult: str
+        raw blast output. Expects -outfmt '6 std qlen slen'
+
+    Returns
+    -------
+    str
+        blast output with only the best hit for each locus in each genome region
+    """
+
+    good_hits = defaultdict(lambda: defaultdict(list))
+
+    for line in blastresult.split("\n"):
+        if len(line) == 0:
+            continue
+        bits = line.split()
+        locus = bits[1].split("_")[0]
+        if locus == "mompS":
+            continue
+        contig = bits[0]
+        start = int(bits[6])
+        pcnt_id = float(bits[2])
+        match_len = int(bits[3])/int(bits[13])
+        
+        if pcnt_id > pcnt_id_thresh and match_len > len_thresh:
+            good_hits[locus][(contig, start)].append(line)
+    
+    # combine hits from the same genome region by checking if hits are close
+    for locus, subd in good_hits.items():
+        if len(subd) == 1:
+            continue
+        x = 1
+        keys = [k for k in subd.keys()]
+        while x < len(subd):
+            check_key = keys[x]
+            combined = False # Store whether this was combined with another location
+            for comparator_key in keys[:x]:
+                if check_key[0] != comparator_key[0]:
+                    continue
+                if math.isclose(check_key[1], comparator_key[1], abs_tol=200):
+                    subd[comparator_key] += subd[check_key]
+                    del subd[check_key]
+                    keys = [k for k in subd.keys()]
+                    combined = True
+                    break
+            
+            if not combined:
+                x+=1
+
+    best_hits = ""
+    for locus, subd in good_hits.items():
+        for location, results in subd.items():
+            best_hits += f"{results[0]}\n"
+
+    return best_hits
+
+
 def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
     """Find the rest of alleles (non-mompS) by BLAST search
 
@@ -837,14 +914,32 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
         dictionary containing locus (key) to allele (value) mapping
     """
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
-    calls = dict.fromkeys(loci, '')
+    calls = defaultdict(list)
+    # print(math.isclose(1, 200, abs_tol=200))
 
     assembly_dict = fasta_to_dict(assembly_file)
 
-    blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
+    blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen'"
     desc_header = "Best match of each locus in provided assembly using BLASTN."
-    column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid"
-    result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header, column_headers=column_headers)
+    column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
+    result = run_command(blast_command, tool='blast', shell=True, log_output=False)
+
+    result = filter_blast_hits(result)
+
+    # Now do the logging of the good blast hits
+
+    pretty_result = prettify("\n".join([column_headers, result]))
+    logging.debug(f"Command log for blast:\n{pretty_result}")
+    logging.info(f"Finished running blast")
+
+
+     # Write result to desc_file
+    with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+        if desc_header:
+            f.write(desc_header + '\n\n')
+        f.write(f"Command:\n\n{blast_command}\n\n")
+        f.write(f"Output:\n\n{pretty_result}\n\n")
+
 
     for line in result.strip().split('\n'):
         bits = line.split()
@@ -884,7 +979,7 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
                 f.write(error_msg)
             a.allele_id = "-"
 
-        calls[locus] = [a]
+        calls[locus].append(a)
 
     not_found_loci = [k for k,v in calls.items() if v =='']
 
@@ -892,9 +987,19 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
         error_msg = f"The following loci were not found in your assembly: {', '.join(not_found_loci)}\n"
         logging.info(error_msg)
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-            f.write(error_msg + '\n\n')
+            f.write(error_msg + '\n')
         for locus in not_found_loci:
             calls[locus] = [Allele()]
+
+    for locus, alleles in calls.items():
+        if len(alleles) == 1:
+            continue
+        
+        error_msg = f"{len(alleles)} alleles were found in your assembly for {locus}: {', '.join([a.allele_id for a in alleles])}. The correct allele can not be determined\n"
+        logging.info(error_msg)
+        with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
+            f.write(error_msg + '\n')
+
 
     return calls
 
