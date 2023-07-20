@@ -717,7 +717,7 @@ def blast_momps_allele(inputs: dict, seq: str, db: str) -> list:
         mompS allele number
     """
     logging.debug(f"Looking for \n{seq}")
-    blastcmd = f"blastn -query - -db {db} -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
+    blastcmd = f"blastn -query - -db {db} -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort -u  -k15,15"
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid"
     res = run_command(blastcmd, "blastn/mompS", seq, shell=True, column_headers=column_headers).rstrip()
     if res == "":
@@ -783,65 +783,26 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
         return a_list 
     else:
         # try BLAST without isPCR
-        error_msg = f"in silico PCR returned no results. The region around mompS may be missing from your assembly"
+        error_msg = f"in silico PCR returned no results. The region around mompS may be missing from your assembly. BLAST will be attempted instead."
         logging.info(error_msg)
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
             f.write(error_msg + '\n\n')
-        blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/mompS_alleles.tfa -outfmt '6 std qlen slen sseqid sseq' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort --merge -u  -k15,15"
-        desc_header = "Best match of mompS in provided assembly using BLASTN."
-        column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid\tsseq"
-        result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{inputs['out_prefix']}/intermediate_outputs.txt", desc_header=desc_header, column_headers=column_headers)
-        if result != "":
-            error_msg = f"BLAST identified mompS"
-            logging.info(error_msg)
-            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-                f.write(error_msg + '\n\n')
-            bits = result.strip().split()
-            a = Allele()
-            if float(bits[2]) == 100.00 and bits[3] == bits[13]:
-                a.allele_id = bits[1].split("_")[-1]
-            elif bits[3] == bits[13]:
-                a.allele_id = bits[1].split("_")[-1]+"*"
-            else:
-                error_msg = f"The sequence of locus mompS did not return a full length match in the database\n"
-                logging.info(error_msg)
-                with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-                    f.write(error_msg)
-                a.allele_id = "-"
-
-            # Extract sequence of allele from assembly
-            ass_contig = bits[0]
-            ass_start = int(bits[6])
-            ass_end = int(bits[7])
-            db_start = int(bits[8])
-            db_end = int(bits[9])
-
-            a.seq = bits[15]
-
-            if "n" in a.seq or "N" in a.seq:
-                error_msg = f"The sequence of locus mompS contains Ns and cannot be confidently determined\n"
-                logging.info(error_msg)
-                with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-                    f.write(error_msg)
-                a.allele_id = "-"
-            
-            return [a]
-
-        else:
-            error_msg = f"BLAST and in silico PCR returned no results. mompS may be missing from your assembly"
-            logging.info(error_msg)
-            with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
-                f.write(error_msg + '\n\n')
-            return [Allele()]
+        return []
 
 
-def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh: float = 80.) -> str:
+def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh: float = 80., momps: bool = False) -> str:
     """Find the best blast hits for each locus. Return all hits from different locations in genome
     
     Parameters
     ----------
     blastresult: str
         raw blast output. Expects -outfmt '6 std qlen slen'
+    len_thresh: float, optional
+        the length of the blast hit needed to keep the hit
+    pcnt_id_thresh: float, optional
+        percent ID of blast hit to keep the hit
+    momps: bool, optional
+        should momps hits be returned?
 
     Returns
     -------
@@ -856,7 +817,7 @@ def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh:
             continue
         bits = line.split()
         locus = bits[1].split("_")[0]
-        if locus == "mompS":
+        if locus == "mompS" and not momps:
             continue
         contig = bits[0]
         start = int(bits[6])
@@ -864,7 +825,7 @@ def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh:
         match_len = int(bits[3])/int(bits[13])
         
         if pcnt_id > pcnt_id_thresh and match_len > len_thresh:
-            good_hits[locus][(contig, start)].append(line)
+            good_hits[locus][(contig, start)].append(bits)
     
     # combine hits from the same genome region by checking if hits are close
     for locus, subd in good_hits.items():
@@ -891,13 +852,14 @@ def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh:
     best_hits = ""
     for locus, subd in good_hits.items():
         for location, results in subd.items():
-            best_hits += f"{results[0]}\n"
+            best_result = '\t'.join(sorted(results, key=lambda x: x[11], reverse=True)[0])
+            best_hits += f"{best_result}\n"
 
     return best_hits
 
 
-def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
-    """Find the rest of alleles (non-mompS) by BLAST search
+def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool) -> dict:
+    """Find the rest of alleles (not mompS if it was found using PCR) by BLAST search
 
     Parameters
     ----------
@@ -907,15 +869,16 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
         Read1 file name
     ref: Ref
         Information about reference sequence
+    momps: bool
+        Should the mompS allele be found by blast?
 
     Returns
     -------
     dict
         dictionary containing locus (key) to allele (value) mapping
     """
-    loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
+
     calls = defaultdict(list)
-    # print(math.isclose(1, 200, abs_tol=200))
 
     assembly_dict = fasta_to_dict(assembly_file)
 
@@ -924,7 +887,7 @@ def blast_non_momps(inputs: dict, assembly_file: str, ref: Ref) -> dict:
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
     result = run_command(blast_command, tool='blast', shell=True, log_output=False)
 
-    result = filter_blast_hits(result)
+    result = filter_blast_hits(result, momps=momps)
 
     # Now do the logging of the good blast hits
 
@@ -1591,8 +1554,11 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
     """
     alleles = {}
     if inputs["analysis_path"] == "a":
-        alleles = blast_non_momps(inputs, assembly_file=inputs["assembly"], ref=ref)
         alleles["mompS"] = call_momps_pcr(inputs, assembly_file=inputs["assembly"])
+        if alleles["mompS"] == []:
+            alleles = blast_remaining_loci(inputs, assembly_file=inputs["assembly"], ref=ref, momps=True)
+        else:
+            alleles |= blast_remaining_loci(inputs, assembly_file=inputs["assembly"], ref=ref, momps=False)
         write_possible_mlsts(inputs=inputs, alleles=alleles, header=True, confidence=False)
         write_alleles_to_file(alleles, inputs['out_prefix'])
         for locus, a in alleles.items():
