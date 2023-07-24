@@ -877,8 +877,10 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     dict
         dictionary containing locus (key) to allele (value) mapping
     """
-
-    calls = defaultdict(list)
+    loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
+    if momps:
+        loci.append("mompS")
+    calls = {k:[] for k in loci}
 
     assembly_dict = fasta_to_dict(assembly_file)
 
@@ -944,7 +946,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
 
         calls[locus].append(a)
 
-    not_found_loci = [k for k,v in calls.items() if v =='']
+    not_found_loci = [k for k,v in calls.items() if v ==[]]
 
     if len(not_found_loci) != 0:
         error_msg = f"The following loci were not found in your assembly: {', '.join(not_found_loci)}\n"
@@ -1350,10 +1352,13 @@ def write_alleles_to_file(alleles: list, outdir: str):
                 else:
                     allele.fasta_header = f"{locus}_{n+1}"
                 identified_allele_fasta_string += f">{allele.fasta_header}\n{allele.seq}\n"
-        else:
+        elif len(l) == 1:
             allele = l[0]
             allele.fasta_header = f"{locus}"
             identified_allele_fasta_string += f">{allele.fasta_header}\n{allele.seq}\n"
+        else:
+            # No allele found
+            pass
 
     with open(f"{outdir}/identified_alleles.fna", "w") as fout:
         fout.write(identified_allele_fasta_string)
