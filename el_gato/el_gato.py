@@ -1563,7 +1563,8 @@ def choose_analysis_path(inputs: dict, ref: Ref) -> str:
         if alleles["mompS"] == []:
             alleles = blast_remaining_loci(inputs, assembly_file=inputs["assembly"], ref=ref, momps=True)
         else:
-            alleles |= blast_remaining_loci(inputs, assembly_file=inputs["assembly"], ref=ref, momps=False)
+            alleles_copy = alleles.copy()
+            alleles = {**blast_remaining_loci(inputs, assembly_file=inputs["assembly"], ref=ref, momps=False), **alleles_copy}
         write_possible_mlsts(inputs=inputs, alleles=alleles, header=True, confidence=False)
         write_alleles_to_file(alleles, inputs['out_prefix'])
         for locus, a in alleles.items():
