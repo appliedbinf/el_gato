@@ -987,14 +987,14 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
     """
     novel_ST = "Novel ST" # all 7 target genes were found, but not present in the profile - probably a novel sequence type
     novel_allele = "Novel ST*" # one or multiple target genes have a novel allele found
-    not_found = "NF-" # one or more of the target genes were unidentifiable - ST is also unidentifiable as a result
-    multiple = "NF?" # one or more of the target genes have multiple alleles found - ST is ambiguous due to multiple alleles
+    missing_data = "MD-" # one or more of the target genes were unidentifiable - ST is also unidentifiable as a result
+    multiple_alleles = "MA?" # one or more of the target genes have multiple alleles found - ST is ambiguous due to multiple alleles
     
     if "-" in allele_profile:
-        return not_found
+        return missing_data
     elif "?" in allele_profile:
-        return multiple
-    elif "*" in allele_profile:
+        return multiple_alleles
+    elif "NAT" in allele_profile:
          return novel_allele
       
     with open(profile_file, "r") as f:
