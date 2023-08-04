@@ -214,6 +214,8 @@ def get_args() -> argparse.ArgumentParser:
     group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
                         action="store_true", required=False, default=False)
     group2.add_argument("--header", "-e", help="Include column headers in the output table (default: %(default)s)", action="store_true", required=False, default=False),
+    group2.add_argument("--length", "-l", help="Specify the BLAST hit length threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=0.3),
+    group2.add_argument("--sequence", "-q", help="Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=95.0),
 
 
     return parser
@@ -373,6 +375,8 @@ def set_inputs(
         inputs["read2"] = args.read2
     if "a" in inputs["analysis_path"]:
         inputs["assembly"] = args.assembly
+        inputs["length"] = args.length
+        inputs["sequence"] = args.sequence
     inputs["threads"] = args.threads
     inputs["out_prefix"] = args.out
     inputs["log"] = os.path.join(args.out, "run.log")
@@ -790,7 +794,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
         return []
 
 
-def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh: float = 80., momps: bool = False) -> str:
+def filter_blast_hits(blastresult: str, len_thresh: float = 0.3, pcnt_id_thresh: float = 95.0, momps: bool = False) -> str:
     """Find the best blast hits for each locus. Return all hits from different locations in genome
     
     Parameters
@@ -809,7 +813,6 @@ def filter_blast_hits(blastresult: str, len_thresh: float = 0.8, pcnt_id_thresh:
     str
         blast output with only the best hit for each locus in each genome region
     """
-
     good_hits = defaultdict(lambda: defaultdict(list))
 
     for line in blastresult.split("\n"):
@@ -889,7 +892,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
     result = run_command(blast_command, tool='blast', shell=True, log_output=False)
 
-    result = filter_blast_hits(result, momps=momps)
+    result = filter_blast_hits(result, momps=momps, len_thresh=inputs['length'], pcnt_id_thresh=inputs['sequence'])
 
     # Now do the logging of the good blast hits
 
@@ -1209,7 +1212,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             logging.info(msg)
             cov_msg += f"\n{msg}\n\n"
             a = Allele()
-            a.allele_id = '-'
+            a.allele_id = '?'
             alleles[locus] = [a]
             continue
 
@@ -1673,7 +1676,9 @@ def main():
         'depth' : 3,
         'analysis_path' : "",
         'logging_buffer_message' : "",
-        'header' : True
+        'header' : True,
+        'length' : 0.3, 
+        'sequence' : 95.0
         }
 
 
