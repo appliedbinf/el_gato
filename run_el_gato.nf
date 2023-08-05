@@ -4,10 +4,12 @@ nextflow.enable.dsl=2
 params.reads_dir = false
 params.assembly_dir = false
 params.threads = 1
+params.length = 0.3
+params.sequence = 95.0
 params.out = 'el_gato_out'
 
 process RUN_EL_GATO_READS {
-  //conda "-c conda-forge -c bioconda -c appliedbinf elgato"
+  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
   label 'elgato'
@@ -44,13 +46,15 @@ process RUN_EL_GATO_READS {
 }
 
 process RUN_EL_GATO_ASSEMBLIES {
-  //conda "-c conda-forge -c bioconda -c appliedbinf elgato"
+  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
   label 'elgato'
 
   input:
     path assembly
+    float length
+    float sequence
 
   output:
     path '*_out/*', emit: files
@@ -65,6 +69,8 @@ process RUN_EL_GATO_ASSEMBLIES {
   -a $assembly \
   -o \${sample_id}_out \
   -t ${task.cpus} \
+  -l $params.length \
+  -q $params.sequence \
   -w > mlst.txt
 
   mv mlst.txt \${sample_id}_out/
