@@ -4,8 +4,10 @@
 * [Installation](#installation)
    * [Method 1: using conda ](#method-1-using-conda)
    * [Method 2: using pip](#method-2-using-pip)
-* [Quickstart guide](#Quickstart-guide)
-   * [A typical run](#A-typical-run)   
+* [Usage](#usage)
+   * [Quickstart](#Quickstart-guide)
+   * [All available arguments](#All-arguments-guide)
+
 * [Output](#Output)
      * [stdout (MLST profile)](#stdout-MLST-profile)
      * [possible_mlsts.txt](#possible_mlststxt)
