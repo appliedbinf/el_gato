@@ -12,7 +12,7 @@
 * [Input and Output](#input-and-output)
   * [Input files](#input-files)
   * [Output files](#output-files)
-     * [stdout - Sequence Type Profile](#stdout-sequence_type_profile)
+     * [Standard Out](#stdout)
      * [possible_mlsts.txt](#possible_mlststxt)
      * [intermediate_outputs.txt](#intermediate_outputstxt)
      * [identified_alleles.fna](#identified_allelesfna)
@@ -121,7 +121,7 @@ At the completion of a run, el_gato will print the identified ST of your sample 
 
 The files included in the output directory for a sample are: 
 
-### stdout - Sequence Type Profile
+### * stdout
 ST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e` flag). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
 
 The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, the corresponding number is given. If no matching ST profile is found or el_gato was unable to make a confident call than this will be reflected in the value displayed in the ST column.
@@ -134,12 +134,12 @@ For each gene, if an exact allele match is found in the database, the correspond
 | -      | Missing Data: Both percent identity and lenght identity too low to return or a match or an N's in sequence. |
 | ?      | Multiple alleles: More than one allele was found and could not be resolved. |
 
-In the case that any of these symbols are present in the MLST profile, the other output files produced by el_gato will provide more information to understand what is being communicated.
+In the case that any of these symbols are present in the ST profile, the other output files produced by el_gato will provide more information to understand what is being communicated.
 
-### possible_mlsts.txt
+### * possible_mlsts.txt
 In the case that multiple alleles were identified for any MLST loci, this file will contain all possible ST profiles. In addition, if multiple mompS alleles were found, the information that was used to try to identify the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against". mompS_reads_support indicates the number of reads associated with each allele that contain the reverse sequencing primer in the expected orientation, which indicates that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus indicate that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele and their values can be considered to represent the confidence of this characterization. ([See Approach section for more details](#Reads)).
 
-### intermediate_outputs.txt
+### * intermediate_outputs.txt
 El_gato calls other programs to perform intermediate analyses. The outputs of those programs is provided here. In addition, to help with troubleshooting issues important log messages are also written to this file. The following information may be contained in this file, depending on reads or assembly input:
 
 * (Reads-only) Mapping information showing coverage of MLST loci by sequencing reads
@@ -181,10 +181,10 @@ Headers are included in outputs for samtools coverage and blast results. Header 
 | slen          | subject sequence length             |
 | sseq          | aligned part of subject sequence    |
 
-### identified_alleles.fna
+### * identified_alleles.fna
 The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
 
-### run.log
+### * run.log
 Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered.
 
 Some command outputs have headers included. ([See the relevant part of the intermediate_outputs.txt section for column definitions](#intermediate_outputstxt))
