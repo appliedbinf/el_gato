@@ -18,9 +18,7 @@
 * [Using Nextflow](#Using-nextflow)
    * [Input files](#Input-files)
    * [Output files](#Output-files)
-* [All available arguments](#Usage)
 * [How does el_gato work?](#Approach)
-* [Dependencies](#Dependencies)
 
 Currently in development
 Codebase stage: development   
@@ -50,6 +48,13 @@ git clone https://github.com/appliedbinf/el_gato.git
 cd el_gato/
 python3 -m pip install .
 ```
+
+# Dependencies
+
+* [minimap2](https://github.com/lh3/minimap2)
+* [SAMTools](https://github.com/samtools/samtools)
+* [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
+* [isPcr](https://users.soe.ucsc.edu/~kent/)
 
 # Usage
 
@@ -287,9 +292,4 @@ If the above process is unable to identify the correct sequence, a ? will be ret
 
 ![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
 
-# Dependencies
 
-* [minimap2](https://github.com/lh3/minimap2)
-* [SAMTools](https://github.com/samtools/samtools)
-* [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
-* [isPcr](https://users.soe.ucsc.edu/~kent/)
