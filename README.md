@@ -2,8 +2,9 @@
 **E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping
 
 * [Installation](#installation)
-   * [Method 1: using conda ](#method-1-using-conda)
+   * [Method 1: using conda](#method-1-using-conda)
    * [Method 2: using pip](#method-2-using-pip)
+     *[Dependencies](#Dependencies)
 * [Usage](#usage)
    * [Quickstart](#Quickstart-guide)
    * [All available arguments](#All-arguments-guide)
@@ -51,9 +52,9 @@ cd el_gato/
 python3 -m pip install .
 ```
 
-# Quickstart Guide
+# Usage
 
-## A typical run
+## Quickstart Guide
 
 Here is an example of a basic run using paired end reads, assemblies, or both as input.
 
@@ -65,6 +66,50 @@ el_gato.py --read1 read1.fastq.gz --read2 read2.fastq.gz --out output_folder/
 el_gato.py --assembly assembly_file.fna --out output_folder/
 
 ```
+
+## All available arguments
+age is printed when running el_gato.py with `-h` or `--help`.
+
+```
+usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help] [--threads THREADS] [--depth DEPTH]
+                  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT] [--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header]
+
+Legionella in silico SBT script.
+    Requires paired-end reads files or a genome assembly.
+
+    Notes on arguments:
+    (1) If only reads are provided, SBT is called using a mapping/alignment approach.
+    (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted.
+
+Input files:
+  Please specify either reads files and/or a genome assembly file
+
+  --read1 Read 1 file, -1 Read 1 file
+                        Input Read 1 (forward) file
+  --read2 Read 2 file, -2 Read 2 file
+                        Input Read 2 (reverse) file
+  --assembly Assembly file, -a Assembly file
+                        Input assembly fasta file
+
+Optional arguments:
+  --help, -h            Show this help message and exit
+  --threads THREADS, -t THREADS
+                        Number of threads to run the programs (default: 1)
+  --depth DEPTH, -d DEPTH
+                        Variant read depth cutoff (default: 3)
+  --out OUT, -o OUT     Output folder name (default: out)
+  --sample SAMPLE, -n SAMPLE
+                        Sample name (default: <Inferred from input file>)
+  --overwrite, -w       Overwrite output directory (default: False)
+  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files (default: .../el_gato/el_gato/db)
+  --suffix SUFFIX, -x SUFFIX
+                        Suffix of SBT allele files (default: _alleles.tfa)
+  --profile PROFILE, -p PROFILE
+                        Name of allele profile to ST mapping file (default: .../el_gato/el_gato/db/lpneumophila.txt)
+  --verbose, -v         Print what the script is doing (default: False)
+  --header, -e          Include column headers in the output table (default: False)
+```
+
 
 # Output
 
@@ -192,51 +237,6 @@ Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz>
 ## Output files
 
 At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each directory is named with a sample name and contains output files specific to tht sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample. [See the Output section](#Output) for more details.
-
-
-# Usage
-
-Usage is printed when running el_gato.py with `-h` or `--help`.
-
-```
-usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help] [--threads THREADS] [--depth DEPTH]
-                  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT] [--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header]
-
-Legionella in silico SBT script.
-    Requires paired-end reads files or a genome assembly.
-
-    Notes on arguments:
-    (1) If only reads are provided, SBT is called using a mapping/alignment approach.
-    (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted.
-    
-Input files:
-  Please specify either reads files and/or a genome assembly file
-
-  --read1 Read 1 file, -1 Read 1 file
-                        Input Read 1 (forward) file
-  --read2 Read 2 file, -2 Read 2 file
-                        Input Read 2 (reverse) file
-  --assembly Assembly file, -a Assembly file
-                        Input assembly fasta file
-
-Optional arguments:
-  --help, -h            Show this help message and exit
-  --threads THREADS, -t THREADS
-                        Number of threads to run the programs (default: 1)
-  --depth DEPTH, -d DEPTH
-                        Variant read depth cutoff (default: 3)
-  --out OUT, -o OUT     Output folder name (default: out)
-  --sample SAMPLE, -n SAMPLE
-                        Sample name (default: <Inferred from input file>)
-  --overwrite, -w       Overwrite output directory (default: False)
-  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files (default: .../el_gato/el_gato/db)
-  --suffix SUFFIX, -x SUFFIX
-                        Suffix of SBT allele files (default: _alleles.tfa)
-  --profile PROFILE, -p PROFILE
-                        Name of allele profile to ST mapping file (default: .../el_gato/el_gato/db/lpneumophila.txt)
-  --verbose, -v         Print what the script is doing (default: False)
-  --header, -e          Include column headers in the output table (default: False)   
-```
 
 # Approach
 
