@@ -12,7 +12,7 @@
 * [Input and Output](#input-and-output)
   * [Input files](#input-files)
   * [Output files](#output-files)
-     * [stdout - Sequence Type profile](#stdout_sequence_type_profile)
+     * [stdout - Sequence Type Profile](#stdout_sequence_type_profile)
      * [possible_mlsts.txt](#possible_mlststxt)
      * [intermediate_outputs.txt](#intermediate_outputstxt)
      * [identified_alleles.fna](#identified_allelesfna)
