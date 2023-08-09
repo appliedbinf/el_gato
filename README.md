@@ -1,5 +1,5 @@
 # el_gato
-Epidemiology of *Legionella*: Genome-bAsed Typing
+**E**pidemiology of **L**egionella: **G**enome-b**A**sed **T**yping
 
 * [Installation](#installation)
    * [Method 1: using conda ](#method-1-using-conda)
