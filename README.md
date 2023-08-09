@@ -144,8 +144,8 @@ El_gato calls other programs to perform intermediate analyses. The outputs of th
 
 * Reads-only - Mapping information showing coverage of ST loci by sequencing reads
 * Reads-only - Information about the orientation of mompS sequencing primer in reads mapping to bialleleic sites ([see Approach section for more details](#reads)).
-* Reads-only - Samtools coverage output[link out to samtools coverage documentation](https://www.htslib.org/doc/samtools-coverage.html)
-* BLAST output indicating the best match for identified alleles[link out to BLAST output documentation](https://www.ncbi.nlm.nih.gov/books/NBK279684/table/appendices.T.options_common_to_all_blast/)
+* Reads-only - Samtools coverage output[ link out to samtools coverage documentation](https://www.htslib.org/doc/samtools-coverage.html)
+* BLAST output indicating the best match for identified alleles[ link out to BLAST output documentation](https://www.ncbi.nlm.nih.gov/books/NBK279684/table/appendices.T.options_common_to_all_blast/)
 
 ### identified_alleles.fna
 The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
