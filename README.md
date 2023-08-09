@@ -1,13 +1,13 @@
-# el_gato
+# el_gato 
 **E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping
 
 * [Installation](#installation)
    * [Method 1: using conda](#method-1-using-conda)
    * [Method 2: using pip](#method-2-using-pip)
      * [Dependencies](#Dependencies)
-* [Usage](#usage)
+* [Usage](#Usage)
    * [Quickstart](#Quickstart-guide)
-   * [All available arguments](#All-arguments-guide)
+   * [All available arguments](#All-available-arguments)
 
 * [Output](#Output)
      * [stdout (MLST profile)](#stdout-MLST-profile)
