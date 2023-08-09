@@ -1,5 +1,6 @@
 # el_gato 
-**E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping
+**E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:
+[Add two sentence summary of what el gato is]
 
 * [Installation](#installation)
    * [Method 1: using conda](#method-1-using-conda)
