@@ -8,7 +8,6 @@
 * [Usage](#Usage)
    * [Quickstart guide](#Quickstart-guide)
    * [All available arguments](#All-available-arguments)
-
 * [Output](#Output)
      * [stdout (MLST profile)](#stdout-MLST-profile)
      * [possible_mlsts.txt](#possible_mlststxt)
