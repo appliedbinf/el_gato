@@ -8,7 +8,9 @@
 * [Usage](#usage)
    * [Quickstart guide](#quickstart-guide)
    * [All available arguments](#all-available-arguments)
-* [Output](#Output)
+* [Input and Output](#input-and-output)
+  * [Input files](#Input-files)
+  * [Output files](#output-files)
      * [stdout (MLST profile)](#stdout-MLST-profile)
      * [possible_mlsts.txt](#possible_mlststxt)
      * [intermediate_outputs.txt](#intermediate_outputstxt)
@@ -16,8 +18,6 @@
      * [run.log](#runlog)
      * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sortedbam-reads-only)
 * [Using Nextflow](#Using-nextflow)
-   * [Input files](#Input-files)
-   * [Output files](#Output-files)
 * [How does el_gato work?](#Approach)
 
 Currently in development
@@ -49,7 +49,7 @@ cd el_gato/
 python3 -m pip install .
 ```
 
-# Dependencies
+### Dependencies
 
 * [minimap2](https://github.com/lh3/minimap2)
 * [SAMTools](https://github.com/samtools/samtools)
@@ -115,11 +115,15 @@ Optional arguments:
 ```
 
 
-# Output
+# Input and Output
+
+## Input
+
+## Output
 
 Upon the completion of a run, el_gato.py will print the identified MLST of your sample to your terminal (stdout) and will write a number of files to the spcified output directory.
 
-## stdout (MLST profile)
+### stdout (MLST profile)
 
 MLST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e`). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
 
@@ -135,11 +139,11 @@ For each gene, if an exact allele match is found in the database, the correspond
 
 In the case that any of these symbols are present in the MLST profile, the other output files produced by el_gato will provide more information to understand what is being communicated.
 
-## possible_mlsts.txt
+### possible_mlsts.txt
 
 In the case that multiple alleles were identified for any MLST loci, this file will contain all possible ST profiles. In addition, if multiple mompS alleles were found, the information that was used to try to identify the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against". mompS_reads_support indicates the number of reads associated with each allele that contain the reverse sequencing primer in the expected orientation, which indicates that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus indicate that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele and their values can be considered to represent the confidence of this characterization. ([See Approach section for more details](#Reads)).
 
-## intermediate_outputs.txt
+### intermediate_outputs.txt
 
 El_gato calls other programs to perform intermediate analyses. The outputs of those programs is provided here. In addition, to help with troubleshooting issues important log messages are also written to this file. The following information may be contained in this file, depending on reads or assembly input:
 
@@ -150,7 +154,7 @@ El_gato calls other programs to perform intermediate analyses. The outputs of th
 
 Headers are included in outputs for samtools coverage and blast results. Header definitions are as follows:
 
-### samtools coverage headers
+#### samtools coverage headers
 
 | Column header | Meaning                                              |
 |---------------|------------------------------------------------------|
@@ -164,7 +168,7 @@ Headers are included in outputs for samtools coverage and blast results. Header 
 | meanbaseq     | Mean baseQ in covered region                         |
 | meanmapq      | Mean mapQ of selected reads                          |
 
-### BLASTn output headers
+#### BLASTn output headers
 
 | Column header | Meaning                             |
 |---------------|-------------------------------------|
@@ -184,17 +188,17 @@ Headers are included in outputs for samtools coverage and blast results. Header 
 | slen          | subject sequence length             |
 | sseq          | aligned part of subject sequence    |
 
-## identified_alleles.fna
+### identified_alleles.fna
 
 The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
 
-## run.log
+### run.log
 
 Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered.
 
 Some command outputs have headers included. ([See the relevant part of the intermediate_outputs.txt section for column definitions](#intermediate_outputstxt))
 
-## reads_vs_all_ref_filt_sorted.bam (reads only)
+### reads_vs_all_ref_filt_sorted.bam (reads only)
 
 When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the MLST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to get a better understanding of the information used by el_gato to make allele calls. Additionally, if any loci were not properly resolved, this file is a good starting point for figuring out why.
 
