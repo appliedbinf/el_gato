@@ -1212,7 +1212,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             logging.info(msg)
             cov_msg += f"\n{msg}\n\n"
             a = Allele()
-            a.allele_id = '?'
+            a.allele_id = '-'
             alleles[locus] = [a]
             continue
 
