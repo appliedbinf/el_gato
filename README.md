@@ -9,7 +9,7 @@
    * [Quickstart guide](#quickstart-guide)
    * [All available arguments](#all-available-arguments)
 * [Input and Output](#input-and-output)
-  * [Input files](#Input-files)
+  * [Input files](#input-files)
   * [Output files](#output-files)
      * [stdout (MLST profile)](#stdout-MLST-profile)
      * [possible_mlsts.txt](#possible_mlststxt)
@@ -27,7 +27,6 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
 # Installation 
 
 ## Method 1: using conda
-
 ```
 # Create environment named elgato and install el_gato.py plus all dependencies
 conda create -n elgato -c bioconda -c conda-forge -c appliedbinf elgato
@@ -37,9 +36,7 @@ conda activate elgato
 ```
 
 ## Method 2: using pip
-
 **N.B.** Using this method requires you to manually install all [dependencies](#Dependencies).
-
 ```
 # Download el_gato by cloning the git repository
 git clone https://github.com/appliedbinf/el_gato.git
@@ -49,7 +46,6 @@ cd el_gato/
 python3 -m pip install .
 ```
 ### Dependencies
-
 * [minimap2](https://github.com/lh3/minimap2)
 * [SAMTools](https://github.com/samtools/samtools)
 * [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
@@ -58,21 +54,17 @@ python3 -m pip install .
 # Usage
 
 ## Quickstart Guide
-
 Here is an example of a basic run using paired end reads, assemblies, or both as input.
-
 ```
 # Paired-end:
 el_gato.py --read1 read1.fastq.gz --read2 read2.fastq.gz --out output_folder/
 
 # Assembly:
 el_gato.py --assembly assembly_file.fna --out output_folder/
-
 ```
 
 ## All available arguments
-age is printed when running el_gato.py with `-h` or `--help`.
-
+Usage is printed when running el_gato.py with `-h` or `--help`.
 ```
 usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help] [--threads THREADS] [--depth DEPTH]
                   [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT] [--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header]
@@ -113,17 +105,24 @@ Optional arguments:
   --header, -e          Include column headers in the output table (default: False)
 ```
 
-
 # Input and Output
 
-## Input
+## Input files
+When running on a directory of reads, files are associated as pairs using the pattern `*R{1,2}*.fastq*`. I.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
 
-## Output
+When running on a directory of assemblies, all files in the target directory will be processed and there are no filename restrictions.
 
+While el_gato performs Q20 processing for reads, it is highly recommended to perform preferred QA/QC on input files. 
+
+````
+Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
+````
+
+## Output files
+At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each directory is named with a sample name and contains output files specific to tht sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample.
 Upon the completion of a run, el_gato.py will print the identified MLST of your sample to your terminal (stdout) and will write a number of files to the spcified output directory.
 
 ### stdout (MLST profile)
-
 MLST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e`). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
 
 The ST column can contain two kinds of values. If the identified MLST corresponds to a profile found in the database, the corresponding number is given. If no matching MLST profile is found, "NF" is reported.
@@ -139,11 +138,9 @@ For each gene, if an exact allele match is found in the database, the correspond
 In the case that any of these symbols are present in the MLST profile, the other output files produced by el_gato will provide more information to understand what is being communicated.
 
 ### possible_mlsts.txt
-
 In the case that multiple alleles were identified for any MLST loci, this file will contain all possible ST profiles. In addition, if multiple mompS alleles were found, the information that was used to try to identify the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against". mompS_reads_support indicates the number of reads associated with each allele that contain the reverse sequencing primer in the expected orientation, which indicates that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus indicate that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele and their values can be considered to represent the confidence of this characterization. ([See Approach section for more details](#Reads)).
 
 ### intermediate_outputs.txt
-
 El_gato calls other programs to perform intermediate analyses. The outputs of those programs is provided here. In addition, to help with troubleshooting issues important log messages are also written to this file. The following information may be contained in this file, depending on reads or assembly input:
 
 * (Reads-only) Mapping information showing coverage of MLST loci by sequencing reads
@@ -154,7 +151,6 @@ El_gato calls other programs to perform intermediate analyses. The outputs of th
 Headers are included in outputs for samtools coverage and blast results. Header definitions are as follows:
 
 #### samtools coverage headers
-
 | Column header | Meaning                                              |
 |---------------|------------------------------------------------------|
 | rname         | locus name                                           |
@@ -168,7 +164,6 @@ Headers are included in outputs for samtools coverage and blast results. Header 
 | meanmapq      | Mean mapQ of selected reads                          |
 
 #### BLASTn output headers
-
 | Column header | Meaning                             |
 |---------------|-------------------------------------|
 | qseqid        | query sequence id                   |
@@ -188,17 +183,14 @@ Headers are included in outputs for samtools coverage and blast results. Header 
 | sseq          | aligned part of subject sequence    |
 
 ### identified_alleles.fna
-
 The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
 
 ### run.log
-
 Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered.
 
 Some command outputs have headers included. ([See the relevant part of the intermediate_outputs.txt section for column definitions](#intermediate_outputstxt))
 
 ### reads_vs_all_ref_filt_sorted.bam (reads only)
-
 When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the MLST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to get a better understanding of the information used by el_gato to make allele calls. Additionally, if any loci were not properly resolved, this file is a good starting point for figuring out why.
 
 N.B., a SAM file is also present. This is the same information as in the BAM file.
@@ -229,21 +221,9 @@ nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads
 nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
 
 ```
-## Input files
 
-When running on a directory of reads, files are associated as pairs using the pattern `*R{1,2}*.fastq*`. I.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
 
-When running on a directory of assemblies, all files in the target directory will be processed and there are no filename restrictions.
 
-While el_gato performs Q20 processing for reads, it is highly recommended to perform preferred QA/QC on input files. 
-
-````
-Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
-````
-
-## Output files
-
-At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each directory is named with a sample name and contains output files specific to tht sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample. [See the Output section](#Output) for more details.
 
 # Approach
 
