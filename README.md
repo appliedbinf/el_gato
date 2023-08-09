@@ -48,7 +48,6 @@ git clone https://github.com/appliedbinf/el_gato.git
 cd el_gato/
 python3 -m pip install .
 ```
-
 ### Dependencies
 
 * [minimap2](https://github.com/lh3/minimap2)
