@@ -110,16 +110,16 @@ Optional arguments:
 
 ## Input files
 
-### With pair-end reads
+#### With pair-end reads
 When running on a directory of reads, files are associated as pairs using the pattern `*R{1,2}*.fastq*`. I.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
 
-### With assemblies
+#### With assemblies
 When running on a directory of assemblies, all files in the target directory will be processed and there are no filename restrictions.
 
 ## Output files
 At the completion of a run, el_gato will print the identified ST of your sample to your terminal (stdout) and will write a number of files to the specified output directory (default: out/). Within this output directory, a file named "all_mlst.txt" (i.e., the ST profile for each tested sample) will be generated and a subdirectory for each sample processed. Each directory is named with a sample name and contains output files specific to that sample (see below). 
 
-The files included in the output directory for a sample are: 
+### The files included in the output directory for a sample are: 
 
 ### standard out
 ST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e` flag). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
@@ -131,98 +131,32 @@ For each gene, if an exact allele match is found in the database, the correspond
 | Symbol | Meaning |
 |:------:|:---------|
 | NAT    | Novel Allele Type: BLAST cannot find an exact allele match - most likely a new allele. |
-| -      | Missing Data: Both percent identity and lenght identity too low to return or a match or an N's in sequence. |
+| -      | Missing Data: Both percent identity and length identity too low to return a match or N's in sequence. |
 | ?      | Multiple alleles: More than one allele was found and could not be resolved. |
 
 In the case that any of these symbols are present in the ST profile, the other output files produced by el_gato will provide more information to understand what is being communicated.
 
 ### possible_mlsts.txt
-In the case that multiple alleles were identified for any MLST loci, this file will contain all possible ST profiles. In addition, if multiple mompS alleles were found, the information that was used to try to identify the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against". mompS_reads_support indicates the number of reads associated with each allele that contain the reverse sequencing primer in the expected orientation, which indicates that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus indicate that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele and their values can be considered to represent the confidence of this characterization. ([See Approach section for more details](#Reads)).
+In the case that multiple alleles were identified for any MLST loci, this file will contain all possible ST profiles. In addition, if multiple mompS alleles were found, the information that was used to try to identify the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against". mompS_reads_support indicates the number of reads associated with each allele that contain the reverse sequencing primer in the expected orientation, which indicates that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus indicate that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele and their values can be considered to represent the confidence of this characterization. ([See Approach section for more details](#reads)).
 
 ### intermediate_outputs.txt
 El_gato calls other programs to perform intermediate analyses. The outputs of those programs is provided here. In addition, to help with troubleshooting issues important log messages are also written to this file. The following information may be contained in this file, depending on reads or assembly input:
 
-* (Reads-only) Mapping information showing coverage of MLST loci by sequencing reads
-* (Reads-only) Information about the orientation of mompS sequencing primer in reads mapping to bialleleic sites ([see Approach section for more details](#Reads)).
-* BLAST output indicating the best match for identified alleles.
-* Important logging information.
-
-Headers are included in outputs for samtools coverage and blast results. Header definitions are as follows:
-
-#### samtools coverage headers
-| Column header | Meaning                                              |
-|---------------|------------------------------------------------------|
-| rname         | locus name                                           |
-| startpos      | Start position                                       |
-| endpos        | End position                                         |
-| numreads      | Number reads aligned to the region (after filtering) |
-| covbases      | Number of covered bases with depth >= 1              |
-| coverage      | Percentage of covered bases [0..100]                 |
-| meandepth     | Mean depth of coverage                               |
-| meanbaseq     | Mean baseQ in covered region                         |
-| meanmapq      | Mean mapQ of selected reads                          |
-
-#### BLASTn output headers
-| Column header | Meaning                             |
-|---------------|-------------------------------------|
-| qseqid        | query sequence id                   |
-| sseqid        | subject (matched allele) id         |
-| pident        | percentage of identical matches     |
-| length        | alignment length (sequence overlap) |
-| mismatch      | number of mismatches                |
-| gapopen       | number of gap openings              |
-| qstart        | start of alignment in query         |
-| qend          | end of alignment in query           |
-| sstart        | start of alignment in subject       |
-| send          | end of alignment in subject         |
-| evalue        | expect value                        |
-| bitscore      | bit score                           |
-| qlen          | query sequence length               |
-| slen          | subject sequence length             |
-| sseq          | aligned part of subject sequence    |
+* Reads-only - Mapping information showing coverage of ST loci by sequencing reads
+* Reads-only - Information about the orientation of mompS sequencing primer in reads mapping to bialleleic sites ([see Approach section for more details](#reads)).
+* Reads-only - Samtools coverage output[link out to samtools coverage documentation](https://www.htslib.org/doc/samtools-coverage.html)
+* BLAST output indicating the best match for identified alleles[link out to BLAST output documentation](https://www.ncbi.nlm.nih.gov/books/NBK279684/table/appendices.T.options_common_to_all_blast/)
 
 ### identified_alleles.fna
 The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
 
 ### run.log
-Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered.
-
-Some command outputs have headers included. ([See the relevant part of the intermediate_outputs.txt section for column definitions](#intermediate_outputstxt))
+Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered. Some command outputs have headers included (e.g., samtools coverage and BLASTn).
 
 ### reads_vs_all_ref_filt_sorted.bam (reads only)
-When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the MLST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to get a better understanding of the information used by el_gato to make allele calls. Additionally, if any loci were not properly resolved, this file is a good starting point for figuring out why.
+When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the ST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to get a better understanding of the information used by el_gato to make allele calls. Additionally, if any loci were not properly resolved, this file is a good starting point for figuring out why.
 
 N.B., a SAM file is also present. This is the same information as in the BAM file.
-
-# Using nextflow
-
-We provide a simple nextflow workflow to run el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
-
-Uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file to run nextflow
-
-```
-# Reads
-nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory>
-
-# Assemblies
-nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory>
-
-```
-# Using nextflow with Singularity Container
-
-We provide a singularity container that can be run using the nextflow workflow for el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
-
-```
-# Reads
-nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
-
-# Assemblies
-nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
-
-```
-
-
-
 
 # Approach
 
@@ -275,3 +209,28 @@ If the above process is unable to identify the correct sequence, a ? will be ret
 ![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
 
 
+# Using nextflow
+
+We provide a simple nextflow workflow to run el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
+
+Uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file to run nextflow
+
+```
+# Reads
+nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory>
+
+# Assemblies
+nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory>
+
+```
+# Using nextflow with Singularity Container
+
+We provide a singularity container that can be run using the nextflow workflow for el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
+
+```
+# Reads
+nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
+
+# Assemblies
+nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
+```
