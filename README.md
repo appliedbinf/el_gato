@@ -4,7 +4,7 @@
 * [Installation](#installation)
    * [Method 1: using conda](#method-1-using-conda)
    * [Method 2: using pip](#method-2-using-pip)
-     *[Dependencies](#Dependencies)
+     * [Dependencies](#Dependencies)
 * [Usage](#usage)
    * [Quickstart](#Quickstart-guide)
    * [All available arguments](#All-arguments-guide)
