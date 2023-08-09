@@ -12,7 +12,7 @@
 * [Input and Output](#input-and-output)
   * [Input files](#input-files)
   * [Output files](#output-files)
-     * [standard out](#standardout)
+     * [standard out](#standard-out)
      * [possible_mlsts.txt](#possible_mlststxt)
      * [intermediate_outputs.txt](#intermediate_outputstxt)
      * [identified_alleles.fna](#identified_allelesfna)
