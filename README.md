@@ -6,7 +6,7 @@
    * [Method 2: using pip](#method-2-using-pip)
      * [Dependencies](#Dependencies)
 * [Usage](#Usage)
-   * [Quickstart Guide](#Quickstart-guide)
+   * [Quickstart guide](#Quickstart-guide)
    * [All available arguments](#All-available-arguments)
 
 * [Output](#Output)
