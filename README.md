@@ -12,7 +12,7 @@
 * [Input and Output](#input-and-output)
   * [Input files](#input-files)
   * [Output files](#output-files)
-     * [stdout (MLST profile)](#stdout-MLST-profile)
+     * [stdout (Sequence Type profile)](#stdout_Sequence_Type_Profile
      * [possible_mlsts.txt](#possible_mlststxt)
      * [intermediate_outputs.txt](#intermediate_outputstxt)
      * [identified_alleles.fna](#identified_allelesfna)
@@ -123,7 +123,7 @@ Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz>
 At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each directory is named with a sample name and contains output files specific to tht sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample.
 Upon the completion of a run, el_gato.py will print the identified MLST of your sample to your terminal (stdout) and will write a number of files to the spcified output directory.
 
-### stdout: MLST profile
+### stdout - Sequence Type Profile
 MLST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e`). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
 
 The ST column can contain two kinds of values. If the identified MLST corresponds to a profile found in the database, the corresponding number is given. If no matching MLST profile is found, "NF" is reported.
