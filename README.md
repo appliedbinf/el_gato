@@ -51,11 +51,11 @@ python3 -m pip install .
 * [SAMTools](https://github.com/samtools/samtools)
 * [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download)
 * [isPcr](https://users.soe.ucsc.edu/~kent/)
-
+  
 # Usage
 
 ## Quickstart Guide
-Here is an example of a basic run using paired end reads, assemblies, or both as input.
+Here is an example of a basic run using paired end reads or assemblies as input.
 ```
 # Paired-end:
 el_gato.py --read1 read1.fastq.gz --read2 read2.fastq.gz --out output_folder/
@@ -75,7 +75,7 @@ Legionella in silico SBT script.
 
     Notes on arguments:
     (1) If only reads are provided, SBT is called using a mapping/alignment approach.
-    (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted.
+    (2) If only an assembly is provided, a BLAST and *in silico* PCR based approach is adopted.
 
 Input files:
   Please specify either reads files and/or a genome assembly file
@@ -109,32 +109,30 @@ Optional arguments:
 # Input and Output
 
 ## Input files
+
+### With pair-end reads
 When running on a directory of reads, files are associated as pairs using the pattern `*R{1,2}*.fastq*`. I.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
 
+### With assemblies
 When running on a directory of assemblies, all files in the target directory will be processed and there are no filename restrictions.
 
-While el_gato performs Q20 processing for reads, it is highly recommended to perform preferred QA/QC on input files. 
-
-````
-Ex: fastp -i <input_R1.fastq.gz> -I <input_R2.fastq.gz> -o <trimmed_R1.fastq.gz> -O <trimmed_R2.fastq.gz>
-````
-
 ## Output files
-At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each directory is named with a sample name and contains output files specific to tht sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample.
-Upon the completion of a run, el_gato.py will print the identified MLST of your sample to your terminal (stdout) and will write a number of files to the spcified output directory.
+At the completion of a run, el_gato will print the identified ST of your sample to your terminal (stdout) and will write a number of files to the specified output directory (default: out/). Within this output directory, a file named "all_mlst.txt" (i.e., the ST profile for each tested sample) will be generated and a subdirectory for each sample processed. Each directory is named with a sample name and contains output files specific to that sample (see below). 
+
+The files included in the output directory for a sample are: 
 
 ### stdout - Sequence Type Profile
-MLST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e`). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
+ST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e` flag). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
 
-The ST column can contain two kinds of values. If the identified MLST corresponds to a profile found in the database, the corresponding number is given. If no matching MLST profile is found, "NF" is reported.
+The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, the corresponding number is given. If no matching ST profile is found or el_gato was unable to make a confident call than this will be reflected in the value displayed in the ST column.
 
 For each gene, if an exact allele match is found in the database, the corresponding allele number is reported. Alternatively, the following symbols may also be reported:
 
 | Symbol | Meaning |
 |:------:|:---------|
-| *      | No exact allele match was found. The closest match allele is reported with an asterisk. |
-| -      | Some or all of the locus is missing. No match can be found. |
-| ?      | More than one allele was found. |
+| NAT    | Novel Allele Type: BLAST cannot find an exact allele match - most likely a new allele. |
+| -      | Missing Data: Both percent identity and lenght identity too low to return or a match or an N's in sequence. |
+| ?      | Multiple alleles: More than one allele was found and could not be resolved. |
 
 In the case that any of these symbols are present in the MLST profile, the other output files produced by el_gato will provide more information to understand what is being communicated.
 
