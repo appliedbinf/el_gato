@@ -2,8 +2,6 @@
 **E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:  
 [Add two sentence summary of what el gato is]
 
-![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
-
 * [Installation](#installation)
    * [Method 1: using conda](#method-1-using-conda)
    * [Method 2: using pip](#method-2-using-pip)
@@ -212,6 +210,8 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 6. Finally, the allele of both identified sequences is then determined using BLAST.
 
 If the above process is unable to identify the correct sequence, a ? will be returned as the *mompS* allele, and el_gato will report information about the steps in this process in the [output files](#output-files).
+
+![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
 
 # Using nextflow
 
