@@ -1,6 +1,8 @@
-# el_gato 
-**E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:
+# el_gato
+**E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:  
 [Add two sentence summary of what el gato is]
+
+![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
 
 * [Installation](#installation)
    * [Method 1: using conda](#method-1-using-conda)
@@ -11,6 +13,8 @@
    * [All available arguments](#all-available-arguments)
 * [Input and Output](#input-and-output)
   * [Input files](#input-files)
+     * [Paired-end reads](#pair-end-reads)
+     * [Genome assemblies](#genome-assemblies)      
   * [Output files](#output-files)
      * [standard out](#standard-out)
      * [possible_mlsts.txt](#possible_mlststxt)
@@ -18,10 +22,10 @@
      * [identified_alleles.fna](#identified_allelesfna)
      * [run.log](#runlog)
      * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sortedbam-reads-only)
+* [How does el_gato work?](#approach)
 * [Using Nextflow](#Using-nextflow)
-* [How does el_gato work?](#Approach)
 
-Currently in development
+Currently in development  
 Codebase stage: development   
 Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/dmashruwala), [Alan Collins](https://github.com/Alan-Collins)
 
@@ -29,7 +33,7 @@ Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley
 
 ## Method 1: using conda
 ```
-# Create environment named elgato and install el_gato.py plus all dependencies
+# Create an environment named elgato and install el_gato.py plus all dependencies
 conda create -n elgato -c bioconda -c conda-forge -c appliedbinf elgato
 
 # Activate the environment to use el_gato.py
@@ -37,7 +41,7 @@ conda activate elgato
 ```
 
 ## Method 2: using pip
-**N.B.** Using this method requires you to manually install all [dependencies](#Dependencies).
+**Note** Using this method requires you to install all dependecies manually.
 ```
 # Download el_gato by cloning the git repository
 git clone https://github.com/appliedbinf/el_gato.git
@@ -55,7 +59,7 @@ python3 -m pip install .
 # Usage
 
 ## Quickstart Guide
-Here is an example of a basic run using paired end reads or assemblies as input.
+Here is an example of a basic run using paired-end reads or assemblies as input.
 ```
 # Paired-end:
 el_gato.py --read1 read1.fastq.gz --read2 read2.fastq.gz --out output_folder/
@@ -70,12 +74,12 @@ Usage is printed when running el_gato.py with `-h` or `--help`.
 usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help] [--threads THREADS] [--depth DEPTH]
                   [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT] [--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header]
 
-Legionella in silico SBT script.
+Legionella in silico sequence based typing (SBT) script.
     Requires paired-end reads files or a genome assembly.
 
     Notes on arguments:
     (1) If only reads are provided, SBT is called using a mapping/alignment approach.
-    (2) If only an assembly is provided, a BLAST and *in silico* PCR based approach is adopted.
+    (2) If only an assembly is provided, a BLAST and *in silico* PCR-based approach is adopted.
 
 Input files:
   Please specify either reads files and/or a genome assembly file
@@ -110,104 +114,104 @@ Optional arguments:
 
 ## Input files
 
-#### With pair-end reads
-When running on a directory of reads, files are associated as pairs using the pattern `*R{1,2}*.fastq*`. I.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
+#### Pair-end reads
+When running on a directory of reads, files are associated as pairs using the pattern `R{1,2}.fastq`. i.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
 
-#### With assemblies
-When running on a directory of assemblies, all files in the target directory will be processed and there are no filename restrictions.
+#### Genome assemblies
+When running on a directory of assemblies, all files in the target directory will be processed, and there will be no filename restrictions.
 
 ## Output files
-At the completion of a run, el_gato will print the identified ST of your sample to your terminal (stdout) and will write a number of files to the specified output directory (default: out/). Within this output directory, a file named "all_mlst.txt" (i.e., the ST profile for each tested sample) will be generated and a subdirectory for each sample processed. Each directory is named with a sample name and contains output files specific to that sample (see below). 
+After a run, el_gato will print the identified ST of your sample to your terminal (stdout) and write several files to the specified output directory (default: out/). 
+A file named "all_mlst.txt" (i.e., the ST profile for each tested sample) written to the output directory and a subdirectory for each sample processed. Each directory is named with its sample name and contains output files specific to that sample (see below). 
 
 ### The files included in the output directory for a sample are: 
 
 ### standard out
-ST profile is written as a tab-delimited table with the headings `Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH` (headings included if el_gato.py is run with `-e` flag). The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns contain the allele number of the corresponding gene.
+ST profile is written as a tab-delimited table without the headings  
+`Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH`   
+Headings are included if el_gato.py is run with `-e` flag. The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns have the allele number of the corresponding gene and the number of reads that support the *mompS* call.
 
-The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, the corresponding number is given. If no matching ST profile is found or el_gato was unable to make a confident call than this will be reflected in the value displayed in the ST column.
+The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, the corresponding number is given. If no matching ST profile is found or el_gato was unable to make a confident call, then this will be reflected in the value displayed in the ST column.
 
-For each gene, if an exact allele match is found in the database, the corresponding allele number is reported. Alternatively, the following symbols may also be reported:
+If an exact allele match is found in the database, the corresponding allele number is reported for each gene. Alternatively, el_gato may also note the following symbols:
 
 | Symbol | Meaning |
 |:------:|:---------|
 | NAT    | Novel Allele Type: BLAST cannot find an exact allele match - most likely a new allele. |
-| -      | Missing Data: Both percent identity and length identity too low to return a match or N's in sequence. |
+| -      | Missing Data: Both percent and length identities are too low to return a match or N's in sequence. |
 | ?      | Multiple alleles: More than one allele was found and could not be resolved. |
 
-In the case that any of these symbols are present in the ST profile, the other output files produced by el_gato will provide more information to understand what is being communicated.
+If symbols are present in the ST profile, the other output files produced by el_gato will provide additional information to understand what is being communicated.
 
 ### possible_mlsts.txt
-In the case that multiple alleles were identified for any MLST loci, this file will contain all possible ST profiles. In addition, if multiple mompS alleles were found, the information that was used to try to identify the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against". mompS_reads_support indicates the number of reads associated with each allele that contain the reverse sequencing primer in the expected orientation, which indicates that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus indicate that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele and their values can be considered to represent the confidence of this characterization. ([See Approach section for more details](#reads)).
+This file would contain all possible ST profiles if el_gato identified multiple possible alleles for any ST loci. In addition, if multiple *mompS* alleles were found, the information used to identify the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against." mompS_reads_support indicates the number of reads associated with each allele that contains the reverse sequencing primer in the expected orientation, which indicates that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus indicates that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele, and their values can be considered to represent the confidence of this characterization [confidence needs a subsection]. [See Approach subsection for more details](#reads).
 
 ### intermediate_outputs.txt
-El_gato calls other programs to perform intermediate analyses. The outputs of those programs is provided here. In addition, to help with troubleshooting issues important log messages are also written to this file. The following information may be contained in this file, depending on reads or assembly input:
+el_gato calls other programs to perform intermediate analyses. The outputs of those programs are provided here. In addition, to help with troubleshooting issues, important log messages are also written in this file. The following information may be contained in this file, depending on reads or assembly input:
 
 * Reads-only - Mapping information showing coverage of ST loci by sequencing reads
-* Reads-only - Information about the orientation of mompS sequencing primer in reads mapping to bialleleic sites ([see Approach section for more details](#reads)).
-* Reads-only - Samtools coverage output[ link out to samtools coverage documentation](https://www.htslib.org/doc/samtools-coverage.html)
-* BLAST output indicating the best match for identified alleles[ link out to BLAST output documentation](https://www.ncbi.nlm.nih.gov/books/NBK279684/table/appendices.T.options_common_to_all_blast/)
+* Reads-only - Information about the orientation of *mompS* sequencing primer in reads mapping to biallelic sites. [See Approach subsection for more details](#reads).
+* Reads-only - Samtools coverage output. [See samtools coverage documentation for more information about headers.](https://www.htslib.org/doc/samtools-coverage.html)
+* BLAST output indicating the best match for identified alleles. [See BLAST output documentation for more information about headers.](https://www.ncbi.nlm.nih.gov/books/NBK279684/table/appendices.T.options_common_to_all_blast/)
 
 ### identified_alleles.fna
-The sequence of all identified alleles are written to this file. If more than one allele is identified for the same locus, they are numbered in an arbitrary order. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
+The nucleotide sequence of all identified alleles is written in this file. If more than one allele is determined for the same locus, they are numbered arbitrarily. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
 
 ### run.log
-Detailed log of the steps taken during the running of el_gato including the outputs of any programs called by el_gato and any errors encountered. Some command outputs have headers included (e.g., samtools coverage and BLASTn).
+A detailed log of the steps taken during el_gato's running includes the outputs of any programs called by el_gato and any errors encountered. Some command outputs include headers (e.g., samtools coverage and BLAST).
 
 ### reads_vs_all_ref_filt_sorted.bam (reads only)
-When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the ST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to get a better understanding of the information used by el_gato to make allele calls. Additionally, if any loci were not properly resolved, this file is a good starting point for figuring out why.
+When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the ST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to understand better the data used by el_gato to make allele calls. Additionally, if any loci were not correctly resolved, this file is a good starting point for determining why.
 
-N.B., a SAM file is also present. This is the same information as in the BAM file.
+**Note**, a SAM file is also present. This is the same information as in the BAM file.
 
 # Approach
 
-At its core, el_gato uses BLASTn to identify the closest match to each alleles present in your input sequence. Most of the processing performed by el_gato is the identification of allele sequences. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. However, there are two loci for which more involved processing is required: *mompS* and *neuA*/*neuAh* (N.B., *neuA*/*neuAh* processing is only more complex when processing reads.) The specifics of how those two loci are processed is discussed below.
+Most of the processing performed by el_gato is the identification of allele sequences. At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. However, two loci require more involved processing: *mompS* and *neuA*/*neuAh* (**Note**, *neuA*/*neuAh* processing is only more complex when processing reads.) The specifics of how those two loci are processed are discussed below.
 
-For the simple loci, to following processes are used:
+For the simple loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*), the following processes are used:
 
 ## Assembly
 
-When processing an assembly, only *mompS* requires extra processing. The other 6 loci are identified using BLASTn. For each, the best BLAST result is returned as the allele. If any loci have no exact match, then the closest match is returned with an \*.
+Six of the seven loci (*flaA*, *pilE*, *asd*, *mip*,*proA*, and *neuA/neuAh*) are identified using BLAST. For each, the best BLAST result is returned as the allele. The closest match is returned with an \* if loci have no exact match. When processing an assembly, only *mompS* requires extra processing.
 
-### mompS
+### *mompS*
 
-[*mompS* is sometimes present in two copies in *Legionella pneumophila*](https://doi.org/10.1016/j.cmi.2017.01.002) and therefore requires additional processing. When typing *L. pneumophila* using Sanger sequencing, primers are used that amplify only the correct *mompS* locus. We therefore use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The primers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLASTn.
+[*mompS* is sometimes present in two copies in *Legionella pneumophila*](https://doi.org/10.1016/j.cmi.2017.01.002). When typing *L. pneumophila* using Sanger sequencing, primers amplify only the correct *mompS* locus. We, therefore, use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The primers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLAST.
 
 ## Reads
 
-When processing reads, both *mompS* and *neuA*/*neuAh* must be processed separately. The other 5 loci are processed by mapping the provided reads to reference loci from *L. pneumophila* strain Paris and identifying the consensus sequence. Alleles are then identified using BLASTn.
+When processing reads, both *mompS* and *neuA*/*neuAh* must perform additional analyses (described below). The other five loci are processed by mapping the provided reads to reference loci from *L. pneumophila* strain Paris and identifying the consensus sequence. Then all alleles are determined using BLAST.
 
 A couple of quality control steps are applied when processing the reads that map to each locus:
 
-   1. Base quality. Any bases with quality scores below 20 are not included when calculating coverage at each position or identifying alternate base calls. The lowest number of bases with quality over 20 that map to a single position is reported in the log for each locus.
-   2. Coverage. After excluding low quality bases, if < 100% of a locus has at least 1 read covering it (<99% for *neuA*/*neuAh* - see below), then no attempt to identify the allele is made an a "-" will be reported. This is done to avoid returning an incorrect call. No minimum depth cutoff is applied.
+   1. **Base quality:** Any bases with quality scores below 20 are not included when calculating coverage at each position or identifying alternate base calls. The lowest number of bases with quality over 20 that map to a single position is reported in the log for each locus [add exact name of the column header].
+   2. **Coverage:** After excluding low-quality bases, if < 100% of a locus has at least one read covering it (<99% for *neuA*/*neuAh* - see below), then no attempt to identify the allele is made, an a "-" will be reported. This reported value is done to ensure the correct call is returned. No minimum depth cutoff is applied. [The first sentence for coverage is really difficult to understand, need to fix. Also, is depth here true still]
 
-### neuA/neuAh
+### *neuA/neuAh*
 
-[The sequence of *neuA*/*neuAh* loci can differ dramatically.](https://doi.org/10.1111/1469-0691.12459) The differences in sequence between *neuA*/*neuAh* alleles is sufficient that reads from some alleles will not map to others. Accordingly, we map reads to three reference sequences that cover the sequence variation currently represented in the SBT. The three reference alleles used are the *neuA* allele from strain Paris (neuA_1), the *neuAh* allele from strain Dallas-1E (neuA_201) and a chimeric sequence composed of sequence 5' of the *neuA* locus from strain Paris, the sequence of allele neuA_206, and sequence 3' of the *neuA* locus from strain Dallas-1E.
+[The sequence of *neuA*/*neuAh* loci can differ dramatically.](https://doi.org/10.1111/1469-0691.12459) The differences in sequence between *neuA*/*neuAh* alleles are sufficient that reads from some alleles will not map to others. Accordingly, we map reads to [X number of] reference sequences that cover the sequence variation currently represented in the SBT. The [X number of] reference alleles used are the *neuA* allele from strain Paris (neuA_1), the *neuAh* allele from strain Dallas-1E (neuA_201), and [description of other reference sequences].
 
-Using the three reference sequences described above, reads from all samples we have tested map well to only one reference. The reference sequence with the best mapping is identified using `samtools coverage`; only those reference loci with coverage over 99% (some alleles contain small indels so 100% is too strict) are retained for future processing. Once the best reference sequence (or sequences if two map with sufficient coverage) is identified, processing is the same as described above.
+Using the [X number of] reference sequences described above, reads from all samples map well to only one reference. The reference sequence with the best mapping is identified using `samtools coverage`; only those reference loci with coverage over 99% (some alleles contain small indels, so 100% is too strict) are retained for future processing. Once the best reference sequence (or sequences if two references map with sufficient coverage) is identified, the processing is the same as described above using BLAST.
 
-### mompS
+### *mompS*
 
-[As described in the assembly section](#Assembly), *mompS* is sometimes present in two copies in the genome of *L. pneumophila* isolates. This poses an obvious challenge for a read-mapping approach: if two similar copies of a sequence are present in a genome, both copies may map to the same reference sequence.
+[As described in the assembly section](#assembly), *mompS* is sometimes present in two copies in the genome of *L. pneumophila* isolates. Duplicate gene copies pose an obvious challenge for a read-mapping approach: if two similar sequence copies are present in a genome, reads from both copies may map to the same reference sequence.
 
-The approach taken by el_gato to resolve this issue takes advantage of the two copies of *mompS* being close together in the genome. [A schematic of the organization of the two *mompS* copies can be found in Fig. 1 in this paper](https://doi.org/10.1016/j.cmi.2017.01.002). The sequence context of the two *mompS* copies is such that only one copy has **both** of the primers *mompS*-450F and *mompS*-1116R flanking it in the correct orientation for PCR amplification, while the other copy is only flanked by primer *mompS*-450F in the correct orientation for amplification (See below schematic).
+The approach taken by el_gato to resolve this issue takes advantage of the two copies of *mompS* being close together in the genome. [A schematic of the organization of the two *mompS* copies can be found in Fig. 1 in this paper](https://doi.org/10.1016/j.cmi.2017.01.002). The sequence context of the two *mompS* copies is such that only one copy has **both** of the primers *mompS*-450F and *mompS*-1116R flanking it in the correct orientation for PCR amplification. In contrast, the other copy is only flanked by primer *mompS*-450F in the proper direction for amplification (See below schematic)[should be a link to section].
 
 The sequence of the two copies of *mompS* and the identity of the correct allele is then resolved through the following process:
-1. Reads from the two *mompS* copies are mapped to a reference sequence containing only one copy of *mompS* and with the *mompS*-450F and *mompS*-1116R primers present.
-2. The sequence of reads mapped to each position within the *mompS* sequence is recorded. If more than 30% of reads mapped to a position contain a different base, then the position is considered to be bialleleic and both bases are recorded. If there was in fact only one copy of *mompS* in the sample, then no bialleleic sites will be found - the sequence has now been extracted and an allele can be identified using BLASTn.
-3. If multiple bialleleic positions are identified, then the two sequences are resolved by identifying individual read pairs that map to all bialleleic positions.
-4. Once the two sequences have been resolved, the correct sequence is identified by analyzing the reads associated with each sequence (i.e., that map to one or more bialleleic position and contain a base from one of the sequences at that position). The read from each list is searched for the sequence of primer *mompS*-1116R and the orientation of reads that contain the primer is assessed. If a read contains the primer and is mapped 3'-5' relative to the reference sequence (i.e., in the reverse direction), this is consistent with the read pair originating from the correct copy of *mompS*. However, if the read containing the primer is mapped 5'-3' (i.e., in the forward direction), this is consistent with the read pair originating from the wrong copy of *mompS*.
-5. The number of reads associated with each sequence that contain the primer *mompS*-1116R in the correct orientation is counted and compared. The correct allele is then decided using the following criteria:
-   a. Only one sequence has associated reads with correctly oriented primer.
-   b. One sequence has more than three times as many reads with correctly oriented primer as the other.
-   c. One sequence has no associated reads with the primer in either orientation, but the other has associated reads with the primer in only the wrong orientation. In this case, the sequence with no associated reads with the primer in either orientation is considered the primary locus. 
-6. The allele of both identified sequences is then identified using BLASTn.
+1. Reads from both *mompS* copies are mapped to a reference sequence containing only one copy of *mompS* and with the *mompS*-450F and *mompS*-1116R primers present.
+2. The reads mapped to each position within the *mompS* sequence is recorded. If more than 30% of reads are mapped to a position containing a different base, then the position is considered biallelic, and both bases are recorded. If there was, in fact, only one copy of *mompS* in the sample or no sequence variation between the duplicate copies, then no biallelic sites will be found - the sequence will be extracted, and an allele can be identified using BLAST.
+3. If multiple biallelic positions are identified, the two sequences are recorded and individual read pairs are identified that map to the biallelic position(s).
+4. Once the two sequences have been resolved, the correct sequence is identified by analyzing the reads associated with each sequence. The reads from each possible allele is searched for the sequence of primer *mompS*-1116R, along with the orientation of the reads that contain the primer. If a read has the primer and is mapped 3'-5' relative to the reference sequence (i.e., in the reverse direction), this is consistent with the read pair originating from the correct copy of *mompS*. However, if the read containing the primer is mapped 5'-3' (i.e., in the forward direction), this is consistent with the read pair originating from the wrong copy of *mompS*.
+5. The number of reads associated with each sequence that contains the primer *mompS*-1116R in the correct orientation is counted and compared. The correct allele is then decided using the following criteria:  
+   a. Only one sequence has associated reads with correctly oriented primer.  
+   b. One sequence has more than three times [still true?] as many reads with correctly oriented primer as the other.  
+   c. One sequence has no associated reads with the primer in either orientation, but the other has associated reads with the primer in only the wrong orientation. In this case, the sequence with no associated reads with the primer in either orientation is considered the primary locus. [still true?] 
+6. Finally, the allele of both identified sequences is then determined using BLAST.
 
-If the above process is unable to identify the correct sequence, a ? will be returned as the *mompS* allele and information about the steps in this process will be reported in the [possible_mlsts.txt](#possible_mlststxt), [intermediate_outputs.txt](#intermediate_outputstxt), [identified_alleles.fna](#identified_allelesfna), and [run.log](#runlog) files.
-
-![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
-
+If the above process is unable to identify the correct sequence, a ? will be returned as the *mompS* allele, and el_gato will report information about the steps in this process in the [output files](#output-files).
 
 # Using nextflow
 
