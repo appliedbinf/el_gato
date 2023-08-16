@@ -21,7 +21,7 @@
      * [run.log](#runlog)
      * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sortedbam-reads-only)
 * [How does el_gato work?](#approach)
-* [Using Nextflow](#Using-nextflow)
+* [Using Nextflow](#using-nextflow)
 
 Currently in development  
 Codebase stage: development   
@@ -171,7 +171,7 @@ For the simple loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*), the following pr
 
 ## Assembly
 
-Six of the seven loci (*flaA*, *pilE*, *asd*, *mip*,*proA*, and *neuA/neuAh*) are identified using BLAST. For each, the best BLAST result is returned as the allele. The closest match is returned with an \* if loci have no exact match. When processing an assembly, only *mompS* requires extra processing.
+Six of the seven loci (*flaA*, *pilE*, *asd*, *mip*,*proA*, and *neuA/neuAh*) are identified using BLAST. For each, the best BLAST result is returned as the allele. The closest match is returned with an \* if loci have no exact match. When processing an assembly, only *mompS* requires extra processing. [add in updated code changes]
 
 ### *mompS*
 
@@ -215,9 +215,10 @@ If the above process is unable to identify the correct sequence, a ? will be ret
 
 # Using nextflow
 
+[Need to work through these steps for better readme documentation]
 We provide a simple nextflow workflow to run el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
 
-Uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file to run nextflow
+Uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file to run nextflow [is this still necessary?]
 
 ```
 # Reads
