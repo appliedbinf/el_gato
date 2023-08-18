@@ -165,9 +165,7 @@ When run on reads, el_gato maps the provided reads to [a set of reference sequen
 
 # Approach
 
-Most of the processing performed by el_gato is the identification of allele sequences. At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. However, two loci require more involved processing: *mompS* and *neuA*/*neuAh* (**Note**, *neuA*/*neuAh* processing is only more complex when processing reads.) The specifics of how those two loci are processed are discussed below.
-
-For the simple loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*), the following processes are used:
+Most of the processing performed by el_gato is the identification of allele sequences. At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. However, two loci require more involved processing: *mompS* and *neuA*/*neuAh*; however, *neuA*/*neuAh* processing is only more complex when processing reads. The specifics of how these loci are processed are discussed below. 
 
 ## Assembly
 
