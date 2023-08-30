@@ -69,8 +69,8 @@ el_gato.py --assembly assembly_file.fna --out output_folder/
 ## All available arguments
 Usage information printed when running el_gato.py with `-h` or `--help`.
 ```
-usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file]  
-[--assembly Assembly file] [--help] [--threads THREADS] [--depth DEPTH]  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT] [--suffix SUFFIX]  [--profile PROFILE] [--verbose] [--header] [--length LENGTH] [--sequence SEQUENCE]
+usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help]  
+[--threads THREADS] [--depth DEPTH]  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT] [--suffix SUFFIX]  [--profile PROFILE] [--verbose] [--header] [--length LENGTH] [--sequence SEQUENCE]
 
 Legionella in silico sequence-based typing (SBT) script.
     Requires paired-end reads files or a genome assembly.
