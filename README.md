@@ -105,13 +105,11 @@ Optional arguments:
   --profile PROFILE, -p PROFILE  
                         Name of allele profile to ST mapping file  
                         (default: ../el_gato/el_gato/db/lpneumophila.txt) 
-  --profile PROFILE, -p PROFILE
-                        Name of allele profile to ST mapping file  (default: .../el_gato/el_gato/db/lpneumophila.txt)
   --verbose, -v         Print what the script is doing (default: False)
   --header, -e          Include column headers in the output table (default: False)
-  --length LENGTH, -l LENGTH
+  --length LENGTH, -l LENGTH  
                         Specify the BLAST hit length threshold for   identifying multiple loci in assembly (default: 0.3)
-  --sequence SEQUENCE, -q SEQUENCE
+  --sequence SEQUENCE, -q SEQUENCE  
                         Specify the BLAST hit percent identity threshold  for identifying multiple loci in assembly (default: 95.0)
 ```
 
