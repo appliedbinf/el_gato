@@ -98,18 +98,18 @@ Optional arguments:
   --sample SAMPLE, -n SAMPLE
                         Sample name (default: <Inferred from input file>)
   --overwrite, -w       Overwrite output directory(default: False)
-  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files\
+  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files  
    (default: .../el_gato/el_gato/db)
   --suffix SUFFIX, -x SUFFIX
                         Suffix of SBT allele files (default: _alleles.tfa)
   --profile PROFILE, -p PROFILE
-                        Name of allele profile to ST mapping file (default: .../el_gato/el_gato/db/lpneumophila.txt)
+                        Name of allele profile to ST mapping file  (default: .../el_gato/el_gato/db/lpneumophila.txt)
   --verbose, -v         Print what the script is doing (default: False)
   --header, -e          Include column headers in the output table (default: False)
   --length LENGTH, -l LENGTH
-                        Specify the BLAST hit length threshold for identifying multiple loci in assembly (default: 0.3)
+                        Specify the BLAST hit length threshold for  identifying multiple loci in assembly (default: 0.3)
   --sequence SEQUENCE, -q SEQUENCE
-                        Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: 95.0)
+                        Specify the BLAST hit percent identity threshold   for identifying multiple loci in assembly (default: 95.0)
 ```
 
 # Input and Output
