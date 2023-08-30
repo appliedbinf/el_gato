@@ -83,12 +83,12 @@ Legionella in silico sequence-based typing (SBT) script.
 Input files:
   Please specify either reads files and/or a genome assembly file
 
-  --read1 Read 1 file, -1 Read 1 file
-                        Input Read 1 (forward) file
-  --read2 Read 2 file, -2 Read 2 file
-                        Input Read 2 (reverse) file
-  --assembly Assembly file, -a Assembly file
-                        Input assembly fasta file
+  --read1 Read 1 file      -1 Read 1 file
+                            Input Read 1 (forward) file
+  --read2 Read 2 file      -2 Read 2 file
+                            Input Read 2 (reverse) file
+  --assembly Assembly file -a Assembly file
+                            Input assembly fasta file
 
 Optional arguments:
   --help,            -h  
