@@ -248,22 +248,24 @@ A couple of quality control steps are applied when processing the reads:
 
 [As described in the assembly section](#assembly), *mompS* is sometimes present in multiple copies in the genome of *L. pneumophila* isolates though it is typically two copies. Duplicate gene copies pose an obvious challenge for a read-mapping approach: if two similar sequence copies are present in a genome, reads from both copies may map to the same reference sequence.
 
-el_gato resolves this issue by taking advantage of the proximity of the genome's two copies of *mompS* [(a schematic of the organization of the two *mompS* copies can be found in Fig. 1 in this paper).](https://doi.org/10.1016/j.cmi.2017.01.002). The sequence context of the two *mompS* copies is such that the correct copy is immediately upstream of the incorrect copy. Only the right copy is flanked on either side by sequences corresponding to primers (*mompS*-450F and *mompS*-1116R) used for conventional SBT. In contrast, while *mompS*-450F sequences are present upstream of the incorrect copy, the corresponding *mompS*-1116R sequences are not found downstream. For this reason, only the correct copy is amplified in conventional SBT [(See below schematic)](#momps-read-mapping-schematic)
+el_gato resolves this issue by taking advantage of the proximity of the genome's two copies of *mompS* [(a schematic of the organization of the two *mompS* copies can be found in Fig. 1 in this paper).](https://doi.org/10.1016/j.cmi.2017.01.002). The sequence context of the two *mompS* copies is such that the correct copy is immediately upstream of the incorrect copy. Only the right copy is flanked on either side by sequences corresponding to primers (*mompS*-450F and *mompS*-1116R) used for conventional SBT. In contrast, while *mompS*-450F sequences are present upstream of the incorrect copy, the corresponding *mompS*-1116R sequences are not found downstream. For this reason, only the correct copy is amplified in conventional SBT [(See below schematic.)](#momps-read-mapping-schematic)
 
 The sequence of the two copies of *mompS* and the identity of the correct allele is then resolved through the following process:
 
 1. Reads from both *mompS* copies are mapped to a single *mompS* reference sequence flanked by the *mompS*-450F and *mompS*-1116R primer sequences. 
 
-2. The nucleotide sequence of reads is recorded for each position within the mompS sequence. If the base at a particular position is heterogeneous in more than 30% of reads mapped to that position, the position is considered biallelic, and both bases are recorded. If the sequence contains only one copy of mompS or no sequence variation between the duplicate copies, then no biallelic sites will be found. Then, the sequence will be extracted, and an allele can be identified using BLAST. 
+2. The nucleotide sequence of reads is recorded for each position within the *mompS* sequence. If the base at a particular position is heterogeneous in more than 30% of reads mapped to that position, the position is considered biallelic, and both bases are recorded. If the sequence contains only one copy of *mompS* or no sequence variation between the duplicate copies, then no biallelic sites will be found. Then, the sequence will be extracted, and an allele can be identified using BLAST. 
 
 3. If multiple biallelic positions are identified, all sequences are recorded, and individual read pairs are identified that map to each of the biallelic position(s). 
 
 4. Once the two alleles have been resolved, the correct allele for SBT is identified by analyzing the reads associated with each allele. Reads from each allele are searched for the *mompS*-1116R sequence. The orientation of the reads that contain the primer sequence is assessed. If the primer maps 3'-5' relative to the reference sequence (i.e., in the reverse direction), this is consistent with the read pair originating from the correct copy of *mompS*. However, if the read containing the primer maps 5'-3' (i.e., in the forward direction) relative to *mompS*, this is consistent with the read pair originating from the wrong copy of *mompS*. 
 
 5. The number of reads associated with each allele that contains the primer in the correct orientation relative to *mompS* is counted and compared. The correct allele is then chosen using the following criteria:  
-   a. Only one allele has associated reads with primer *mompS*-1116R correctly oriented. 
-   b. One allele has more than three times [still valid?] as many reads with correctly oriented primer as the other.   
-   c. One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination. [still valid?] 
+
+   a. Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
+   b. One allele has more than three times [still valid?] as many reads with correctly oriented primer as the other.  
+   c. One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
+   
 6. The allele number of all alleles is then determined using BLAST and the ST is generated using the correct allele. 
 
 If the above process cannot identify the correct sequence, a ? will be returned as the *mompS* allele, and el_gato will report information about the steps in this process in the [output files](#output-files).
