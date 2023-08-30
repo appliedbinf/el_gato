@@ -116,9 +116,6 @@ Optional arguments:
 --sequence SEQUENCE, -s SEQUENCE  
                         Specify the BLAST hit percent identity threshold  for identifying multiple loci in an assembly  
                         (default: 95.0)
-
-  --sequence SEQUENCE, -q SEQUENCE  
-                        Specify the BLAST hit percent identity threshold  for identifying multiple loci in assembly (default: 95.0)
 ```
 
 # Input and Output
