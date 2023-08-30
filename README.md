@@ -91,24 +91,30 @@ Input files:
                         Input assembly fasta file
 
 Optional arguments:
-  --help,            -h       Show this help message and exit
+  --help,            -h  
+                        Show this help message and exit
   --threads THREADS, -t THREADS
                         Number of threads to run the programs (default: 1)
-  --depth DEPTH,    -d DEPTH
+  --depth DEPTH,     -d DEPTH
                         Variant read depth cutoff (default: 3)
-  --out OUT,        -o OUT       Output folder name (default: out)
-  --sample SAMPLE,  -n SAMPLE
+  --out OUT,         -o OUT  
+                        Output folder name (default: out)
+  --sample SAMPLE,   -n SAMPLE
                         Sample name (default: <Inferred from input file>)
-  --overwrite,       -w       Overwrite output directory(default: False)
-  --sbt SBT,         -s SBT        Database containing SBT allele and ST mapping files  
+  --overwrite,       -w  
+                        Overwrite output directory(default: False)
+  --sbt SBT,         -s SBT  
+                        Database containing SBT allele and ST mapping files  
                         (default: .../el_gato/el_gato/db)
   --suffix SUFFIX,   -x SUFFIX
                         Suffix of SBT allele files (default: _alleles.tfa)
   --profile PROFILE, -p PROFILE  
                         Name of allele profile to ST mapping file  
                         (default: ../el_gato/el_gato/db/lpneumophila.txt) 
-  --verbose,         -v       Print what the script is doing (default: False)
-  --header,          -e       Include column headers in the output table (default: False)
+  --verbose,         -v  
+                        Print what the script is doing (default: False)
+  --header,          -e  
+                        Include column headers in the output table (default: False)
 --length LENGTH,     -l LENGTH  
                         Specify the BLAST hit length threshold for  
                         identifying multiple loci in an assembly  
