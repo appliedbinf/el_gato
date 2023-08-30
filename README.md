@@ -263,32 +263,20 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 5. The number of reads associated with each allele that contains the primer in the correct orientation relative to *mompS* is counted and compared. The correct allele is then chosen using the following criteria:  
 
    a. Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
+
    b. One allele has more than three times [still valid?] as many reads with correctly oriented primer as the other.  
+
    c. One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
-   
+
 6. The allele number of all alleles is then determined using BLAST and the ST is generated using the correct allele. 
 
 If the above process cannot identify the correct sequence, a ? will be returned as the *mompS* allele, and el_gato will report information about the steps in this process in the [output files](#output-files).
 
-### *momps* Read Mapping Schematic
+## *momps* Read Mapping Schematic
 ![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
 
-# Using nextflow
-
-[Need to work through these steps for better readme documentation]
-We provide a simple nextflow workflow to run el_gato on a directory of either reads or assemblies. In both cases, the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
-
-Uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file to run nextflow [is this still necessary?]
-
-```
-# Reads
-nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory>
-
-# Assemblies
-nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory>
-
-```
-# Using nextflow with Singularity Container
+# Using NextFlow 
+## Using NextFlow with Singularity Container
 
 We provide a singularity container that can be run using the nextflow workflow for el_gato on a directory of either reads or assemblies. In both cases the target directory must contain only paired reads files (in .fastq or .fastq.gz format) or assembly files (in fasta format).
 
@@ -299,3 +287,5 @@ nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads
 # Assemblies
 nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
 ```
+
+**Note:** To run nextflow without the singularity container, uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file. 
