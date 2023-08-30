@@ -102,6 +102,9 @@ Optional arguments:
                         (default: .../el_gato/el_gato/db)
   --suffix SUFFIX, -x SUFFIX
                         Suffix of SBT allele files (default: _alleles.tfa)
+  --profile PROFILE, -p PROFILE  
+                        Name of allele profile to ST mapping file  
+                        (default: ../el_gato/el_gato/db/lpneumophila.txt) 
   --profile PROFILE, -p PROFILE
                         Name of allele profile to ST mapping file  (default: .../el_gato/el_gato/db/lpneumophila.txt)
   --verbose, -v         Print what the script is doing (default: False)
