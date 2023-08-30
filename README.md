@@ -146,7 +146,7 @@ ST profile is written as a tab-delimited table without the headings. Headings ar
 `Sample  ST flaA  pilE  asd   mip   mompS proA  neuA_neuAH`    
 
  The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. 
- 
+
 The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, the corresponding number is given. If no matching ST profile is found or el_gato was unable to make a confident call, then this will be reflected in the value displayed in the ST column.
 
 The corresponding allele number is reported for each gene if an exact allele match is found in the database. Alternatively, el_gato may also note the following symbols:
@@ -162,17 +162,16 @@ The corresponding allele number is reported for each gene if an exact allele mat
 If symbols are present in the ST profile, the other output files produced by el_gato will provide additional information to understand what is being communicated.
 
 ### possible_mlsts.txt
-This file would contain all possible ST profiles if el_gato identified multiple possible alleles for any ST loci. In addition, if multiple *mompS* alleles were found, the information used to determine the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against." mompS_reads_support indicates the number of reads associated with each allele that contains the reverse sequencing primer in the expected orientation, which suggests that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus demonstrates that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele, and their values can be considered to represent the confidence of this characterization [confidence needs a subsection]. [See Approach subsection for more details](#reads).
+This file would contain all possible ST profiles if el_gato identified multiple possible alleles for any ST loci. In addition, if multiple *mompS* alleles were found, the information used to determine the primary allele is reported in two columns: "mompS_reads_support" and "mompS_reads_against." mompS_reads_support indicates the number of reads associated with each allele that contains the reverse sequencing primer in the expected orientation, which suggests that this is the primary allele. mompS_reads_against indicates the number of reads containing the reverse sequencing primer in the wrong orientation and thus demonstrates that this is the secondary allele. These values are used to infer which allele is the primary *mompS* allele, and their values can be considered to represent the confidence of this characterization. [See Approach subsection for more details](#reads).
 
 ### intermediate_outputs.txt
-el_gato calls other programs to perform intermediate analyses. The outputs of those programs are provided here. In addition, to help with troubleshooting issues, important log messages are also written in this file. The following information may be contained in this file, depending on reads or assembly input:
+el_gato calls other programs to perform intermediate analyses. The outputs of those programs are provided in this file. In addition, to help with troubleshooting issues, important log messages are also written in this file. The following information may be contained in this file, depending on if the input is reads or assembly:
 
-* Reads-only - Mapping information showing coverage of ST loci by sequencing reads
+* Reads-only - Samtools coverage command output. [See samtools coverage documentation for more information about headers](https://www.htslib.org/doc/samtools-coverage.html) or [below.](#samtools-coverage-headers)
 * Reads-only - Information about the orientation of *mompS* sequencing primer in reads mapping to biallelic sites. [See Approach subsection for more details](#reads).
-* Reads-only - Samtools coverage output. [See samtools coverage documentation for more information about headers](https://www.htslib.org/doc/samtools-coverage.html) or [below.](#samtools-coverage-headers)
 * BLAST output indicating the best match for identified alleles. [See BLAST output documentation for more information about headers](https://www.ncbi.nlm.nih.gov/books/NBK279684/table/appendices.T.options_common_to_all_blast/) or [below.](#blastn-output-headers)
 
-Headers are included in outputs for samtools coverage and blast results. Header definitions are as follows:
+Headers are included in outputs for the samtools coverage command and blast results. Header definitions are as follows:
 
 #### samtools coverage headers
 
@@ -213,7 +212,7 @@ The nucleotide sequence of all identified alleles is written in this file. If mo
 A detailed log of the steps taken during el_gato's running includes the outputs of any programs called by el_gato and any errors encountered. Some command outputs include headers (e.g., samtools coverage and BLAST).
 
 ### reads_vs_all_ref_filt_sorted.bam (reads only)
-When run on reads, el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample to identify the ST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contain the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to understand better the data used by el_gato to make allele calls. Additionally, this file is a good starting point for investigating the cause of incorrectly resolved loci.
+el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample for identifying the alleles and, ultimately, the ST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contains the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to understand better the data used by el_gato to make allele calls. Additionally, this file is a good starting point for investigating the cause of incorrectly resolved loci.
 
 **Note:** A SAM file is also present, which has the same information as in the BAM file.
 
