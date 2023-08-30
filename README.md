@@ -24,7 +24,6 @@
 * [How does el_gato work?](#approach)
 * [Using Nextflow](#using-nextflow)
 
-Currently in development  
 Codebase stage: development   
 Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/dmashruwala), [Alan Collins](https://github.com/Alan-Collins)
 
