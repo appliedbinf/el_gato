@@ -197,8 +197,8 @@ def get_args() -> argparse.ArgumentParser:
     group2.add_argument("--help", "-h", action="help", help="Show this help message and exit")
     group2.add_argument("--threads", "-t", help="Number of threads to run the programs (default: %(default)s)", type=int,
                         required=False, default=1)
-    group2.add_argument("--depth", "-d", help="Variant read depth cutoff (default: %(default)s)", type=int, required=False,
-                        default=3)
+    group2.add_argument("--mincov", "-c", help="Specify the minimum coverage used to identify loci in paired-end reads (default: %(default)s)", type=int, required=False,
+                        default=10)
     group2.add_argument("--out", "-o", help="Output folder name (default: %(default)s)", type=str, required=False,
                         default="out")
     group2.add_argument("--sample", "-n", help="Sample name (default: %(default)s)", type=str, required=False,
@@ -385,7 +385,7 @@ def set_inputs(
     inputs["profile"] = args.profile
     inputs["verbose"] = args.verbose
     inputs["overwrite"] = args.overwrite
-    inputs["depth"] = args.depth
+    inputs["mincov"] = args.mincov
     inputs["header"] = args.header
     Ref.file = os.path.join(inputs["out_prefix"], Ref.file)
     if args.sample == inputs["sample_name"]:
@@ -1097,7 +1097,7 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
     return alleles_info
 
 
-def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str):
+def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str, inputs: dict):
 
     # Check coverage of neuA/neuAh regions to infer which is present
 
@@ -1113,6 +1113,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     alleles = {}
     cov_results = {}
+    
     for line in result.strip().split('\n')[1:]:
         gene, _, _, cov, depth, _, _ = line.split()
         cov = float(cov)
@@ -1206,13 +1207,13 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     [base for base, num in count.items() if num > 0.3*total]
                     )
         min_cov = min(cov)
-
-        if min_cov == 0:
-            msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has 0 coverage and can't be resolved"
+        
+        if min_cov < inputs['mincov']:
+            msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has below {inputs['mincov']} coverage and can't be resolved"
             logging.info(msg)
             cov_msg += f"\n{msg}\n\n"
             a = Allele()
-            a.allele_id = '?'
+            a.allele_id = '-'
             alleles[locus] = [a]
             continue
 
@@ -1396,7 +1397,7 @@ def map_alleles(inputs: dict, ref: Ref):
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
 
-    alleles = process_reads(contig_dict, read_info_dict, ref, outdir)
+    alleles = process_reads(contig_dict, read_info_dict, ref, outdir, inputs)
     write_alleles_to_file(alleles, outdir)
     # BLAST alleles
     logging.info("BLASTing identified alleles against database")
