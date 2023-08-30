@@ -218,39 +218,37 @@ el_gato maps the provided reads to [a set of reference sequences in the el_gato 
 
 # Approach
 
-Most of the processing performed by el_gato is the identification of allele sequences. At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. Whereas loci *mompS* and *neuA/neuAh* require more involved processing, with neuA/neuAh being an issue only when processing reads—the specifics of these loci are discussed in the corresponding sections below. 
+ At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. Whereas loci *mompS* and *neuA/neuAh* require more involved processing, with neuA/neuAh being an issue only when processing reads—the specifics of these loci are discussed in the corresponding sections below. 
 
 
-For the simple loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*), the following processes are used:
+First for the simple loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*), the following processes are used:
 
 ## Assembly
 
-Six of the seven loci (*flaA*, *pilE*, *asd*, *mip*,*proA*, and *neuA/neuAh*) are identified using BLAST. For each, the best BLAST result is returned as the allele. The closest match is returned with an \* if loci have no exact match. When processing an assembly, only *mompS* requires extra processing. [add in updated code changes]
+Six of the seven loci (*flaA*, *pilE*, *asd*, *mip*,*proA*, and *neuA/neuAh*) are identified using BLAST. For each, the best BLAST result is returned as the allele. The closest match is returned with an \* if loci have no exact match. [add in updated code changes if necessary] When processing an assembly, only *mompS* requires extra processing. 
 
 ### *mompS*
 
-[*mompS* is sometimes present in multiple copies in *Legionella pneumophila*, typically two.](https://doi.org/10.1016/j.cmi.2017.01.002) When typing *L. pneumophila* using Sanger sequencing, primers amplify only the correct *mompS* locus. We, therefore, use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The primers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLAST.
+[*mompS* is sometimes present in multiple copies in *Legionella pneumophila*, though typically two copies.](https://doi.org/10.1016/j.cmi.2017.01.002) When typing *L. pneumophila* using Sanger sequencing, primers amplify only the correct *mompS* locus. We, therefore, use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The primers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLAST.
 
 ## Reads
 
 When processing reads, identification of both *mompS* and *neuA*/*neuAh* requires additional analyses (described below). The other five loci are processed by mapping the provided reads to reference loci from *L. pneumophila* strain Paris and identifying the consensus sequence. Then, all alleles are determined using BLAST against the SBT allele database.
 
-A couple of quality control steps are applied when processing the reads that map to each locus:
+A couple of quality control steps are applied when processing the reads:
 
-   1. **Base quality:** Any bases with quality scores below 20 are not included when calculating coverage at each position or identifying alternate base calls. The lowest number of bases with quality over 20 that map to a single position is reported in the log for each locus [add exact name of the column header].
-   2. **Coverage:** After excluding low-quality bases, if there is not at least one read covering 100% of the locus (<99% for *neuA*/*neuAh* - see below), then no attempt to identify the allele is made, and a "-" will be reported. No minimum depth cutoff is applied. [Is depth here true still?]
+   1. **Base quality:** Any bases with quality scores below 20 are not included when calculating coverage at each position or identifying alternate base calls. The lowest number of bases with quality over 20 that map to a single position is reported in the log for each locus [add exact name of the identifier].
+   2. **Coverage:** After excluding low-quality bases, if there is not at least one read covering 100% of the locus (<99% for *neuA*/*neuAh* - see below), then no attempt to identify the allele is made, and a "-" will be reported. A minimum depth of 10 is applied as a cutoff. 
 
 ### *neuA/neuAh*
 
-[The sequence of *neuA*/*neuAh* loci can differ dramatically.](https://doi.org/10.1111/1469-0691.12459) The differences in sequence between *neuA*/*neuAh* alleles are sufficient that reads from some alleles will not map to others. Accordingly, we map reads to [X number of] reference sequences that cover the sequence variation currently represented in the SBT database. The [X number of] reference alleles used are the *neuA* allele from strain Paris (neuA_1), the *neuAh* allele from strain Dallas-1E (neuA_201), and [description of other reference sequences]. Reads from samples are mapped well to the [X number of] reference sequences described above. The reference sequence with the best mapping [what defines best? Is it the number of reads?] is identified using `samtools coverage` with the caveat that > 99% of the locus must have coverage of at least one read (some alleles contain small indels, so 100% is too strict); otherwise a "-" will be reported. Once the reference sequence is selected, the processing using BLAST is the same as described above.
+[The sequence of *neuA*/*neuAh* loci can differ dramatically.](https://doi.org/10.1111/1469-0691.12459) The differences in sequence between *neuA*/*neuAh* alleles are sufficient that reads from some alleles will not map to others. Accordingly, we map reads to [X number of] reference sequences that cover the sequence variation currently represented in the SBT database. The [X number of] reference alleles used are the *neuA* allele from strain Paris (neuA_1), the *neuAh* allele from strain Dallas-1E (neuA_201), and [description of other reference sequences]. The reference sequence with the best mapping [what defines best? Is it the number of reads?] is identified using `samtools coverage` with the caveat that >99% of the *neuA*/*neuAh* locus must have coverage of at least one read (some alleles contain small indels, so 100% is too strict); otherwise a "-" will be reported. Once the reference sequence is selected, the processing using BLAST is the same as described above.
 
 ### *mompS*
 
-[As described in the assembly section](#assembly), *mompS* is sometimes present in two copies in the genome of *L. pneumophila* isolates. Duplicate gene copies pose an obvious challenge for a read-mapping approach: if two similar sequence copies are present in a genome, reads from both copies may map to the same reference sequence.
+[As described in the assembly section](#assembly), *mompS* is sometimes present in multiple copies in the genome of *L. pneumophila* isolates though it is typically two copies. Duplicate gene copies pose an obvious challenge for a read-mapping approach: if two similar sequence copies are present in a genome, reads from both copies may map to the same reference sequence.
 
-el_gato resolves this issue by taking advantage of the proximity of the genome's two copies of *mompS*. [A schematic of the organization of the two *mompS* copies can be found in Fig. 1 in this paper](https://doi.org/10.1016/j.cmi.2017.01.002). As described in the assembly section, *mompS* is sometimes present in two copies in the genome of *L. pneumophila* isolates. The sequence context of the two mompS copies is such that the correct copy is immediately upstream of the incorrect copy. Only the right copy is flanked on either side by sequences corresponding to primers (*mompS*-450F and *mompS*-1116R) used for conventional SBT. In contrast, while *mompS*-450F sequences are present upstream of the incorrect copy, the corresponding *mompS*-1116R sequences are not found downstream. For this reason, only the correct copy is amplified in conventional SBT (See below schematic)[should be a link to section]. 
-
-Duplicate gene copies pose an obvious challenge for a read mapping approach: reads from both *mompS* copies can map to the same reference sequence. el_gato resolves this issue by taking advantage of the presence of *mompS*-1116R downstream of only the correct copy of *mompS*.
+el_gato resolves this issue by taking advantage of the proximity of the genome's two copies of *mompS* [(a schematic of the organization of the two *mompS* copies can be found in Fig. 1 in this paper).](https://doi.org/10.1016/j.cmi.2017.01.002). The sequence context of the two *mompS* copies is such that the correct copy is immediately upstream of the incorrect copy. Only the right copy is flanked on either side by sequences corresponding to primers (*mompS*-450F and *mompS*-1116R) used for conventional SBT. In contrast, while *mompS*-450F sequences are present upstream of the incorrect copy, the corresponding *mompS*-1116R sequences are not found downstream. For this reason, only the correct copy is amplified in conventional SBT [(See below schematic)](#momps-read-mapping-schematic)
 
 The sequence of the two copies of *mompS* and the identity of the correct allele is then resolved through the following process:
 
@@ -270,6 +268,7 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 
 If the above process cannot identify the correct sequence, a ? will be returned as the *mompS* allele, and el_gato will report information about the steps in this process in the [output files](#output-files).
 
+### *momps* Read Mapping Schematic
 ![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
 
 # Using nextflow
