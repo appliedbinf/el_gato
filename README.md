@@ -142,9 +142,11 @@ A file named "all_mlst.txt" (i.e., the ST profile for each tested sample) is wri
 ### The files included in the output directory for a sample are: 
 
 ### standard out
-ST profile is written as a tab-delimited table without the headings  
-`Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH`   
-Headings are included if el_gato.py is run with `-e` flag. The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns have the allele number of the corresponding gene and the number of reads that support the *mompS* call.
+ST profile is written as a tab-delimited table without the headings. Headings are included if el_gato.py is run with `-e` flag and are displayed like so:
+
+`Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH`    
+
+ The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns have the allele number of the corresponding gene and the number of reads that support the *mompS* call.
 
 The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, the corresponding number is given. If no matching ST profile is found or el_gato was unable to make a confident call, then this will be reflected in the value displayed in the ST column.
 
