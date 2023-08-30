@@ -98,7 +98,8 @@ Optional arguments:
   --sample SAMPLE, -n SAMPLE
                         Sample name (default: <Inferred from input file>)
   --overwrite, -w       Overwrite output directory(default: False)
-  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files (default: .../el_gato/el_gato/db)
+  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files\
+   (default: .../el_gato/el_gato/db)
   --suffix SUFFIX, -x SUFFIX
                         Suffix of SBT allele files (default: _alleles.tfa)
   --profile PROFILE, -p PROFILE
