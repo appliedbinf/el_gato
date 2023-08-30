@@ -133,24 +133,25 @@ Optional arguments:
 When running on a directory of reads, files are associated as pairs using the pattern `R{1,2}.fastq`. i.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
 
 #### Genome assemblies
-When running on a directory of assemblies, all files in the target directory will be processed, and there will be no filename restrictions.
+When running on a directory of assemblies, all files in the target directory will be processed, and there is no filename restrictions.
 
 ## Output files
-After a run, el_gato will print the identified ST of your sample to your terminal (stdout) and write several files to the specified output directory (default: out/). 
-A file named "all_mlst.txt" (i.e., the ST profile for each tested sample) is written to the output directory and a subdirectory for each sample processed. Each directory is named with its sample name and contains output files specific to that sample (see below). 
+After a run, el_gato will print the identified ST of your sample to your terminal ([stdout](#standard-out)) and write several files to the specified output directory (default: out/).  A subdirectory is created for each sample processed, and each subdirectory is named with its sample name and contains output files specific to that sample (see below). 
 
 ### The files included in the output directory for a sample are: 
 
 ### standard out
 ST profile is written as a tab-delimited table without the headings. Headings are included if el_gato.py is run with `-e` flag and are displayed like so:
 
-`Sample  ST flaA   pilE asd   mip mompS   proA  neuA_neuAH`    
+`Sample  ST flaA  pilE  asd   mip   mompS proA  neuA_neuAH`    
 
- The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. The remaining columns have the allele number of the corresponding gene and the number of reads that support the *mompS* call.
-
+ The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. 
+ 
 The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, the corresponding number is given. If no matching ST profile is found or el_gato was unable to make a confident call, then this will be reflected in the value displayed in the ST column.
 
 The corresponding allele number is reported for each gene if an exact allele match is found in the database. Alternatively, el_gato may also note the following symbols:
+
+[Table needs to be updated, but output does not match table in ppt]
 
 | Symbol | Meaning |
 |:------:|:---------|
