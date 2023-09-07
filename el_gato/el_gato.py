@@ -11,7 +11,7 @@ import shutil
 import shlex
 import time
 import math
-from collections import defaultdict, Counter
+from collections import defaultdict, Counter, OrderedDict
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
@@ -32,17 +32,29 @@ class Ref:
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
     prereq_programs = ["minimap2", "samtools", "makeblastdb", "blastn", "isPcr"]
     REF_POSITIONS = {
-        "asd": {        
-            'start_pos' : 351,
-            'end_pos' : 823,
-        },
-        "flaA": {
+        "flaA": {        
             'start_pos' : 351,
             'end_pos' : 532,
+        },
+        "pilE": {
+            'start_pos' : 351,
+            'end_pos' : 683,
+        },
+        "asd": {
+            'start_pos' : 351,
+            'end_pos' : 823,
         },
         "mip": {
             'start_pos' : 350,
             'end_pos' : 751,
+        },
+        "mompS": {
+            'start_pos' : 367,
+            'end_pos' : 718,
+        },
+        "proA": {
+            'start_pos' : 350,
+            'end_pos' : 754,
         },
         "neuA": {
             'start_pos' : 350,
@@ -63,18 +75,6 @@ class Ref:
         "neuA_212": {
             'start_pos' : 350,
             'end_pos' : 700,
-        },
-        "pilE": {
-            'start_pos' : 351,
-            'end_pos' : 683,
-        },
-        "proA": {
-            'start_pos' : 350,
-            'end_pos' : 754,
-        },
-        "mompS": {
-            'start_pos' : 367,
-            'end_pos' : 718,
         },
     }
 
@@ -197,7 +197,7 @@ def get_args() -> argparse.ArgumentParser:
     group2.add_argument("--help", "-h", action="help", help="Show this help message and exit")
     group2.add_argument("--threads", "-t", help="Number of threads to run the programs (default: %(default)s)", type=int,
                         required=False, default=1)
-    group2.add_argument("--mincov", "-c", help="Specify the minimum coverage used to identify loci in paired-end reads (default: %(default)s)", type=int, required=False,
+    group2.add_argument("--depth", "-d", help="Specify the minimum depth used to identify loci in paired-end reads (default: %(default)s)", type=int, required=False,
                         default=10)
     group2.add_argument("--out", "-o", help="Output folder name (default: %(default)s)", type=str, required=False,
                         default="out")
@@ -385,7 +385,7 @@ def set_inputs(
     inputs["profile"] = args.profile
     inputs["verbose"] = args.verbose
     inputs["overwrite"] = args.overwrite
-    inputs["mincov"] = args.mincov
+    inputs["depth"] = args.depth
     inputs["header"] = args.header
     Ref.file = os.path.join(inputs["out_prefix"], Ref.file)
     if args.sample == inputs["sample_name"]:
@@ -643,6 +643,8 @@ def run_command(command: str,
     """
     logging.debug(f"Running command: {command}")
     full_command = command
+    
+    
     if tool is not None:
         logging.info(f"Running {tool}")
     if not shell:
@@ -661,6 +663,22 @@ def run_command(command: str,
             logging.critical(f"CRITICAL ERROR! The following command had an improper exit: \n{full_command}\n")
             sys.exit(1)
 
+# Sort BLAST output in SBT order
+    if tool == "blast":  
+        loci = ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA_neuAH']
+        al = []
+        res_string = ''
+        for line in result.splitlines():
+            line = line.split()
+            al.append(line)
+        res = [loc for x in loci for loc in al if x in loc[1]]
+        res = [" ".join(i) for i in res]
+        for i in res:
+            res_string += str(i)
+            res_string += '\n'
+        res_string = res_string.replace(" ", "\t")
+        result = res_string
+        
     if log_output:
         pretty_result = prettify("\n".join([column_headers, result]))
         if tool is not None:
@@ -750,6 +768,7 @@ def blast_momps_allele(inputs: dict, seq: str, db: str) -> list:
             a.allele_id = "-"
 
         return [a]
+        
 
 
 def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
@@ -882,8 +901,10 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     """
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
     if momps:
-        loci.append("mompS")
+        loci.insert(4, "mompS")
     calls = {k:[] for k in loci}
+    al = []
+    res_string = ''
 
     assembly_dict = fasta_to_dict(assembly_file)
 
@@ -891,10 +912,21 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     desc_header = "Best match of each locus in provided assembly using BLASTN."
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
     result = run_command(blast_command, tool='blast', shell=True, log_output=False)
-
+        
     result = filter_blast_hits(result, momps=momps, len_thresh=inputs['length'], pcnt_id_thresh=inputs['sequence'])
 
     # Now do the logging of the good blast hits
+    
+    for line in result.splitlines():
+        line = line.split()
+        al.append(line)
+    res = [loc for x in loci for loc in al if x in loc[1]]
+    res = [" ".join(i) for i in res]
+    for i in res:
+        res_string += str(i)
+        res_string += '\n'
+    res_string = res_string.replace(" ", "\t")
+    result = res_string
 
     pretty_result = prettify("\n".join([column_headers, result]))
     logging.debug(f"Command log for blast:\n{pretty_result}")
@@ -918,7 +950,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         if float(bits[2]) == 100.00 and bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]
         elif bits[3] == bits[13]:
-            a.allele_id = bits[1].split("_")[-1]+"*"
+            a.allele_id = "NAT"
         else:
             error_msg = f"The sequence of locus {locus} did not return a full length match in the database\n"
             logging.info(error_msg)
@@ -950,6 +982,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         calls[locus].append(a)
 
     not_found_loci = [k for k,v in calls.items() if v ==[]]
+    
 
     if len(not_found_loci) != 0:
         error_msg = f"The following loci were not found in your assembly: {', '.join(not_found_loci)}\n"
@@ -967,8 +1000,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         logging.info(error_msg)
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
             f.write(error_msg + '\n')
-
-
+            
     return calls
 
 def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
@@ -1113,6 +1145,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     alleles = {}
     cov_results = {}
+    loci = ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA']
     
     for line in result.strip().split('\n')[1:]:
         gene, _, _, cov, depth, _, _ = line.split()
@@ -1139,6 +1172,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         a = Allele()
         a.allele_id = '-'
         alleles['neuA_neuAH'] = [a]
+        neuA_catch = ''
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) > 1:
         cov_sorted = sorted(
@@ -1153,8 +1187,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 del ref.REF_POSITIONS[gene[0]]
         else:
             logging.info("Analysis of read mapping to neuA locus variants was unsuccessful. Unclear which to use.")
-
-    
+     
+    #ref.REF_POSITIONS = OrderedDict([(x, ref.REF_POSITIONS[x]) for loci in x])
     
     for locus in ref.REF_POSITIONS:
         locus_reads = contig_dict[locus]
@@ -1208,8 +1242,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     )
         min_cov = min(cov)
         
-        if min_cov < inputs['mincov']:
-            msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has below {inputs['mincov']} coverage and can't be resolved"
+        if min_cov < inputs['depth']:
+            msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has below {inputs['depth']} depth and can't be resolved"
             logging.info(msg)
             cov_msg += f"\n{msg}\n\n"
             a = Allele()
@@ -1217,8 +1251,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             alleles[locus] = [a]
             continue
 
-        cov_msg += f"minimum coverage of {locus} locus is {min_cov}." + '\n'
-        logging.info(f"minimum coverage of {locus} locus is {min_cov}.")
+        cov_msg += f"minimum depth of {locus} locus is {min_cov}." + '\n'
+        logging.info(f"minimum depth of {locus} locus is {min_cov}.")
 
         num_alleles_per_site = [len(i) for i in seq]
 
@@ -1318,8 +1352,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     else:
                         allele.seq += allele.basecalls[biallic_count]
                 if len(base) > 1:
-                    biallic_count+=1
-    
+                    biallic_count+=1                
+
     with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
         f.write(cov_msg + "\n\n")
 
@@ -1348,6 +1382,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
 def write_alleles_to_file(alleles: list, outdir: str):
     identified_allele_fasta_string = ""
+    loci = ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA_neuAH']
+    alleles = OrderedDict([(a, alleles[a]) for a in loci])
     for locus, l in alleles.items():
         if len(l) > 1:
             for n, allele in enumerate(l):
@@ -1406,6 +1442,7 @@ def map_alleles(inputs: dict, ref: Ref):
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
 
     result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header, column_headers=column_headers)
+    
     if len(result) == 0:
         logging.info("WARNING: No allele matches found in the database. Can't resolve any alleles!")
         with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
@@ -1423,7 +1460,7 @@ def map_alleles(inputs: dict, ref: Ref):
             for allele_list in alleles.values():
                 for allele in allele_list:
                     if bits[0] == allele.fasta_header:
-                        allele.allele_id = bits[1].split("_")[-1]+"*"
+                        allele.allele_id = "NAT"
 
     if len(alleles['mompS']) == 1:
         logging.info("1 mompS allele identified.")
@@ -1674,7 +1711,7 @@ def main():
         'profile' : os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"),
         'verbose' : False,
         'overwrite' : False,
-        'depth' : 3,
+        'depth' : 10,
         'analysis_path' : "",
         'logging_buffer_message' : "",
         'header' : True,
