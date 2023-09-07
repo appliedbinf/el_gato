@@ -4,7 +4,7 @@ nextflow.enable.dsl=2
 params.reads_dir = false
 params.assembly_dir = false
 params.threads = 1
-params.mincov = 10
+params.depth = 10
 params.length = 0.3
 params.sequence = 95.0
 params.out = 'el_gato_out'
@@ -35,7 +35,7 @@ process RUN_EL_GATO_READS {
   -2 $r2 \
   -o ${sampleId}_out \
   -t ${task.cpus} \
-  -c $params.mincov \
+  -d $params.depth \
   -w > mlst.txt
 
   mv mlst.txt ${sampleId}_out/
