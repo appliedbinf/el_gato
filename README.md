@@ -298,5 +298,4 @@ nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads
 
 # Assemblies
 nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory>
-
 ```
