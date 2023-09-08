@@ -151,8 +151,6 @@ The ST column can contain two kinds of values. If the identified ST corresponds 
 
 The corresponding allele number is reported for each gene if an exact allele match is found in the database. Alternatively, el_gato may also note the following symbols:
 
-[Table needs to be updated, but output does not match table in ppt]
-
 | Symbol | Meaning |
 |:------:|:---------|
 |Novel ST    | Novel Sequence Type: All 7 target genes were found, but not present in the profile - most likely a novel sequence type. |
@@ -292,4 +290,13 @@ nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads
 nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
 ```
 
-**Note:** To run nextflow without the singularity container, uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file. 
+**Note:** To run nextflow without the singularity container, uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file and use the following commands:
+
+```
+# Reads
+nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory>
+
+# Assemblies
+nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory>
+
+```
