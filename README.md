@@ -299,3 +299,5 @@ nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads
 # Assemblies
 nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory>
 ```
+## Output files for Nextflow
+At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each sub-directory is named with a sample name and contains output files specific to that sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample. 
