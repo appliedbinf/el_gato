@@ -1,7 +1,7 @@
 # el_gato
 **E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:  
 
-[Add two sentence summary of what el gato is]
+El_gato is a Bioinformatics tool that utilizes either a genome assembly (.fasta) or Illumina paired-end reads (.fastq) to replicate *Legionella pneumophila* Sequence Based Typing (SBT). From the input, 7 loci (*flaA*, *pilE*, *asd*, *mip*, *mompS*, *proA*, *neuA/neuAh*) are identified and compared to a database of sequence types. The sequence type provided for each input sample is based on the unique combination of the allelic identities of the 7 target loci. 
 
 * [Installation](#installation)
    * [Method 1: using conda](#method-1-using-conda)
@@ -96,7 +96,7 @@ Optional arguments:
   --threads THREADS        -t THREADS
                             Number of threads to run the programs (default: 1)
   --depth DEPTH            -d DEPTH
-                            Variant read depth cutoff (default: 3)
+                            Variant read depth cutoff (default: 10)
   --out OUT                -o OUT  
                             Output folder name (default: out)
   --sample SAMPLE          -n SAMPLE
@@ -155,9 +155,13 @@ The corresponding allele number is reported for each gene if an exact allele mat
 
 | Symbol | Meaning |
 |:------:|:---------|
+|Novel ST    | Novel Sequence Type: All 7 target genes were found, but not present in the profile - most likely a novel sequence type. |
+|Novel ST*    | Novel Sequence Type due to novel allele: One or multiple target genes have a novel allele found. |
+|MD-     | Missing Data: ST is  unidentifiable as a result of or more of the target genes that are unidentifiable.  |
+|MA?     | Multiple Alleles: ST is ambiguous due to multiple alleles that could not be resolved. |
 | NAT    | Novel Allele Type: BLAST cannot find an exact allele match - most likely a new allele. |
 | -      | Missing Data: Both percent and length identities are too low to return a match or N's in sequence. |
-| ?      | Multiple alleles: More than one allele was found and could not be resolved. |
+| ?      | Multiple Alleles: More than one allele was found and could not be resolved. |
 
 If symbols are present in the ST profile, the other output files produced by el_gato will provide additional information to understand what is being communicated.
 
@@ -179,7 +183,7 @@ Headers are included in outputs for the samtools coverage command and blast resu
 |:-------------:|:---------------------------------------------------:|
 | rname         | Locus name                                          |
 | numreads      | Number reads aligned to the region (after filtering)|
-| covbases      | Number of covered bases with depth >= 1             |
+| covbases      | Number of covered bases with depth >= 10             |
 | coverage      | Percentage of covered bases [0..100]                |
 | meandepth     | Mean depth of coverage                              |
 | meanbaseq     | Mean baseQ in covered region                        |
@@ -264,7 +268,7 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 
    a. Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
 
-   b. One allele has more than three times [still valid?] as many reads with correctly oriented primer as the other.  
+   b. One allele has more than three times as many reads with correctly oriented primer as the other.  
 
    c. One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
 
