@@ -11,6 +11,7 @@ import shutil
 import shlex
 import time
 import math
+import json
 from collections import defaultdict, Counter, OrderedDict
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
@@ -215,7 +216,8 @@ def get_args() -> argparse.ArgumentParser:
                         action="store_true", required=False, default=False)
     group2.add_argument("--header", "-e", help="Include column headers in the output table (default: %(default)s)", action="store_true", required=False, default=False),
     group2.add_argument("--length", "-l", help="Specify the BLAST hit length threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=0.3),
-    group2.add_argument("--sequence", "-q", help="Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=95.0),
+    group2.add_argument("--sequence", "-q", help="Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=95.0)
+    group2.add_argument("--samfile", "-m", help="Specify whether or not the SAM file is included in the output directory (default: %(default)s)", action="store_true", required=False, default=False),
 
 
     return parser
@@ -373,10 +375,13 @@ def set_inputs(
     if "r" in inputs["analysis_path"]:
         inputs["read1"] = args.read1
         inputs["read2"] = args.read2
+        inputs["samfile"] = args.samfile
+        inputs["json_out"]['operation_mode'] = "Reads"
     if "a" in inputs["analysis_path"]:
         inputs["assembly"] = args.assembly
         inputs["length"] = args.length
         inputs["sequence"] = args.sequence
+        inputs["json_out"]['operation_mode'] = "Assembly"
     inputs["threads"] = args.threads
     inputs["out_prefix"] = args.out
     inputs["log"] = os.path.join(args.out, "run.log")
@@ -904,6 +909,11 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         loci.insert(4, "mompS")
     calls = {k:[] for k in loci}
     al = []
+    j_list = []
+    blast_list = []
+    blast_dict = {}
+    b_dict = {}
+    loc_dict = {}
     res_string = ''
 
     assembly_dict = fasta_to_dict(assembly_file)
@@ -914,6 +924,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     result = run_command(blast_command, tool='blast', shell=True, log_output=False)
         
     result = filter_blast_hits(result, momps=momps, len_thresh=inputs['length'], pcnt_id_thresh=inputs['sequence'])
+    
 
     # Now do the logging of the good blast hits
     
@@ -939,7 +950,27 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
             f.write(desc_header + '\n\n')
         f.write(f"Command:\n\n{blast_command}\n\n")
         f.write(f"Output:\n\n{pretty_result}\n\n")
-
+    
+    # Write BLAST results to json
+    
+    for line in result.splitlines():
+        line = line.split()
+        j_list.append(line)
+    for j in j_list:
+        b_list = []
+        b_list.append(str(j[1]))
+        b_list.append(str(j[0]))
+        b_list.append(str(j[6]))
+        b_list.append(str(j[7]))
+        for l in loci:
+            if l in b_list[0]:
+                if l not in b_dict.keys():
+                    b_dict[l] = [b_list]
+                else:
+                    b_dict[l].append(b_list)
+    
+    blast_dict = {"BLAST_hit_locations": b_dict}
+    inputs["json_out"]['mode_specific'] = blast_dict
 
     for line in result.strip().split('\n'):
         bits = line.split()
@@ -1124,7 +1155,6 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                         allele.confidence['against'] += 1
                     
                     break
-
     
     return alleles_info
 
@@ -1151,7 +1181,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         gene, _, _, cov, depth, _, _ = line.split()
         cov = float(cov)
         depth = float(depth)
-        cov_results[gene] = {'cov': cov, 'depth': depth}
+        cov_results[gene] = {"Proportion_covered": str(cov), "Minimum_coverage": str(depth)}
         if cov != 100.:
             if 'neuA' in gene:
                 if cov < 99:
@@ -1176,7 +1206,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) > 1:
         cov_sorted = sorted(
-            [(k,v['depth']) for k,v in cov_results.items()],
+            [(k,v['Minimum_coverage']) for k,v in cov_results.items()],
             key=lambda x: x[1],
             reverse=True)
         # Try to use depth to determine the right one to use
@@ -1352,7 +1382,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     else:
                         allele.seq += allele.basecalls[biallic_count]
                 if len(base) > 1:
-                    biallic_count+=1                
+                    biallic_count+=1       
 
     with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
         f.write(cov_msg + "\n\n")
@@ -1376,9 +1406,13 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     elif len(neuAs) == 1:
         alleles['neuA_neuAH'] = alleles[neuAs[0]]
         del alleles[neuAs[0]]
+        
+    cov_dict = {}
+    cov_dict['locus_coverage'] = cov_results
+        
+    inputs["json_out"]['mode_specific'] = cov_dict
 
     return alleles
-
 
 def write_alleles_to_file(alleles: list, outdir: str):
     identified_allele_fasta_string = ""
@@ -1425,6 +1459,7 @@ def map_alleles(inputs: dict, ref: Ref):
     db = inputs['sbt']
     sample_name = inputs['sample_name']
     profile = inputs['profile']
+    samfile = inputs['samfile']
 
     # Run BWA mem
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
@@ -1531,6 +1566,7 @@ def map_alleles(inputs: dict, ref: Ref):
             alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > 0]
     temp_alleles = alleles.copy()
     temp_alleles['mompS'] = old_mompS
+    
     write_possible_mlsts(inputs=inputs, alleles=temp_alleles, header=True, confidence=True)
 
     for locus in [i for i in alleles if i != 'mompS']:
@@ -1552,6 +1588,12 @@ def map_alleles(inputs: dict, ref: Ref):
     with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
             fout.write(message)
 
+    if samfile == True:
+        pass
+    else:
+        os.remove(f"{outdir}/reads_vs_all_ref_filt.sam")
+    
+        
     return alleles
 
 
@@ -1578,6 +1620,23 @@ def write_possible_mlsts(inputs: dict, alleles: dict, header: bool, confidence: 
                                     possible_mlsts += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + f"\t{mompS.confidence['for']}\t{mompS.confidence['against']}\n")
                                 else:
                                      possible_mlsts += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + "\n")
+                                     
+    al_list = []                           
+    primer_list = []
+    
+    if inputs["json_out"]['operation_mode'] == "Reads":
+        for line in possible_mlsts.splitlines():
+            line = line.split("\t")
+            al_list.append(line)
+        for a in al_list[1:]:
+            pl = []
+            pl.append("mompS_"+str(a[6]))
+            pl.append(str(a[9]))
+            pl.append(str(a[10]))
+            primer_list.append(pl)
+        inputs["json_out"]['mode_specific']['mompS_primers'] = primer_list
+    else:
+        pass
 
     with open(f"{inputs['out_prefix']}/possible_mlsts.txt", 'w') as f:
         f.write(possible_mlsts)
@@ -1642,7 +1701,8 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     str
         formatted ST + allele profile (and optional header) of the isolate
     """
-
+    loci = ['st', 'flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA_neuAH']
+    i = 0
     outlines = []
     if inputs['header']:
         header = "Sample\tST\t" + "\t".join(Ref.locus_order)
@@ -1663,7 +1723,31 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
             + "\t" + allele_profile)
 
         outlines.append(allele_profile)
-
+    
+    inputs["json_out"]['id'] = inputs["sample_name"]
+    if inputs["json_out"]['operation_mode'] == "Assembly":
+        inputs["json_out"]['mode_specific']['length_id'] = str(inputs["length"])
+        inputs["json_out"]['mode_specific']['sequence_id'] = str(inputs["sequence"])
+    else:
+        pass
+    allele_dict = {}
+  
+    
+    out_string = "\n".join(outlines)
+    for line in out_string.splitlines():
+        line = line.split("\t")
+        while i < len(loci):
+            allele_dict[loci[i]] = line[i+1]
+            i+=1
+    inputs["json_out"]['mlst'] = allele_dict
+    
+    if inputs["json_out"]['operation_mode'] == "Reads":
+        if allele_dict['mompS'] == "?" or allele_dict['mompS'] == "NAT" or allele_dict['mompS'] == "-":
+            inputs["json_out"]['mode_specific']['mompS_primer_conclusion'] = "inconclusive"
+        else:
+            inputs["json_out"]['mode_specific']['mompS_primer_conclusion'] = "mompS_"+allele_dict['mompS']
+    else:
+        pass
     
     return "\n".join(outlines)
 
@@ -1716,7 +1800,9 @@ def main():
         'logging_buffer_message' : "",
         'header' : True,
         'length' : 0.3, 
-        'sequence' : 95.0
+        'sequence' : 95.0,
+        'samfile' : False,
+        'json_out' : {}
         }
 
 
@@ -1745,11 +1831,14 @@ def main():
     get_inputs(inputs)
     logging.info("Starting analysis")
     output = choose_analysis_path(inputs, Ref)
+    json_out = inputs["json_out"]
+    json_dump = json.dumps(json_out, indent=2)
+    with open(os.path.join(inputs["out_prefix"], "report.json"), "w") as j_out:
+        j_out.write(json_dump)
     logging.info("Finished analysis")
 
     logging.debug(f"Output = \n{output}\n")
     print(output)
-
     total_time = pretty_time_delta(int(time.time() - t0))
     logging.info(f"The program took {total_time}")
 
