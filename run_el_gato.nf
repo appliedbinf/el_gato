@@ -98,6 +98,26 @@ process CAT {
   """
 }
 
+process FINAL_JSON {
+  publishDir params.out, mode: 'copy', overwrite: true
+  input:
+    path files
+
+  output:
+   path 'report.json'
+  
+  """
+  echo "[" > report.tmp
+  cat \$(ls *.json | head -1) >> report.tmp
+  ls *.json | tail -n+2 | while read jfile; do
+  echo "," >> report.tmp;
+  cat \$jfile >> report.tmp;
+  done
+  echo "]" >> report.tmp
+  mv report.tmp report.json
+  """
+}
+
 workflow {
   if (params.reads_dir) {
 
@@ -105,6 +125,7 @@ workflow {
 
     files = RUN_EL_GATO_READS(readPairs).collect()
     CAT(files)
+    FINAL_JSON(files)
 
 
   } else {
@@ -114,6 +135,7 @@ workflow {
 
       files = RUN_EL_GATO_ASSEMBLIES(assemblies).collect()
       CAT(files)
+      FINAL_JSON(files)
 
     } else {
       print "Please provide the path to a directory containing paired reads using --reads_dir or the path to a directory containing assemblies using --assembly_dir."
