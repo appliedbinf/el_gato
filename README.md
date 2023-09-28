@@ -21,6 +21,7 @@ El_gato is a bioinformatics tool that utilizes either a genome assembly (.fasta)
      * [identified_alleles.fna](#identified_allelesfna)
      * [run.log](#runlog)
      * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sortedbam-reads-only)
+     * [report.json](#report-json)
 * [How does el_gato work?](#approach)
 * [Using Nextflow](#using-nextflow)
 
@@ -123,6 +124,10 @@ Optional arguments:
                             Specify BLAST hit percent identity threshold for  
                             identifying multiple loci in an assembly  
                             (default: 95.0)
+--samfile SAMFILE          -m SAMFILE
+                            Allows the user to include the reads_vs_all_ref_filt.sam
+                            file to be included in the output directory.
+                            (default: False)
 ```
 
 # Input and Output
