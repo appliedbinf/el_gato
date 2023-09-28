@@ -224,6 +224,13 @@ el_gato maps the provided reads to [a set of reference sequences in the el_gato 
 
 **Note:** A SAM file is also present, which has the same information as in the BAM file.
 
+### report.json
+Each sample outputs a json file that contains relevant information about the run that will be included in the report PDF.   
+Summary page metadata: Complete MLST profile of the sample and the abbreviation key for the symbols.  
+Run-specific data:  
+    Paired-end reads: Locus coverage information and *mompS* primer information.  
+    Assembly: BLAST hit length and sequence identity thresholds and locus location information.  
+
 # Approach
 
  At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. Whereas loci *mompS* and *neuA/neuAh* require more involved processing, with neuA/neuAh being an issue only when processing reads—the specifics of these loci are discussed in the corresponding sections below. 
