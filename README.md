@@ -323,7 +323,6 @@ At the completion of a run, the specified output directory (default: el_gato_out
 Additionally, the specified output directory will contain a combined json file (report.json) that contains all of the data from the individual sample-level json files and the report PDF (report.pdf).
 
 # Reporting Module  
-
 ## Dependencies
   * [fpdf2](https://github.com/py-pdf/fpdf2)
 
