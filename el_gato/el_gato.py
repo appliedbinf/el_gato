@@ -1217,6 +1217,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 del ref.REF_POSITIONS[gene[0]]
         else:
             logging.info("Analysis of read mapping to neuA locus variants was unsuccessful. Unclear which to use.")
+        print(cov_sorted)
+        sys.exit()
      
     #ref.REF_POSITIONS = OrderedDict([(x, ref.REF_POSITIONS[x]) for loci in x])
     
@@ -1587,12 +1589,11 @@ def map_alleles(inputs: dict, ref: Ref):
 
     with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
             fout.write(message)
-
+            
     if samfile == True:
         pass
     else:
-        os.remove(f"{outdir}/reads_vs_all_ref_filt.sam")
-    
+        os.remove(f"{outdir}/reads_vs_all_ref_filt.sam")  
         
     return alleles
 
