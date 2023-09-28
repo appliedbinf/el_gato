@@ -251,7 +251,7 @@ class Report(FPDF):
 		pdf.ln(4)
 		pdf.cell(
 			w=0,h=2,
-			txt="Length Identity and Sequence Identity: " + self.mode_specific['length_id'] +"; "+self.mode_specific['sequence_id'] + "%",
+			txt="BLAST Hit Length and Sequence Identity Thresholds: " + self.mode_specific['length_id'] +"; "+self.mode_specific['sequence_id'] + "%",
 			new_x="LMARGIN", new_y="NEXT"
 		)
 		pdf.ln(10)
@@ -341,11 +341,11 @@ class Report(FPDF):
 					max_length = column_length
 			num_lines = math.ceil(max_length / characters)
 			cell_height = 2* num_lines * font_size
-			if pdf_y + cell_height > pdf.page_break_trigger:
+			if pdf_y + cell_height + 10 > pdf.page_break_trigger:
 				batches.append(this_batch)
 				this_batch = [row]
 				n+=1
-				pdf_y = 60 + cell_height # Whatever we want the starting y position to be on a new page
+				pdf_y = 60 # Whatever we want the starting y position to be on a new page
 				continue
 
 			n+=1
@@ -422,6 +422,9 @@ def main():
 			pdf.set_font('Courier', '', 11)
 			pdf = Report.make_mlst_table(pdf, batch)
 			pdf.ln(5)
+	if pdf.get_y() + 50 > pdf.page_break_trigger:
+		pdf.add_page()
+		pdf.ln(10)
 	pdf.set_font(style="U")
 	pdf.cell(w=0,h=0, txt="Abbreviation Key", new_x="LMARGIN", new_y="NEXT")
 	pdf.ln(5)
