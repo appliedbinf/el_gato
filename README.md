@@ -73,6 +73,7 @@ Usage information printed when running el_gato.py with `-h` or `--help`.
 usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help]  
 [--threads THREADS] [--depth DEPTH]  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT]  
 [--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header] [--length LENGTH] [--sequence SEQUENCE]
+[--samfile SAMFILE]
 
 Legionella in silico sequence-based typing (SBT) script.
     Requires paired-end reads files or a genome assembly.
@@ -126,7 +127,7 @@ Optional arguments:
                             (default: 95.0)
 --samfile SAMFILE          -m SAMFILE
                             Allows the user to include the reads_vs_all_ref_filt.sam
-                            file to be included in the output directory.
+                            file to be included in the output directory
                             (default: False)
 ```
 
