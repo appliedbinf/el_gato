@@ -21,7 +21,7 @@ El_gato is a bioinformatics tool that utilizes either a genome assembly (.fasta)
      * [identified_alleles.fna](#identified_allelesfna)
      * [run.log](#runlog)
      * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sortedbam-reads-only)
-     * [report.json](#report-json)
+     * [report.json](#reportjson)
 * [How does el_gato work?](#approach)
 * [Using Nextflow](#using-nextflow)
 
