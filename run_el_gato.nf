@@ -118,6 +118,20 @@ process FINAL_JSON {
   """
 }
 
+process FINAL_REPORT {
+  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
+  publishDir params.out, mode: 'copy', overwrite: true
+  input:
+    path files
+  
+  output:
+    path 'report.pdf'
+    
+  """
+  elgato_report.py *.json
+  """
+}
+
 workflow {
   if (params.reads_dir) {
 
@@ -126,6 +140,7 @@ workflow {
     files = RUN_EL_GATO_READS(readPairs).collect()
     CAT(files)
     FINAL_JSON(files)
+    FINAL_REPORT(files)
 
 
   } else {
@@ -136,6 +151,7 @@ workflow {
       files = RUN_EL_GATO_ASSEMBLIES(assemblies).collect()
       CAT(files)
       FINAL_JSON(files)
+      FINAL_REPORT(files)
 
     } else {
       print "Please provide the path to a directory containing paired reads using --reads_dir or the path to a directory containing assemblies using --assembly_dir."
