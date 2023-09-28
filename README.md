@@ -21,7 +21,7 @@ El_gato is a bioinformatics tool that utilizes either a genome assembly (.fasta)
      * [identified_alleles.fna](#identified_allelesfna)
      * [run.log](#runlog)
      * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sortedbam-reads-only)
-     * [report.json](#report.json)
+     * [report.json](#report-json)
 * [How does el_gato work?](#approach)
 * [Using Nextflow](#using-nextflow)
 
@@ -224,12 +224,13 @@ el_gato maps the provided reads to [a set of reference sequences in the el_gato 
 
 **Note:** A SAM file is also present, which has the same information as in the BAM file.
 
-### report.json
+### report-json
 Each sample outputs a json file that contains relevant information about the run that will be included in the report PDF.   
 
 Summary page metadata: Complete MLST profile of the sample and the abbreviation key for the symbols.  
 
 Run-specific data:  
+
 Paired-end reads: Locus coverage information and *mompS* primer information.  
 
 Assembly: BLAST hit length and sequence identity thresholds and locus location information.  
