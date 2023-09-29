@@ -8,6 +8,7 @@ params.depth = 10
 params.length = 0.3
 params.sequence = 95.0
 params.out = 'el_gato_out'
+params.samfile = false
 
 process RUN_EL_GATO_READS {
   conda "-c conda-forge -c bioconda -c appliedbinf elgato"
@@ -26,7 +27,28 @@ process RUN_EL_GATO_READS {
   
   r1 = reads[0]
   r2 = reads[1]
+  if (params.samfile == true) {
+    
+  """
+  mkdir ${sampleId}_out/
 
+  el_gato.py \
+  -1 $r1 \
+  -2 $r2 \
+  -o ${sampleId}_out \
+  -t ${task.cpus} \
+  -d $params.depth \
+  -m \
+  -w > mlst.txt
+
+  mv mlst.txt ${sampleId}_out/
+
+  for file in \$(ls ${sampleId}_out/); do
+  mv ${sampleId}_out/\$file ${sampleId}_out/${sampleId}_\$file
+  done
+
+  """
+}else{
   """
   mkdir ${sampleId}_out/
 
@@ -45,6 +67,7 @@ process RUN_EL_GATO_READS {
   done
 
   """
+  }
 }
 
 process RUN_EL_GATO_ASSEMBLIES {
