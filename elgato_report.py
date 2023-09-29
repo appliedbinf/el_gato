@@ -37,13 +37,14 @@ to identify multiple alleles on multiple contigs ('?'). Highlighted rows illustr
 failure of allele identification.\
 """
 
-cdc_header = """\
-National Center for Immunization and Respiratory \n
-Diseases (NCIRD) \n
-Division of Bacterial Diseases (DBD) / \n
-Respiratory Diseases Branch (RDB) \n
-Pneumonia Response and Surveillance Laboratory (PRSL)\
+bioconda_header = """\
+El_gato Reports \n
+Used for Batch and Sample-Level Summaries \n
+Developed by Applied Bioinformatics Laboratory \n
+(ABiL) \n
+2023\
 """
+
 abbrev_key = """\
 Novel ST = The alleles for all 7 loci were identified, however their unique combination and corresponding ST has not been found in the database. \n
 Novel ST* = One or more locus failed to amplify, which may indicate a novel allele. \n
@@ -386,10 +387,10 @@ class Report(FPDF):
 
 class PDF(FPDF):
 	def header(self):
-		self.image("https://www.drought.gov/sites/default/files/styles/i_square_240_240/public/hero/partners/CDC_logo.png.webp?itok=Yja6wdoM", 10, 8, 33, keep_aspect_ratio=True)
+		self.image("https://en.vircell.com/media/filer_public_thumbnails/filer_public/48/18/48184d99-1af0-46ad-a0ad-fcb65fa7b177/fotolia_7966544_xxlweb.jpg__409x999_q85_subsampling-2_upscale.jpg", 10, 8, 33, keep_aspect_ratio=True)
 		self.set_font('Courier', '', 10)
 		self.cell(80)
-		self.multi_cell(h=2,w=0, txt=cdc_header, align="C")
+		self.multi_cell(h=2,w=0, txt=bioconda_header, align="C")
 		self.ln(2)
 
 def main():
