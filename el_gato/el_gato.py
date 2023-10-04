@@ -13,9 +13,11 @@ import time
 import math
 import json
 from collections import defaultdict, Counter, OrderedDict
+from pkg_resources import get_distribution
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
+version = get_distribution('elgato').version
 
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
@@ -196,6 +198,7 @@ def get_args() -> argparse.ArgumentParser:
                         metavar="Assembly file")
     group2 = parser.add_argument_group(title='Optional arguments')
     group2.add_argument("--help", "-h", action="help", help="Show this help message and exit")
+    group2.add_argument("--version", "-v", help="Print the version", default=False, action='store_true')
     group2.add_argument("--threads", "-t", help="Number of threads to run the programs (default: %(default)s)", type=int,
                         required=False, default=1)
     group2.add_argument("--depth", "-d", help="Specify the minimum depth used to identify loci in paired-end reads (default: %(default)s)", type=int, required=False,
@@ -212,7 +215,7 @@ def get_args() -> argparse.ArgumentParser:
                         required=False, default="_alleles.tfa")
     group2.add_argument("--profile", "-p", help="Name of allele profile to ST mapping file (default: %(default)s)",
                         type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"))
-    group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
+    group2.add_argument("--verbose", help="Print what the script is doing (default: %(default)s)",
                         action="store_true", required=False, default=False)
     group2.add_argument("--header", "-e", help="Include column headers in the output table (default: %(default)s)", action="store_true", required=False, default=False),
     group2.add_argument("--length", "-l", help="Specify the BLAST hit length threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=0.3),
@@ -221,7 +224,6 @@ def get_args() -> argparse.ArgumentParser:
 
 
     return parser
-
 
 def fasta_to_dict(FASTA_file: str) -> dict: 
     """Read a fasta file into a dict    
@@ -1811,6 +1813,9 @@ def main():
 
     parser = get_args()
     args = parser.parse_args()
+    if args.version:
+        print(version)
+        sys.exit()
     inputs = check_input_supplied(args, parser, inputs)
     inputs = set_inputs(args, inputs)
     make_output_directory(inputs)
