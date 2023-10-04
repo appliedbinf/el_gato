@@ -1346,8 +1346,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     if len(set(calls)) > 1:
                         conflicting_reads.append(calls_list)
                         break
-                    else:
+                    elif len(set(calls)) == 1:
                         agreeing_calls.append(calls[0])
+                    else:
+                        continue
                 if len(agreeing_calls) != 0:
                     read_pair_base_calls.append("".join(agreeing_calls))
 
