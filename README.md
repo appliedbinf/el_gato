@@ -1,7 +1,7 @@
 # el_gato
 **E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:  
 
-[Add two sentence summary of what el gato is]
+El_gato is a bioinformatics tool that utilizes either a genome assembly (.fasta) or Illumina paired-end reads (.fastq) to replicate *Legionella pneumophila* Sequence Based Typing (SBT). From the input, 7 loci (*flaA*, *pilE*, *asd*, *mip*, *mompS*, *proA*, *neuA/neuAh*) are identified and compared to a database of sequence types. The sequence type provided for each input sample is based on the unique combination of the allelic identities of the 7 target loci. 
 
 * [Installation](#installation)
    * [Method 1: using conda](#method-1-using-conda)
@@ -21,8 +21,10 @@
      * [identified_alleles.fna](#identified_allelesfna)
      * [run.log](#runlog)
      * [reads_vs_all_ref_filt_sorted.bam](#reads_vs_all_ref_filt_sortedbam-reads-only)
+     * [report.json](#reportjson)
 * [How does el_gato work?](#approach)
 * [Using Nextflow](#using-nextflow)
+* [Reporting Module](#reporting-module)
 
 Codebase stage: development   
 Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/dmashruwala), [Alan Collins](https://github.com/Alan-Collins)
@@ -72,6 +74,7 @@ Usage information printed when running el_gato.py with `-h` or `--help`.
 usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help]  
 [--threads THREADS] [--depth DEPTH]  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT]  
 [--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header] [--length LENGTH] [--sequence SEQUENCE]
+[--samfile SAMFILE]
 
 Legionella in silico sequence-based typing (SBT) script.
     Requires paired-end reads files or a genome assembly.
@@ -96,7 +99,7 @@ Optional arguments:
   --threads THREADS        -t THREADS
                             Number of threads to run the programs (default: 1)
   --depth DEPTH            -d DEPTH
-                            Variant read depth cutoff (default: 3)
+                            Variant read depth cutoff (default: 10)
   --out OUT                -o OUT  
                             Output folder name (default: out)
   --sample SAMPLE          -n SAMPLE
@@ -123,6 +126,10 @@ Optional arguments:
                             Specify BLAST hit percent identity threshold for  
                             identifying multiple loci in an assembly  
                             (default: 95.0)
+--samfile SAMFILE          -m SAMFILE
+                            Allows the user to include the reads_vs_all_ref_filt.sam
+                            file to be included in the output directory
+                            (default: False)
 ```
 
 # Input and Output
@@ -151,13 +158,15 @@ The ST column can contain two kinds of values. If the identified ST corresponds 
 
 The corresponding allele number is reported for each gene if an exact allele match is found in the database. Alternatively, el_gato may also note the following symbols:
 
-[Table needs to be updated, but output does not match table in ppt]
-
 | Symbol | Meaning |
 |:------:|:---------|
+|Novel ST    | Novel Sequence Type: All 7 target genes were found, but not present in the profile - most likely a novel sequence type. |
+|Novel ST*    | Novel Sequence Type due to novel allele: One or multiple target genes have a novel allele found. |
+|MD-     | Missing Data: ST is  unidentifiable as a result of or more of the target genes that are unidentifiable.  |
+|MA?     | Multiple Alleles: ST is ambiguous due to multiple alleles that could not be resolved. |
 | NAT    | Novel Allele Type: BLAST cannot find an exact allele match - most likely a new allele. |
 | -      | Missing Data: Both percent and length identities are too low to return a match or N's in sequence. |
-| ?      | Multiple alleles: More than one allele was found and could not be resolved. |
+| ?      | Multiple Alleles: More than one allele was found and could not be resolved. |
 
 If symbols are present in the ST profile, the other output files produced by el_gato will provide additional information to understand what is being communicated.
 
@@ -179,7 +188,7 @@ Headers are included in outputs for the samtools coverage command and blast resu
 |:-------------:|:---------------------------------------------------:|
 | rname         | Locus name                                          |
 | numreads      | Number reads aligned to the region (after filtering)|
-| covbases      | Number of covered bases with depth >= 1             |
+| covbases      | Number of covered bases with depth >= 10             |
 | coverage      | Percentage of covered bases [0..100]                |
 | meandepth     | Mean depth of coverage                              |
 | meanbaseq     | Mean baseQ in covered region                        |
@@ -215,6 +224,17 @@ A detailed log of the steps taken during el_gato's running includes the outputs 
 el_gato maps the provided reads to [a set of reference sequences in the el_gato db directory](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/ref_gene_regions.fna). The mapped reads are then used to extract the sequences present in the sample for identifying the alleles and, ultimately, the ST. reads_vs_all_ref_filt_sorted.bam and its associated file reads_vs_all_ref_filt_sorted.bai contains the mapping information that was used by el_gato. The BAM file can be viewed using software such as [IGV](https://software.broadinstitute.org/software/igv/) to understand better the data used by el_gato to make allele calls. Additionally, this file is a good starting point for investigating the cause of incorrectly resolved loci.
 
 **Note:** A SAM file is also present, which has the same information as in the BAM file.
+
+### report-json
+Each sample outputs a json file that contains relevant information about the run that will be included in the report PDF.   
+
+Summary page metadata: Complete MLST profile of the sample and the abbreviation key for the symbols.  
+
+Run-specific data:  
+
+Paired-end reads: Locus coverage information and *mompS* primer information.  
+
+Assembly: BLAST hit length and sequence identity thresholds and locus location information.  
 
 # Approach
 
@@ -264,7 +284,7 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 
    a. Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
 
-   b. One allele has more than three times [still valid?] as many reads with correctly oriented primer as the other.  
+   b. One allele has more than three times as many reads with correctly oriented primer as the other.  
 
    c. One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
 
@@ -288,4 +308,27 @@ nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads
 nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory> -profile singularity -c nextflow.config
 ```
 
-**Note:** To run nextflow without the singularity container, uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file. 
+**Note:** To run nextflow without the singularity container, uncomment conda environment installation on line 10 and line 47 of the run_el_gato.nf file and use the following commands:
+
+```
+# Reads
+nextflow run_el_gato.nf --reads_dir <path/to/reads/directory> --threads <threads> --out <path/to/output/directory>
+
+# Assemblies
+nextflow run_el_gato.nf --assembly_dir <path/to/assemblies/directory> --threads <threads> --out <path/to/output/directory>
+```
+## Output files for Nextflow
+At the completion of a run, the specified output directory (default: el_gato_out/) will contain a file named "all_mlst.txt" (the MLST profile of each sample) and one directory for each sample processed. Each sub-directory is named with a sample name and contains output files specific to that sample. These files include the el_gato log file and files providing more details about the sequences identified in the sample.  
+
+Additionally, the specified output directory will contain a combined json file (report.json) that contains all of the data from the individual sample-level json files and the report PDF (report.pdf).
+
+# Reporting Module  
+## Dependencies
+  * [fpdf2](https://github.com/py-pdf/fpdf2)
+
+We provide a script that generates a PDF report of each el_gato run using the report.json file generated in the output folder for each sample.  
+This report generated by Nextflow by default, but must be run manually if running el_gato for individual samples. If run manually, the report PDF
+will output to the current working directory.  
+```
+elgato_report.py <path/to/output/directory>/report.json
+```

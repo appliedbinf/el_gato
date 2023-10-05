@@ -4,10 +4,11 @@ nextflow.enable.dsl=2
 params.reads_dir = false
 params.assembly_dir = false
 params.threads = 1
-params.mincov = 10
+params.depth = 10
 params.length = 0.3
 params.sequence = 95.0
 params.out = 'el_gato_out'
+params.samfile = false
 
 process RUN_EL_GATO_READS {
   conda "-c conda-forge -c bioconda -c appliedbinf elgato"
@@ -26,7 +27,8 @@ process RUN_EL_GATO_READS {
   
   r1 = reads[0]
   r2 = reads[1]
-
+  if (params.samfile == true) {
+    
   """
   mkdir ${sampleId}_out/
 
@@ -35,7 +37,8 @@ process RUN_EL_GATO_READS {
   -2 $r2 \
   -o ${sampleId}_out \
   -t ${task.cpus} \
-  -c $params.mincov \
+  -d $params.depth \
+  -m \
   -w > mlst.txt
 
   mv mlst.txt ${sampleId}_out/
@@ -45,6 +48,26 @@ process RUN_EL_GATO_READS {
   done
 
   """
+}else{
+  """
+  mkdir ${sampleId}_out/
+
+  el_gato.py \
+  -1 $r1 \
+  -2 $r2 \
+  -o ${sampleId}_out \
+  -t ${task.cpus} \
+  -d $params.depth \
+  -w > mlst.txt
+
+  mv mlst.txt ${sampleId}_out/
+
+  for file in \$(ls ${sampleId}_out/); do
+  mv ${sampleId}_out/\$file ${sampleId}_out/${sampleId}_\$file
+  done
+
+  """
+  }
 }
 
 process RUN_EL_GATO_ASSEMBLIES {
@@ -98,6 +121,40 @@ process CAT {
   """
 }
 
+process FINAL_JSON {
+  publishDir params.out, mode: 'copy', overwrite: true
+  input:
+    path files
+
+  output:
+   path 'report.json'
+  
+  """
+  echo "[" > report.tmp
+  cat \$(ls *.json | head -1) >> report.tmp
+  ls *.json | tail -n+2 | while read jfile; do
+  echo "," >> report.tmp;
+  cat \$jfile >> report.tmp;
+  done
+  echo "]" >> report.tmp
+  mv report.tmp report.json
+  """
+}
+
+process FINAL_REPORT {
+  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
+  publishDir params.out, mode: 'copy', overwrite: true
+  input:
+    path files
+  
+  output:
+    path 'report.pdf'
+    
+  """
+  elgato_report.py *.json
+  """
+}
+
 workflow {
   if (params.reads_dir) {
 
@@ -105,6 +162,8 @@ workflow {
 
     files = RUN_EL_GATO_READS(readPairs).collect()
     CAT(files)
+    FINAL_JSON(files)
+    FINAL_REPORT(files)
 
 
   } else {
@@ -114,6 +173,8 @@ workflow {
 
       files = RUN_EL_GATO_ASSEMBLIES(assemblies).collect()
       CAT(files)
+      FINAL_JSON(files)
+      FINAL_REPORT(files)
 
     } else {
       print "Please provide the path to a directory containing paired reads using --reads_dir or the path to a directory containing assemblies using --assembly_dir."

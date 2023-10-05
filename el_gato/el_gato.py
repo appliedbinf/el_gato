@@ -11,10 +11,15 @@ import shutil
 import shlex
 import time
 import math
-from collections import defaultdict, Counter
+import json
+from collections import defaultdict, Counter, OrderedDict
+#from pkg_resources import get_distribution
+from importlib import metadata
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
+#version = get_distribution('elgato').version
+version = metadata.version('elgato')
 
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
@@ -32,17 +37,29 @@ class Ref:
     mompS_primer2 = "TTGACCATGAGTGGGATTGG\tCAGAAGCTGCGAAATCAG"
     prereq_programs = ["minimap2", "samtools", "makeblastdb", "blastn", "isPcr"]
     REF_POSITIONS = {
-        "asd": {        
-            'start_pos' : 351,
-            'end_pos' : 823,
-        },
-        "flaA": {
+        "flaA": {        
             'start_pos' : 351,
             'end_pos' : 532,
+        },
+        "pilE": {
+            'start_pos' : 351,
+            'end_pos' : 683,
+        },
+        "asd": {
+            'start_pos' : 351,
+            'end_pos' : 823,
         },
         "mip": {
             'start_pos' : 350,
             'end_pos' : 751,
+        },
+        "mompS": {
+            'start_pos' : 367,
+            'end_pos' : 718,
+        },
+        "proA": {
+            'start_pos' : 350,
+            'end_pos' : 754,
         },
         "neuA": {
             'start_pos' : 350,
@@ -63,18 +80,6 @@ class Ref:
         "neuA_212": {
             'start_pos' : 350,
             'end_pos' : 700,
-        },
-        "pilE": {
-            'start_pos' : 351,
-            'end_pos' : 683,
-        },
-        "proA": {
-            'start_pos' : 350,
-            'end_pos' : 754,
-        },
-        "mompS": {
-            'start_pos' : 367,
-            'end_pos' : 718,
         },
     }
 
@@ -195,9 +200,10 @@ def get_args() -> argparse.ArgumentParser:
                         metavar="Assembly file")
     group2 = parser.add_argument_group(title='Optional arguments')
     group2.add_argument("--help", "-h", action="help", help="Show this help message and exit")
+    group2.add_argument("--version", "-v", help="Print the version", default=False, action='store_true')
     group2.add_argument("--threads", "-t", help="Number of threads to run the programs (default: %(default)s)", type=int,
                         required=False, default=1)
-    group2.add_argument("--mincov", "-c", help="Specify the minimum coverage used to identify loci in paired-end reads (default: %(default)s)", type=int, required=False,
+    group2.add_argument("--depth", "-d", help="Specify the minimum depth used to identify loci in paired-end reads (default: %(default)s)", type=int, required=False,
                         default=10)
     group2.add_argument("--out", "-o", help="Output folder name (default: %(default)s)", type=str, required=False,
                         default="out")
@@ -211,15 +217,15 @@ def get_args() -> argparse.ArgumentParser:
                         required=False, default="_alleles.tfa")
     group2.add_argument("--profile", "-p", help="Name of allele profile to ST mapping file (default: %(default)s)",
                         type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"))
-    group2.add_argument("--verbose", "-v", help="Print what the script is doing (default: %(default)s)",
+    group2.add_argument("--verbose", help="Print what the script is doing (default: %(default)s)",
                         action="store_true", required=False, default=False)
     group2.add_argument("--header", "-e", help="Include column headers in the output table (default: %(default)s)", action="store_true", required=False, default=False),
     group2.add_argument("--length", "-l", help="Specify the BLAST hit length threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=0.3),
-    group2.add_argument("--sequence", "-q", help="Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=95.0),
+    group2.add_argument("--sequence", "-q", help="Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: %(default)s)", type = float, required=False, default=95.0)
+    group2.add_argument("--samfile", "-m", help="Specify whether or not the SAM file is included in the output directory (default: %(default)s)", action="store_true", required=False, default=False),
 
 
     return parser
-
 
 def fasta_to_dict(FASTA_file: str) -> dict: 
     """Read a fasta file into a dict    
@@ -373,10 +379,13 @@ def set_inputs(
     if "r" in inputs["analysis_path"]:
         inputs["read1"] = args.read1
         inputs["read2"] = args.read2
+        inputs["samfile"] = args.samfile
+        inputs["json_out"]['operation_mode'] = "Reads"
     if "a" in inputs["analysis_path"]:
         inputs["assembly"] = args.assembly
         inputs["length"] = args.length
         inputs["sequence"] = args.sequence
+        inputs["json_out"]['operation_mode'] = "Assembly"
     inputs["threads"] = args.threads
     inputs["out_prefix"] = args.out
     inputs["log"] = os.path.join(args.out, "run.log")
@@ -385,7 +394,7 @@ def set_inputs(
     inputs["profile"] = args.profile
     inputs["verbose"] = args.verbose
     inputs["overwrite"] = args.overwrite
-    inputs["mincov"] = args.mincov
+    inputs["depth"] = args.depth
     inputs["header"] = args.header
     Ref.file = os.path.join(inputs["out_prefix"], Ref.file)
     if args.sample == inputs["sample_name"]:
@@ -643,6 +652,8 @@ def run_command(command: str,
     """
     logging.debug(f"Running command: {command}")
     full_command = command
+    
+    
     if tool is not None:
         logging.info(f"Running {tool}")
     if not shell:
@@ -661,6 +672,22 @@ def run_command(command: str,
             logging.critical(f"CRITICAL ERROR! The following command had an improper exit: \n{full_command}\n")
             sys.exit(1)
 
+# Sort BLAST output in SBT order
+    if tool == "blast":  
+        loci = ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA_neuAH']
+        al = []
+        res_string = ''
+        for line in result.splitlines():
+            line = line.split()
+            al.append(line)
+        res = [loc for x in loci for loc in al if x in loc[1]]
+        res = [" ".join(i) for i in res]
+        for i in res:
+            res_string += str(i)
+            res_string += '\n'
+        res_string = res_string.replace(" ", "\t")
+        result = res_string
+        
     if log_output:
         pretty_result = prettify("\n".join([column_headers, result]))
         if tool is not None:
@@ -750,6 +777,7 @@ def blast_momps_allele(inputs: dict, seq: str, db: str) -> list:
             a.allele_id = "-"
 
         return [a]
+        
 
 
 def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
@@ -882,8 +910,15 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     """
     loci = ["flaA", "pilE", "asd", "mip", "proA", "neuA_neuAH"]
     if momps:
-        loci.append("mompS")
+        loci.insert(4, "mompS")
     calls = {k:[] for k in loci}
+    al = []
+    j_list = []
+    blast_list = []
+    blast_dict = {}
+    b_dict = {}
+    loc_dict = {}
+    res_string = ''
 
     assembly_dict = fasta_to_dict(assembly_file)
 
@@ -891,10 +926,22 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     desc_header = "Best match of each locus in provided assembly using BLASTN."
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
     result = run_command(blast_command, tool='blast', shell=True, log_output=False)
-
+        
     result = filter_blast_hits(result, momps=momps, len_thresh=inputs['length'], pcnt_id_thresh=inputs['sequence'])
+    
 
     # Now do the logging of the good blast hits
+    
+    for line in result.splitlines():
+        line = line.split()
+        al.append(line)
+    res = [loc for x in loci for loc in al if x in loc[1]]
+    res = [" ".join(i) for i in res]
+    for i in res:
+        res_string += str(i)
+        res_string += '\n'
+    res_string = res_string.replace(" ", "\t")
+    result = res_string
 
     pretty_result = prettify("\n".join([column_headers, result]))
     logging.debug(f"Command log for blast:\n{pretty_result}")
@@ -907,7 +954,27 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
             f.write(desc_header + '\n\n')
         f.write(f"Command:\n\n{blast_command}\n\n")
         f.write(f"Output:\n\n{pretty_result}\n\n")
-
+    
+    # Write BLAST results to json
+    
+    for line in result.splitlines():
+        line = line.split()
+        j_list.append(line)
+    for j in j_list:
+        b_list = []
+        b_list.append(str(j[1]))
+        b_list.append(str(j[0]))
+        b_list.append(str(j[6]))
+        b_list.append(str(j[7]))
+        for l in loci:
+            if l in b_list[0]:
+                if l not in b_dict.keys():
+                    b_dict[l] = [b_list]
+                else:
+                    b_dict[l].append(b_list)
+    
+    blast_dict = {"BLAST_hit_locations": b_dict}
+    inputs["json_out"]['mode_specific'] = blast_dict
 
     for line in result.strip().split('\n'):
         bits = line.split()
@@ -918,7 +985,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         if float(bits[2]) == 100.00 and bits[3] == bits[13]:
             a.allele_id = bits[1].split("_")[-1]
         elif bits[3] == bits[13]:
-            a.allele_id = bits[1].split("_")[-1]+"*"
+            a.allele_id = "NAT"
         else:
             error_msg = f"The sequence of locus {locus} did not return a full length match in the database\n"
             logging.info(error_msg)
@@ -950,6 +1017,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         calls[locus].append(a)
 
     not_found_loci = [k for k,v in calls.items() if v ==[]]
+    
 
     if len(not_found_loci) != 0:
         error_msg = f"The following loci were not found in your assembly: {', '.join(not_found_loci)}\n"
@@ -967,8 +1035,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         logging.info(error_msg)
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
             f.write(error_msg + '\n')
-
-
+            
     return calls
 
 def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
@@ -1092,7 +1159,6 @@ def assess_allele_conf(bialleles, reads_at_locs, allele_idxs, read_info_dict, re
                         allele.confidence['against'] += 1
                     
                     break
-
     
     return alleles_info
 
@@ -1113,12 +1179,13 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     alleles = {}
     cov_results = {}
+    loci = ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA']
     
     for line in result.strip().split('\n')[1:]:
         gene, _, _, cov, depth, _, _ = line.split()
         cov = float(cov)
         depth = float(depth)
-        cov_results[gene] = {'cov': cov, 'depth': depth}
+        cov_results[gene] = {"Proportion_covered": str(cov), "Minimum_coverage": str(depth)}
         if cov != 100.:
             if 'neuA' in gene:
                 if cov < 99:
@@ -1139,10 +1206,11 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         a = Allele()
         a.allele_id = '-'
         alleles['neuA_neuAH'] = [a]
+        neuA_catch = ''
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) > 1:
         cov_sorted = sorted(
-            [(k,v['depth']) for k,v in cov_results.items()],
+            [(k,v['Minimum_coverage']) for k,v in cov_results.items()],
             key=lambda x: x[1],
             reverse=True)
         # Try to use depth to determine the right one to use
@@ -1153,8 +1221,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 del ref.REF_POSITIONS[gene[0]]
         else:
             logging.info("Analysis of read mapping to neuA locus variants was unsuccessful. Unclear which to use.")
-
-    
+        print(cov_sorted)
+        sys.exit()
+     
+    #ref.REF_POSITIONS = OrderedDict([(x, ref.REF_POSITIONS[x]) for loci in x])
     
     for locus in ref.REF_POSITIONS:
         locus_reads = contig_dict[locus]
@@ -1208,8 +1278,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     )
         min_cov = min(cov)
         
-        if min_cov < inputs['mincov']:
-            msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has below {inputs['mincov']} coverage and can't be resolved"
+        if min_cov < inputs['depth']:
+            msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has below {inputs['depth']} depth and can't be resolved"
             logging.info(msg)
             cov_msg += f"\n{msg}\n\n"
             a = Allele()
@@ -1217,8 +1287,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             alleles[locus] = [a]
             continue
 
-        cov_msg += f"minimum coverage of {locus} locus is {min_cov}." + '\n'
-        logging.info(f"minimum coverage of {locus} locus is {min_cov}.")
+        cov_msg += f"minimum depth of {locus} locus is {min_cov}." + '\n'
+        logging.info(f"minimum depth of {locus} locus is {min_cov}.")
 
         num_alleles_per_site = [len(i) for i in seq]
 
@@ -1280,8 +1350,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     if len(set(calls)) > 1:
                         conflicting_reads.append(calls_list)
                         break
-                    else:
+                    elif len(set(calls)) == 1:
                         agreeing_calls.append(calls[0])
+                    else:
+                        continue
                 if len(agreeing_calls) != 0:
                     read_pair_base_calls.append("".join(agreeing_calls))
 
@@ -1318,8 +1390,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     else:
                         allele.seq += allele.basecalls[biallic_count]
                 if len(base) > 1:
-                    biallic_count+=1
-    
+                    biallic_count+=1       
+
     with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
         f.write(cov_msg + "\n\n")
 
@@ -1342,12 +1414,18 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     elif len(neuAs) == 1:
         alleles['neuA_neuAH'] = alleles[neuAs[0]]
         del alleles[neuAs[0]]
+        
+    cov_dict = {}
+    cov_dict['locus_coverage'] = cov_results
+        
+    inputs["json_out"]['mode_specific'] = cov_dict
 
     return alleles
 
-
 def write_alleles_to_file(alleles: list, outdir: str):
     identified_allele_fasta_string = ""
+    loci = ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA_neuAH']
+    alleles = OrderedDict([(a, alleles[a]) for a in loci])
     for locus, l in alleles.items():
         if len(l) > 1:
             for n, allele in enumerate(l):
@@ -1389,6 +1467,7 @@ def map_alleles(inputs: dict, ref: Ref):
     db = inputs['sbt']
     sample_name = inputs['sample_name']
     profile = inputs['profile']
+    samfile = inputs['samfile']
 
     # Run BWA mem
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
@@ -1406,6 +1485,7 @@ def map_alleles(inputs: dict, ref: Ref):
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
 
     result = run_command(blast_command, tool='blast', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header, column_headers=column_headers)
+    
     if len(result) == 0:
         logging.info("WARNING: No allele matches found in the database. Can't resolve any alleles!")
         with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
@@ -1423,7 +1503,7 @@ def map_alleles(inputs: dict, ref: Ref):
             for allele_list in alleles.values():
                 for allele in allele_list:
                     if bits[0] == allele.fasta_header:
-                        allele.allele_id = bits[1].split("_")[-1]+"*"
+                        allele.allele_id = "NAT"
 
     if len(alleles['mompS']) == 1:
         logging.info("1 mompS allele identified.")
@@ -1494,6 +1574,7 @@ def map_alleles(inputs: dict, ref: Ref):
             alleles['mompS'] = [a for a in alleles['mompS'] if a.confidence['for'] > 0]
     temp_alleles = alleles.copy()
     temp_alleles['mompS'] = old_mompS
+    
     write_possible_mlsts(inputs=inputs, alleles=temp_alleles, header=True, confidence=True)
 
     for locus in [i for i in alleles if i != 'mompS']:
@@ -1514,7 +1595,12 @@ def map_alleles(inputs: dict, ref: Ref):
 
     with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
             fout.write(message)
-
+            
+    if samfile == True:
+        pass
+    else:
+        os.remove(f"{outdir}/reads_vs_all_ref_filt.sam")  
+        
     return alleles
 
 
@@ -1541,6 +1627,23 @@ def write_possible_mlsts(inputs: dict, alleles: dict, header: bool, confidence: 
                                     possible_mlsts += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + f"\t{mompS.confidence['for']}\t{mompS.confidence['against']}\n")
                                 else:
                                      possible_mlsts += (inputs['sample_name'] + "\t" + get_st(allele_profile, Ref, profile_file=inputs["profile"]) + "\t" + allele_profile + "\n")
+                                     
+    al_list = []                           
+    primer_list = []
+    
+    if inputs["json_out"]['operation_mode'] == "Reads":
+        for line in possible_mlsts.splitlines():
+            line = line.split("\t")
+            al_list.append(line)
+        for a in al_list[1:]:
+            pl = []
+            pl.append("mompS_"+str(a[6]))
+            pl.append(str(a[9]))
+            pl.append(str(a[10]))
+            primer_list.append(pl)
+        inputs["json_out"]['mode_specific']['mompS_primers'] = primer_list
+    else:
+        pass
 
     with open(f"{inputs['out_prefix']}/possible_mlsts.txt", 'w') as f:
         f.write(possible_mlsts)
@@ -1605,7 +1708,8 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     str
         formatted ST + allele profile (and optional header) of the isolate
     """
-
+    loci = ['st', 'flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA_neuAH']
+    i = 0
     outlines = []
     if inputs['header']:
         header = "Sample\tST\t" + "\t".join(Ref.locus_order)
@@ -1626,7 +1730,31 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
             + "\t" + allele_profile)
 
         outlines.append(allele_profile)
-
+    
+    inputs["json_out"]['id'] = inputs["sample_name"]
+    if inputs["json_out"]['operation_mode'] == "Assembly":
+        inputs["json_out"]['mode_specific']['length_id'] = str(inputs["length"])
+        inputs["json_out"]['mode_specific']['sequence_id'] = str(inputs["sequence"])
+    else:
+        pass
+    allele_dict = {}
+  
+    
+    out_string = "\n".join(outlines)
+    for line in out_string.splitlines():
+        line = line.split("\t")
+        while i < len(loci):
+            allele_dict[loci[i]] = line[i+1]
+            i+=1
+    inputs["json_out"]['mlst'] = allele_dict
+    
+    if inputs["json_out"]['operation_mode'] == "Reads":
+        if allele_dict['mompS'] == "?" or allele_dict['mompS'] == "NAT" or allele_dict['mompS'] == "-":
+            inputs["json_out"]['mode_specific']['mompS_primer_conclusion'] = "inconclusive"
+        else:
+            inputs["json_out"]['mode_specific']['mompS_primer_conclusion'] = "mompS_"+allele_dict['mompS']
+    else:
+        pass
     
     return "\n".join(outlines)
 
@@ -1674,17 +1802,22 @@ def main():
         'profile' : os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"),
         'verbose' : False,
         'overwrite' : False,
-        'depth' : 3,
+        'depth' : 10,
         'analysis_path' : "",
         'logging_buffer_message' : "",
         'header' : True,
         'length' : 0.3, 
-        'sequence' : 95.0
+        'sequence' : 95.0,
+        'samfile' : False,
+        'json_out' : {}
         }
 
 
     parser = get_args()
     args = parser.parse_args()
+    if args.version:
+        print(f'el_gato version: {version}')
+        sys.exit()
     inputs = check_input_supplied(args, parser, inputs)
     inputs = set_inputs(args, inputs)
     make_output_directory(inputs)
@@ -1708,11 +1841,14 @@ def main():
     get_inputs(inputs)
     logging.info("Starting analysis")
     output = choose_analysis_path(inputs, Ref)
+    json_out = inputs["json_out"]
+    json_dump = json.dumps(json_out, indent=2)
+    with open(os.path.join(inputs["out_prefix"], "report.json"), "w") as j_out:
+        j_out.write(json_dump)
     logging.info("Finished analysis")
 
     logging.debug(f"Output = \n{output}\n")
     print(output)
-
     total_time = pretty_time_delta(int(time.time() - t0))
     logging.info(f"The program took {total_time}")
 

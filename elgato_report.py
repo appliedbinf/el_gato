@@ -73,6 +73,7 @@ github_url = """ \
 https://github.com/appliedbinf/el_gato \
 """
 
+
 @dataclass
 class Report(FPDF):
 	sample_id: str
