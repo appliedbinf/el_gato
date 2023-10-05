@@ -13,11 +13,13 @@ import time
 import math
 import json
 from collections import defaultdict, Counter, OrderedDict
-from pkg_resources import get_distribution
+#from pkg_resources import get_distribution
+from importlib import metadata
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
-version = get_distribution('elgato').version
+#version = get_distribution('elgato').version
+version = metadata.version('elgato')
 
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
@@ -1814,7 +1816,7 @@ def main():
     parser = get_args()
     args = parser.parse_args()
     if args.version:
-        print(version)
+        print(f'el_gato version: {version}')
         sys.exit()
     inputs = check_input_supplied(args, parser, inputs)
     inputs = set_inputs(args, inputs)
