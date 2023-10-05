@@ -17,11 +17,11 @@ requirements:
     - skip: True  # [win]
 
   host: 
-    - python >=3.8
+    - python >=3.8,<3.12
     - pip
  
   run:
-    - python >=3.8
+    - python >=3.8,<3.12
     - minimap2==2.24
     - samtools==1.15.1
     - blast==2.13.0
