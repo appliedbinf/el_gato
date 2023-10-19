@@ -15,26 +15,26 @@ LOGO="""\
 """
 
 summary_header = """\
-El_gato utilizes either a genome assembly (.fasta) or Illumina paired-end reads (.fastq) to replicate \
-Legionella pneumophila Sequence Based Typing (SBT). From the input, 7 loci (flaA, pilE, asd, mip, \
-mompS, proA, and neuA/neuAh) are identified and compared to a database of subtypes. The sequence \
-type provided for each input sample is based on the unique combination of the allelic identities of the 7 \
-target loci. It is possible that multiple alleles for a specific locus were identified and unable to be resolved properly. \
-This would lead to a ST that indicates that one or more loci contain multiple alleles.\
+Sequence Based Typing is based on 7 Legionella pneumophila loci (flaA, pilE, asd, mip, mompS, proA, neuA/neuAh). \
+Each locus is assigned an allele number based on comparison of its sequence with sequences in an \
+allele database. The allelic profile is the combination of allele numbers for all seven loci in order \
+and denotes a unique Sequence Type (ST). el_gato utilizes either a genome assembly (.fasta) or \
+Illumina paired-end reads (.fastq) to accomplish Legionella pneumophila SBT. \
 """
 
 reads_header = """\
 The following sample was analyzed using the paired-end reads functionality. The tables below show the full \
 MLST profile of the sample, the coverage data for each locus, and information regarding the primers used to \
-identify the primary mompS allele. Highlighted rows illustrate the data that caused failure of allele identification.\
+identify the primary mompS allele. If present, highlighted rows illustrate data that resulted in allele \
+identification failure. \
 """
 
 assembly_header = """\
 The following sample was analyzed using the assembly functionality. The tables below show the full \
 MLST profile of the sample and the corresponding locus location information. Unless specified by the user, \
 el_gato utilizes a default 30% (0.3) BLAST hit length threshold and a 95% (95.0) sequence identity threshold \
-to identify multiple alleles on multiple contigs ('?'). Highlighted rows illustrate the data that caused \
-failure of allele identification.\
+to identify multiple alleles on multiple contigs. If present, highlighted rows illustrate data that \
+resulted in allele identification failure. \
 """
 
 bioconda_header = """\
@@ -46,21 +46,34 @@ Developed by Applied Bioinformatics Laboratory \n
 """
 
 abbrev_key = """\
-Novel ST = The alleles for all 7 loci were identified, however their unique combination and corresponding ST has not been found in the database. \n
-Novel ST* = One or more locus failed to amplify, which may indicate a novel allele. \n
-MA? = One or more locus contain multiple alleles that could not be resolved, leading to an ambiguous ST. \n
-MD- = One or more locus was unidentifiable, leading to an unidentifiable ST. \n
-'-' = There is missing data for the locus and could not be identified. \n
-'NAT' = Amplification of the locus was unsuccessful, possibly due to the presence of a novel allele type. \n
-'?' = The locus contains multiple alleles that could not be resolved.\
+Novel ST = the alleles for all 7 loci were identified, however their unique combination and corresponding ST has not been found in the database. \n
+Novel ST* = an exact match for sequences of at least one locus was not identified in the database, which may indicate a novel allele. \n
+MA? = multiple alleles; for at least one locus, multiple alleles were identified, and the true allele could not be resolved; therefore, no ST was generated. \n
+MD- = missing data; data was missing for at least one locus; therefore, no ST was generated. \n
+'-' = missing data; data was missing for this locus; therefore, an allele number could not be determined. \n
+'NAT' = novel allele type; this locus did not match any allele listed in the database, possibly indicating a novel allele. \n
+'?' = multiple alleles; for this locus multiple alleles were identified, and could not be resolved. \n
 """
 
 primer_footer = """\
 The primary mompS allele is identified using the following criteria: \n
-1. Only one sequence has associated reads with the correctly oriented primers. \n
-2. One sequence has more than 3 times as many reads with the correctly oriented primer as the other. \n
-3. One sequence has no associated reads with the primer in either orientation, but the other has reads with the primer only in the wrong direction. The sequence with no associated reads is considered the primary locus in this case.\
+1. Only one allele has associated reads with the correctly oriented primers. \n
+2. One allele has more than 3 times as many reads with the correctly oriented primer as the other. \n
+3. One allele has no associated reads with the primer in either orientation, but the other has reads with the primer only in the wrong direction. The sequence with no associated reads is considered the primary locus in this case.\
 """
+
+disclaimer = """\
+This test has not been cleared or approved by the FDA. The performance characteristics have been established \
+by the Respiratory Diseases Branch. The results are intended for public health purposes only and must NOT be \
+communicated to the patient, their care provider, or placed in the patient’s medical record. These results should \
+NOT be used for diagnosis, treatment, or assessment of patient health or management.  Reference Value: Not applicable. \
+"""
+
+github_url = """ \
+https://github.com/appliedbinf/el_gato \
+"""
+
+
 @dataclass
 class Report(FPDF):
 	sample_id: str
@@ -160,7 +173,7 @@ class Report(FPDF):
 		pdf.set_font(style="BU")
 		pdf.cell(
 			w=0,h=10,
-			txt=f"Locus Coverage Information",
+			txt=f"Locus Information",
 			new_x="LMARGIN", new_y="NEXT", align="C"
 			)
 
@@ -260,7 +273,7 @@ class Report(FPDF):
 		pdf.set_font(style="BU")
 		pdf.cell(
 			w=0,h=10,
-			txt=f"Locus Location Information",
+			txt=f"Locus Information",
 			new_x="LMARGIN", new_y="NEXT", align="C"
 			)
 		pdf.set_font()
