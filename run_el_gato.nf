@@ -9,18 +9,43 @@ params.length = 0.3
 params.sequence = 95.0
 params.out = 'el_gato_out'
 params.samfile = false
+params.help = false
+
+if ( params.help ) {
+    help = """run_el_gato.nf: A nextflow pipeline that runs el_gato.py
+             |Required arguments:
+             |  Please specify either reads_dir OR assembly_dir
+             |  --reads_dir      Location of the directory containing Illumina
+             |                   paired-end samples. Sequence files can be gzipped.
+             |  --assembly_dir   Location of the directory contaning Legionella pneumophila
+             |                   genome assemblies. 
+             |Optional arguments:
+             |  --help           Show this help message and exit
+             |  --threads        Number of threads per process (e.g. that el_gato will use per sample)
+             |                   [default: ${params.threads}]
+             |  --depth          Specify the minimum depth used to identify loci in paired-end reads 
+             |                   [default: ${params.depth}]
+             |  --length         Specify the BLAST hit length threshold for identifying multiple loci 
+             |                   in assembly [default: ${params.length}]
+             |  --sequence       Specify the BLAST hit percent identity threshold for identifying 
+             |                   multiple loci in assembly [default: ${params.sequence}]
+             |  --out            Output folder name [default: ${params.out}]""".stripMargin()
+    // Print the help with the stripped margin and exit
+    println(help)
+    exit(0)
+}
 
 process RUN_EL_GATO_READS {
-  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
-  cpus 1
+  
+  cpus params.threads
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
   label 'elgato'
 
   input:
-    tuple val(sampleId), file(reads)
+  tuple val(sampleId), file(reads)
 
   output:
-    path '*_out/*', emit: files
+  path '*_out/*', emit: files
 
 
   script:
@@ -71,18 +96,17 @@ process RUN_EL_GATO_READS {
 }
 
 process RUN_EL_GATO_ASSEMBLIES {
-  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
   cpus 1
   publishDir params.out, mode: 'copy', overwrite: true, pattern: '*_out/*'
   label 'elgato'
 
   input:
-    path assembly
-    float length
-    float sequence
+  path assembly
+  float length
+  float sequence
 
   output:
-    path '*_out/*', emit: files
+  path '*_out/*', emit: files
 
 
   script:
@@ -110,10 +134,10 @@ process RUN_EL_GATO_ASSEMBLIES {
 process CAT {
   publishDir params.out, mode: 'copy', overwrite: true
   input:
-    path files
+  path files
 
   output:
-    path 'all_mlst.txt'
+  path 'all_mlst.txt'
   
   """
   printf "Sample\tST\tflaA\tpilE\tasd\tmip\tmompS\tproA\tneuA_neuAH\n" > all_mlst.txt
@@ -124,10 +148,10 @@ process CAT {
 process FINAL_JSON {
   publishDir params.out, mode: 'copy', overwrite: true
   input:
-    path files
+  path files
 
   output:
-   path 'report.json'
+  path 'report.json'
   
   """
   echo "[" > report.tmp
@@ -142,13 +166,12 @@ process FINAL_JSON {
 }
 
 process FINAL_REPORT {
-  conda "-c conda-forge -c bioconda -c appliedbinf elgato"
   publishDir params.out, mode: 'copy', overwrite: true
   input:
-    path files
+  path files
   
   output:
-    path 'report.pdf'
+  path 'report.pdf'
     
   """
   elgato_report.py *.json
