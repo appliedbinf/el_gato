@@ -558,6 +558,11 @@ def check_files(inputs: dict) -> None:
         if not inputs["verbose"]:
             print(f"Read file 2: '{inputs['read2']}' doesn't exist. Exiting")
         sys.exit(1)
+    if inputs["read1"] == inputs["read2"]:
+       logging.critical(f"Read file 1: ('{inputs['read1']}') and Read file 2: ('{inputs['read2']}') are the same. Exiting")
+       if not inputs["verbose"]:
+              print(f"Read file 1: ('{inputs['read1']}') and Read file 2: ('{inputs['read2']}') are the same. Exiting")
+       sys.exit(1) 
     if inputs["assembly"] and not os.path.isfile(inputs["assembly"]):
         logging.critical(f"Assembly file: '{inputs['assembly']}' doesn't exist. Exiting")
         if not inputs["verbose"]:
@@ -1191,7 +1196,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 if cov < 99:
                     del ref.REF_POSITIONS[gene]
             else:
-                logging.info(f"Insufficient coverage of the {gene} locus to identify allele. This may indicate a gene deletion or a bad sequencing run.")
+                logging.info(f"WARNING! Insufficient coverage of the {gene} locus to identify allele. This may indicate a gene deletion or a bad sequencing run.")
                 a = Allele()
                 a.allele_id = '-'
                 alleles[gene] = [a]
@@ -1375,7 +1380,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 logging.info(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.")
                 with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
                     f.write(f"\nERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.\n\n")
-                sys.exit(1)
+                #sys.exit(1)
+                raise SystemExit("More than two mompS alleles have been identified because of this an SBT result can not be generated. Exiting.")
             if len(bialleles) > 1 and locus == 'mompS':
                 alleles[locus] = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
 
@@ -1508,6 +1514,10 @@ def map_alleles(inputs: dict, ref: Ref):
     if len(alleles['mompS']) == 1:
         logging.info("1 mompS allele identified.")
         message = "Identified allele information:\n\n1 mompS allele identified.\n\n"
+    elif len(alleles['mompS']) == 0:
+        logging.info("0 mompS allele identified.")
+        message = "Identified allele information:\n\n1 mompS allele identified.\n\n"
+        raise SystemExit("There is no mompS in this isolate, thus no SBT result can be generated. Exiting.") 
     else:
         logging.info(f"Identified allele information:\n\n{len(alleles['mompS'])} mompS allele identified.")
         message = f"{len(alleles['mompS'])} mompS allele identified.\n"
