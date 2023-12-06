@@ -1203,6 +1203,8 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 del ref.REF_POSITIONS[gene]
 
     cov_msg = ""
+    #cov_results = {key: cov_results[key] for key in cov_results.keys() & ref.REF_POSITIONS.keys()}    
+    cov_results = {k:v for k,v in cov_results.items() if k in ref.REF_POSITIONS}
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) == 0:
         # No neuA loci had sufficient coverage and were deleted
@@ -1215,9 +1217,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) > 1:
         cov_sorted = sorted(
-            [(k,v['Minimum_coverage']) for k,v in cov_results.items()],
+            [(k,v['Minimum_coverage']) for k,v in cov_results.items() if 'neuA' in k],
             key=lambda x: x[1],
             reverse=True)
+        
         # Try to use depth to determine the right one to use
         # if highest depth locus more than 3* the depth of next highest, keep
         if cov_sorted[0][1] > 3*cov_sorted[1][1]:
@@ -1226,11 +1229,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 del ref.REF_POSITIONS[gene[0]]
         else:
             logging.info("Analysis of read mapping to neuA locus variants was unsuccessful. Unclear which to use.")
-        print(cov_sorted)
-        sys.exit()
-     
+
     #ref.REF_POSITIONS = OrderedDict([(x, ref.REF_POSITIONS[x]) for loci in x])
     
+
     for locus in ref.REF_POSITIONS:
         locus_reads = contig_dict[locus]
         allele_start = ref.REF_POSITIONS[locus]['start_pos']
