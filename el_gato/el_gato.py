@@ -558,7 +558,7 @@ def check_files(inputs: dict) -> None:
         if not inputs["verbose"]:
             print(f"Read file 2: '{inputs['read2']}' doesn't exist. Exiting")
         sys.exit(1)
-    if inputs["read1"] == inputs["read2"]:
+    if inputs["read1"] and inputs["read2"] and inputs["read1"] == inputs["read2"]:
        logging.critical(f"Read file 1: ('{inputs['read1']}') and Read file 2: ('{inputs['read2']}') are the same. Exiting")
        if not inputs["verbose"]:
               print(f"Read file 1: ('{inputs['read1']}') and Read file 2: ('{inputs['read2']}') are the same. Exiting")
