@@ -1190,7 +1190,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         gene, _, _, cov, depth, _, _ = line.split()
         cov = float(cov)
         depth = float(depth)
-        cov_results[gene] = {"Proportion_covered": str(cov), "Minimum_coverage": str(depth)}
+        cov_results[gene] = {"Proportion_covered": str(cov), "Mean_depth": str(depth)}
         if cov != 100.:
             if 'neuA' in gene:
                 if cov < 99:
@@ -1217,7 +1217,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) > 1:
         cov_sorted = sorted(
-            [(k,v['Minimum_coverage']) for k,v in cov_results.items() if 'neuA' in k],
+            [(k,v['Mean_depth']) for k,v in cov_results.items() if 'neuA' in k],
             key=lambda x: x[1],
             reverse=True)
         

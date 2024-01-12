@@ -202,10 +202,10 @@ class Report(FPDF):
 
 
 	def read_coverage_table(self, pdf):
-		contents = [["Locus", "Proportion Covered", "Minimum Coverage"]]
+		contents = [["Locus", "Proportion Covered", "Mean Depth"]]
 		contents += [
 			[
-				k, v["Proportion_covered"], v["Minimum_coverage"]
+				k, v["Proportion_covered"], f'{float(v["Mean_depth"]):.1f}'
 			] for k, v in self.mode_specific["locus_coverage"].items()]
 		col_widths = (50, 50, 50)
 		alignment = ("CENTER", "CENTER", "CENTER")
