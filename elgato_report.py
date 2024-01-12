@@ -296,7 +296,7 @@ class Report(FPDF):
 					contents.append([""] + row)
 			else:
 				x+=1
-		col_widths = (25, 30, 70, 20, 20)
+		col_widths = (20, 25, 70, 15, 15)
 		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER")
 
 		content = [i for i in contents]
@@ -332,7 +332,7 @@ class Report(FPDF):
 			for n, data_row in enumerate(data):
 				row = table.row()
 				if n in highlight_rows:
-					pdf.set_fill_color(233, 79, 88)
+					pdf.set_fill_color(243, 177, 170)
 				else:
 					pdf.set_fill_color(0, 0, 0)
 				for item in data_row:
@@ -374,7 +374,7 @@ class Report(FPDF):
 		contents = [["Sample ID","ST","flaA","pilE","asd","mip","mompS","proA","neuA"]]
 		for sample in data:
 			contents.append(sample)
-		col_widths = (50, 20, 20, 20, 20, 20, 20, 20, 20)
+		col_widths = (60, 18, 18, 18, 18, 18, 18, 18, 18)
 		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER")
 		pdf = Report.make_table(pdf, contents, col_widths=col_widths, text_align=alignment)
 		return pdf
