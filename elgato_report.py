@@ -283,10 +283,13 @@ class Report(FPDF):
 
 
 	def locus_location_table(self, pdf):
-		contents = [["locus", "allele", "contig", "start", "stop"]]
+		contents = [["locus", "allele", "contig", "start", "stop", "length"]]
 		highlight_rows = set()
 		x = 1
 		for k, v in self.mode_specific["BLAST_hit_locations"].items():
+			for row in v:
+				length = str(int(row[-1])-int(row[-2]))
+				row.append(length)
 			contents.append([k] + v[0])
 			if len(v) > 1:
 				for _ in range(len(v)):
@@ -296,8 +299,8 @@ class Report(FPDF):
 					contents.append([""] + row)
 			else:
 				x+=1
-		col_widths = (20, 25, 70, 15, 15)
-		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER")
+		col_widths = (20, 30, 50, 15, 15, 15)
+		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER")
 
 		content = [i for i in contents]
 		batches = self.fit_table(pdf, content, pdf.get_y(), 34)
@@ -402,7 +405,7 @@ class PDF(FPDF):
 	def header(self):
 		self.image("https://en.vircell.com/media/filer_public_thumbnails/filer_public/48/18/48184d99-1af0-46ad-a0ad-fcb65fa7b177/fotolia_7966544_xxlweb.jpg__409x999_q85_subsampling-2_upscale.jpg", 10, 8, 33, keep_aspect_ratio=True)
 		self.set_font('Courier', '', 10)
-		self.cell(80)
+		self.cell(120)
 		self.multi_cell(h=2,w=0, txt=bioconda_header, align="C")
 		self.ln(2)
 
@@ -415,7 +418,7 @@ def main():
 	pdf = PDF('P', 'mm', 'Letter')
 	pdf.add_page()
 	pdf.set_font('Courier', 'B', 10)
-	pdf.cell(80)
+	pdf.cell(120)
 	pdf.multi_cell(h=4,w=0,txt="Epidemiology of Legionella: Genome-based Typing (el_gato) Batch Results Report", align="C")
 	pdf.ln(2)
 	pdf.set_font('Courier', '', 16)
