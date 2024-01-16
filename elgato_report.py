@@ -288,7 +288,7 @@ class Report(FPDF):
 		x = 1
 		for k, v in self.mode_specific["BLAST_hit_locations"].items():
 			for row in v:
-				length = str(int(row[-1])-int(row[-2]))
+				length = str(int(row[-1])-int(row[-2])+1)
 				row.append(length)
 			contents.append([k] + v[0])
 			if len(v) > 1:
