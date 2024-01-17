@@ -3,6 +3,7 @@
 import sys
 import json
 import math
+import argparse
 from dataclasses import dataclass
 from datetime import datetime
 from fpdf import FPDF
@@ -293,7 +294,8 @@ class Report(FPDF):
 
 
 	def locus_location_table(self, pdf):
-		contents = [["locus", "allele", "contig", "start", "stop", "length"]]
+		header = [["locus", "allele", "contig", "start", "stop", "length"]]
+		contents = []
 		highlight_rows = set()
 		x = 1
 		for k, v in self.mode_specific["BLAST_hit_locations"].items():
@@ -313,27 +315,41 @@ class Report(FPDF):
 		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER")
 
 		content = [i for i in contents]
-		batches = self.fit_table(pdf, content, pdf.get_y(), 34)
+		batches = self.fit_table(pdf, content, pdf.get_y(), 25)
+		# Split hightlighted rows into batches too
+		highlight_rows_list = self.split_highlight_batches(batches, highlight_rows)
+		# Add a header to each table
+		for i in range(len(batches)):
+			batches[i] = header + batches[i]
 		pdf = self.make_table(
 			pdf,
 			batches[0],
 			col_widths=col_widths,
 			text_align=alignment,
-			highlight_rows=highlight_rows
+			highlight_rows=highlight_rows_list[0]
 			)
 		if len(batches) > 1:
-			for batch in batches[1:]:
+			for batch, highlight in zip(batches[1:], highlight_rows_list[1:]):
 				pdf.add_page()
 				pdf.set_y(pdf.get_y() + 10)
-				pdf = Report.make_table(
+				pdf = self.make_table(
 					pdf,
 					batch,
 					col_widths=col_widths,
 					text_align=alignment,
-					highlight_rows=highlight_rows
+					highlight_rows=highlight
 				)
 
 		return pdf
+
+
+	def split_highlight_batches(self, batches, highlight_rows):
+		highlight_list = []
+		for batch in batches:
+			size = len(batch)
+			highlight_list.append(set([i for i in highlight_rows if i <= size]))
+			highlight_rows = [i-size for i in highlight_rows if i-size > 0]
+		return highlight_list
 
 	@staticmethod
 	def make_table(pdf, data, col_widths=None, text_align=None, highlight_rows=set()):
@@ -350,6 +366,7 @@ class Report(FPDF):
 					pdf.set_fill_color(0, 0, 0)
 				for item in data_row:
 					row.cell(item)
+			pdf.set_fill_color(0, 0, 0)
 			return pdf
 	
 	@staticmethod
@@ -419,12 +436,52 @@ class PDF(FPDF):
 		self.multi_cell(h=2,w=0, text=bioconda_header, align="C")
 		self.ln(2)
 
+
+help_message= """
+usage: elgato_report.py [-h] -i INPUT_JSONS [INPUT_JSONS ...] -o OUT_REPORT
+
+options:
+  -h, --help            show this help message and exit
+  -i, --input_jsons     path to one or more report.json files
+  -o, --out_report      desired output pdf file path
+"""
+
+class Parser(argparse.ArgumentParser):
+	"""Custom class to allow complete control over help message"""
+	def print_help(self):
+         print(help_message)
+
+def parse_args():
+	p = Parser(
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+		add_help=False
+	)
+	p.add_argument(
+		"-i", "--input_jsons",
+		required = True,
+		nargs="+",
+		help=""
+		)
+	p.add_argument(
+		"-o", "--out_report",
+		required = True,
+		help=""
+		)
+	p.add_argument(
+		"-h", "--help",
+		action="help"
+	)
+
+	return p.parse_args()
+
+
 def main():
-	with open(sys.argv[1]) as fin:
+	args = parse_args()
+	with open(args.input_jsons[0]) as fin:
 		if fin.read().startswith("["):
-			data = Report.read_multi_json(sys.argv[1])
+			data = Report.read_multi_json(args.input_jsons[0])
 		else:
-			data = Report.read_jsons(sys.argv[1:])
+			data = Report.read_jsons(args.input_jsons)
 	pdf = PDF('P', 'mm', 'Letter')
 	pdf.add_page()
 	pdf.set_font('Courier', 'BI', 10) # workaround until https://github.com/py-pdf/fpdf2/issues/1094 is fixed
@@ -469,7 +526,7 @@ def main():
 	for datum in data:
 		pdf = datum.sample_report(pdf)
 
-	pdf.output("report.pdf")
+	pdf.output(args.out_report)
 
 if __name__ == '__main__':
 	main()
