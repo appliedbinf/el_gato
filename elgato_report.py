@@ -15,11 +15,11 @@ LOGO="""\
 """
 
 summary_header = """\
-Sequence Based Typing is based on 7 Legionella pneumophila loci (flaA, pilE, asd, mip, mompS, proA, neuA/neuAh). \
+Sequence Based Typing is based on 7 __Legionella pneumophila__ loci (flaA, pilE, asd, mip, mompS, proA, neuA/neuAh). \
 Each locus is assigned an allele number based on comparison of its sequence with sequences in an \
 allele database. The allelic profile is the combination of allele numbers for all seven loci in order \
 and denotes a unique Sequence Type (ST). el_gato utilizes either a genome assembly (.fasta) or \
-Illumina paired-end reads (.fastq) to accomplish Legionella pneumophila SBT. \
+Illumina paired-end reads (.fastq) to accomplish __Legionella pneumophila__ SBT. \
 """
 
 reads_header = """\
@@ -38,20 +38,20 @@ resulted in allele identification failure. \
 """
 
 bioconda_header = """\
-El_gato Reports \n
-Used for Batch and Sample-Level Summaries \n
-Developed by Applied Bioinformatics Laboratory \n
-(ABiL) \n
-2023\
+El_gato Reports\n
+Used for Batch and Sample-Level Summaries\n
+Developed by Applied Bioinformatics Laboratory\n
+(ABiL)\n
+https://github.com/appliedbinf/el_gato\
 """
 
 abbrev_key = """\
 Novel ST = the alleles for all 7 loci were identified, however their unique combination and corresponding ST has not been found in the database. \n
 Novel ST* = an exact match for sequences of at least one locus was not identified in the database, which may indicate a novel allele. \n
-MA? = multiple alleles; for at least one locus, multiple alleles were identified, and the true allele could not be resolved; therefore, no ST was generated. \n
-MD- = missing data; data was missing for at least one locus; therefore, no ST was generated. \n
+MA? = **m**ultiple **a**lleles; for at least one locus, multiple alleles were identified, and the true allele could not be resolved; therefore, no ST was generated. \n
+MD- = **m**issing **d**ata; data was missing for at least one locus; therefore, no ST was generated. \n
 '-' = missing data; data was missing for this locus; therefore, an allele number could not be determined. \n
-'NAT' = novel allele type; this locus did not match any allele listed in the database, possibly indicating a novel allele. \n
+'NAT' = **n**ovel **a**llele **t**ype; this locus did not match any allele listed in the database, possibly indicating a novel allele. \n
 '?' = multiple alleles; for this locus multiple alleles were identified, and could not be resolved. \n
 """
 
@@ -156,13 +156,18 @@ class Report(FPDF):
 	def reads_report(self, pdf, typeface, style, size):
 		pdf.set_font(typeface, style, size)
 		pdf.set_font('Courier', 'B', 10)
-		pdf.cell(80)
-		pdf.multi_cell(h=4,w=0,txt="Epidemiology of Legionella: Genome-based Typing (el_gato) Paired-End Reads Report", align="C")
+		pdf.cell(100)
+		pdf.multi_cell(
+			h=4,w=0,
+			text="Epidemiology of __Legionella__: Genome-based Typing (el_gato) Paired-End Reads Report",
+			align="C",
+			markdown=True
+		)
 		pdf.ln(10)
 		pdf.set_font('Courier', '', 11)
 		pdf.multi_cell(
 			w=0,h=5,
-			txt=reads_header,
+			text=reads_header,
 			new_x="LMARGIN", new_y="NEXT"
 			)
 		pdf.ln(10)
@@ -173,7 +178,7 @@ class Report(FPDF):
 		pdf.set_font(style="BU")
 		pdf.cell(
 			w=0,h=10,
-			txt=f"Locus Information",
+			text=f"Locus Information",
 			new_x="LMARGIN", new_y="NEXT", align="C"
 			)
 
@@ -185,7 +190,7 @@ class Report(FPDF):
 		pdf.set_font(style="BU")
 		pdf.cell(
 			w=0,h=10,
-			txt=f"mompS Primer Information",
+			text=f"mompS Primer Information",
 			new_x="LMARGIN", new_y="NEXT", align="C"
 			)
 		pdf.set_font()
@@ -194,7 +199,7 @@ class Report(FPDF):
 
 		pdf.multi_cell(
 			w=0, h=3.5,
-			txt=primer_footer,
+			text=primer_footer,
 			new_x="LMARGIN", new_y="NEXT"
 		)
 
@@ -250,14 +255,19 @@ class Report(FPDF):
 
 	def assembly_report(self, pdf, typeface, style, size):
 		pdf.set_font(typeface, style, size)
-		pdf.cell(80)
+		pdf.cell(100)
 		pdf.set_font('Courier', 'B', 10)
-		pdf.multi_cell(h=4,w=0, txt="Epidemiology of Legionella: Genome-based Typing (el_gato) Assembly Results", align="C")
+		pdf.multi_cell(
+			h=4,w=0,
+			text="Epidemiology of __Legionella__: Genome-based Typing (el_gato) Assembly Results",
+			align="C",
+			markdown=True
+		)
 		pdf.ln(10)
 		pdf.set_font('Courier', '', 11)
 		pdf.multi_cell(
 			w=0,h=5,
-			txt=assembly_header,
+			text=assembly_header,
 			new_x="LMARGIN", new_y="NEXT"
 			)
 		pdf.ln(10)
@@ -265,7 +275,7 @@ class Report(FPDF):
 		pdf.ln(4)
 		pdf.cell(
 			w=0,h=2,
-			txt="BLAST Hit Length and Sequence Identity Thresholds: " + self.mode_specific['length_id'] +"; "+self.mode_specific['sequence_id'] + "%",
+			text="BLAST Hit Length and Sequence Identity Thresholds: " + self.mode_specific['length_id'] +"; "+self.mode_specific['sequence_id'] + "%",
 			new_x="LMARGIN", new_y="NEXT"
 		)
 		pdf.ln(10)
@@ -273,7 +283,7 @@ class Report(FPDF):
 		pdf.set_font(style="BU")
 		pdf.cell(
 			w=0,h=10,
-			txt=f"Locus Information",
+			text=f"Locus Information",
 			new_x="LMARGIN", new_y="NEXT", align="C"
 			)
 		pdf.set_font()
@@ -405,8 +415,8 @@ class PDF(FPDF):
 	def header(self):
 		self.image("https://en.vircell.com/media/filer_public_thumbnails/filer_public/48/18/48184d99-1af0-46ad-a0ad-fcb65fa7b177/fotolia_7966544_xxlweb.jpg__409x999_q85_subsampling-2_upscale.jpg", 10, 8, 33, keep_aspect_ratio=True)
 		self.set_font('Courier', '', 10)
-		self.cell(120)
-		self.multi_cell(h=2,w=0, txt=bioconda_header, align="C")
+		self.cell(95)
+		self.multi_cell(h=2,w=0, text=bioconda_header, align="C")
 		self.ln(2)
 
 def main():
@@ -417,15 +427,22 @@ def main():
 			data = Report.read_jsons(sys.argv[1:])
 	pdf = PDF('P', 'mm', 'Letter')
 	pdf.add_page()
+	pdf.set_font('Courier', 'BI', 10) # workaround until https://github.com/py-pdf/fpdf2/issues/1094 is fixed
 	pdf.set_font('Courier', 'B', 10)
-	pdf.cell(120)
-	pdf.multi_cell(h=4,w=0,txt="Epidemiology of Legionella: Genome-based Typing (el_gato) Batch Results Report", align="C")
+	pdf.cell(100)
+	pdf.multi_cell(
+		h=4, w=0,
+		text="Epidemiology of __Legionella__: Genome-based Typing (el_gato) Batch Results Report",
+		align="C",
+		markdown=True
+	)
 	pdf.ln(2)
 	pdf.set_font('Courier', '', 16)
-	pdf.multi_cell(w=0,h=6, txt=LOGO, new_x="LMARGIN", new_y="NEXT")
+	pdf.multi_cell(w=0,h=6, text=LOGO, new_x="LMARGIN", new_y="NEXT")
 	pdf.ln(4)
 	pdf.set_font('Courier', '', 11)
-	pdf.multi_cell(w=0,h=5, txt=summary_header, new_x="LMARGIN", new_y="NEXT")
+	pdf.multi_cell(w=0,h=5, text=summary_header, new_x="LMARGIN", new_y="NEXT",
+				   markdown=True)
 	pdf.ln(10)
 	content = [i.list_mlst() for i in data]
 	batches = Report.fit_table(pdf, content, pdf.get_y(), 19)
@@ -443,10 +460,10 @@ def main():
 		pdf.add_page()
 		pdf.ln(10)
 	pdf.set_font(style="U")
-	pdf.cell(w=0,h=0, txt="Abbreviation Key", new_x="LMARGIN", new_y="NEXT")
+	pdf.cell(w=0,h=0, text="Abbreviation Key", new_x="LMARGIN", new_y="NEXT")
 	pdf.ln(5)
 	pdf.set_font()
-	pdf.multi_cell(w=0,h=3.5, txt=abbrev_key, new_x="LMARGIN", new_y="NEXT")
+	pdf.multi_cell(w=0,h=3.5, text=abbrev_key, new_x="LMARGIN", new_y="NEXT", markdown=True)
 
 	
 	for datum in data:
