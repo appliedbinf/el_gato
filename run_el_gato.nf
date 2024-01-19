@@ -174,7 +174,7 @@ process FINAL_REPORT {
   path 'report.pdf'
     
   """
-  elgato_report.py *.json
+  elgato_report.py -i *.json -o report.pdf
   """
 }
 
