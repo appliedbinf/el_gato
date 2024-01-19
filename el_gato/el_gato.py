@@ -971,6 +971,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
         b_list.append(str(j[0]))
         b_list.append(str(j[6]))
         b_list.append(str(j[7]))
+        b_list.append(str(j[13]))
         for l in loci:
             if l in b_list[0]:
                 if l not in b_dict.keys():

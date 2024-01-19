@@ -294,14 +294,14 @@ class Report(FPDF):
 
 
 	def locus_location_table(self, pdf):
-		header = [["locus", "allele", "contig", "start", "stop", "length"]]
+		header = [["locus", "allele", "contig", "start", "stop", "%length"]]
 		contents = []
 		highlight_rows = set()
 		x = 1
 		for k, v in self.mode_specific["BLAST_hit_locations"].items():
 			for row in v:
-				length = str(int(row[-1])-int(row[-2])+1)
-				row.append(length)
+				p_length = 100*(int(row[-2])-int(row[-3])+1)/int(row[-1])
+				row[-1] = (f"{p_length:.1f}")
 			contents.append([k] + v[0])
 			if len(v) > 1:
 				for _ in range(len(v)):
