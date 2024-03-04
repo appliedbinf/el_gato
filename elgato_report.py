@@ -243,7 +243,9 @@ class Report(FPDF):
 
 	def mompS_primer_table(self, pdf):
 		contents = [["Allele", "Reads Indicating Primary", "Reads Indicating Secondary"]]
-		contents += self.mode_specific["mompS_primers"]
+		# Report no reads supporting either if the run failed and didn't output a reads result
+		null_primer_result = [["mompS_-", "0", "0"]]
+		contents += self.mode_specific.get("mompS_primers", null_primer_result)
 		col_widths = (50, 50, 50)
 		alignment = ("CENTER", "CENTER", "CENTER")
 		if self.mode_specific["mompS_primer_conclusion"] == "inconclusive":
