@@ -339,6 +339,13 @@ class Report(FPDF):
 					text_align=alignment,
 					highlight_rows=highlight
 				)
+		
+		pdf.ln(4)
+		pdf.cell(
+			w=0,h=2,
+			text=r"% Length = BLAST hit length as a percent of expected locus size.",
+			new_x="LMARGIN", new_y="NEXT"
+		)
 
 		return pdf
 
