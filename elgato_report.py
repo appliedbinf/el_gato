@@ -276,12 +276,14 @@ class Report(FPDF):
 		)
 		pdf.ln(10)
 		pdf.set_font('Courier', '', 11)
+		pdf.set_font(style="U")
 		pdf.multi_cell(
 			h=4, w=0,
-			text=f"**{self.sample_id} report**",
+			text=f"**{self.sample_id.replace('_',' ')} report**",
 			align="L",
 			markdown=True
 		)
+		pdf.set_font()
 		pdf.ln(2)
 		pdf.multi_cell(
 			w=0,h=5,
