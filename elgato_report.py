@@ -491,7 +491,6 @@ def main():
 			data = Report.read_jsons(args.input_jsons)
 	pdf = PDF('P', 'mm', 'Letter')
 	pdf.add_page()
-	pdf.set_font('Courier', 'BI', 10) # workaround until https://github.com/py-pdf/fpdf2/issues/1094 is fixed
 	pdf.set_font('Courier', 'B', 10)
 	pdf.cell(100)
 	pdf.multi_cell(
