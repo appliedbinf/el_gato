@@ -168,6 +168,13 @@ class Report(FPDF):
 		pdf.ln(10)
 		pdf.set_font('Courier', '', 11)
 		pdf.multi_cell(
+			h=4, w=0,
+			text=f"**{self.sample_id} report**",
+			align="L",
+			markdown=True
+		)
+		pdf.ln(2)
+		pdf.multi_cell(
 			w=0,h=5,
 			text=reads_header,
 			new_x="LMARGIN", new_y="NEXT"
@@ -267,6 +274,13 @@ class Report(FPDF):
 		)
 		pdf.ln(10)
 		pdf.set_font('Courier', '', 11)
+		pdf.multi_cell(
+			h=4, w=0,
+			text=f"**{self.sample_id} report**",
+			align="L",
+			markdown=True
+		)
+		pdf.ln(2)
 		pdf.multi_cell(
 			w=0,h=5,
 			text=assembly_header,
@@ -499,9 +513,18 @@ def main():
 	pdf.multi_cell(w=0,h=6, text=LOGO, new_x="LMARGIN", new_y="NEXT")
 	pdf.ln(4)
 	pdf.set_font('Courier', '', 11)
+	pdf.set_font(style="U")
+	pdf.multi_cell(
+		h=4, w=0,
+		text="**Report Summary**",
+		align="L",
+		markdown=True
+	)
+	pdf.set_font()
+	pdf.ln(2)
 	pdf.multi_cell(w=0,h=5, text=summary_header, new_x="LMARGIN", new_y="NEXT",
 				   markdown=True)
-	pdf.ln(10)
+	pdf.ln(2)
 	content = [i.list_mlst() for i in data]
 	batches = Report.fit_table(pdf, content, pdf.get_y(), 19)
 	for batch in batches:
