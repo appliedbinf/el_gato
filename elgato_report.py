@@ -34,8 +34,9 @@ assembly_header = """\
 The following sample was analyzed using the assembly functionality. The tables below show the full \
 MLST profile of the sample and the corresponding locus location information. Unless specified by the user, \
 el_gato utilizes a default 30% (0.3) BLAST hit length threshold and a 95% (95.0) sequence identity threshold \
-to identify multiple alleles on multiple contigs. If present, highlighted rows illustrate data that \
-resulted in allele identification failure. \
+to identify the presence of multiple copies of an allele. BLAST hits that meet these criteria are highlighted \
+as this may indicate assembly errors or contamination. el_gato will only report allele matches for BLAST hits \
+of 100% length and 100% identity.
 """
 
 bioconda_header = """\
@@ -273,12 +274,6 @@ class Report(FPDF):
 			)
 		pdf.ln(10)
 		pdf = self.make_mlst_table(pdf, [self.list_mlst()])
-		pdf.ln(4)
-		pdf.cell(
-			w=0,h=2,
-			text="BLAST Hit Length and Sequence Identity Thresholds: " + self.mode_specific['length_id'] +"; "+self.mode_specific['sequence_id'] + "%",
-			new_x="LMARGIN", new_y="NEXT"
-		)
 		pdf.ln(10)
 
 		pdf.set_font(style="BU")
