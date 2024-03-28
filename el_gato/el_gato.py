@@ -406,6 +406,16 @@ def set_inputs(
     else:
         inputs["sample_name"] = args.sample
 
+    # Check for custom DB and profile settings
+    if inputs["sbt"] != os.path.join(os.path.dirname(__file__), "db") and inputs["profile"] == os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"):
+        # sbt changed but profile not. Check if a profile file is in the sbt dir
+        if os.path.exists(os.path.join(inputs["sbt"], "lpneumophila.txt")):
+            inputs["profile"] = os.path.join(inputs["sbt"], "lpneumophila.txt")
+        # else check the default dir
+        if not os.path.exists(inputs["profile"]):
+            print(f"Profile file not found in sbt directory '{inputs['sbt']}' or default location '{inputs['profile']}'. Please provide a path to the MLST profile file. Exiting")
+            sys.exit(1)
+
     return inputs
 
 
@@ -573,11 +583,6 @@ def check_files(inputs: dict) -> None:
         if not inputs["verbose"]:
             print(f"SBT directory: '{inputs['sbt']}' doesn't exist. Exiting")
         sys.exit(1)
-    for locus in Ref.locus_order:
-        file = os.path.join(inputs["sbt"], locus + inputs["suffix"])
-        if not os.path.isfile(file):
-            logging.critical(f"Allele file: '{file}' for locus ({locus}) doesn't exist. Exiting")
-            sys.exit(1)
     if not os.path.isfile(inputs["profile"]):
         logging.critical(f"Profile file: '{inputs['profile']}' doesn't exist. Exiting")
         if not inputs["verbose"]:
