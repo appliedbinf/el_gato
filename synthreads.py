@@ -71,22 +71,26 @@ REF_POSITIONS = {
 
 class St():
 	def __init__(self, line):
-		bits = line.split()
-		self.st = bits[0]
-		self.flaA = bits[1]
-		self.pilE = bits[2]
-		self.asd = bits[3]
-		self.mip = bits[4]
-		self.mompS = bits[5]
-		self.proA = bits[6]
-		self.neuA_neuAH = bits[7]
-		self.flaA_seq = ""
-		self.pilE_seq = ""
-		self.asd_seq = ""
-		self.mip_seq = ""
-		self.mompS_seq = ""
-		self.proA_seq = ""
-		self.neuA_neuAH_seq = ""
+		try:
+			bits = line.split()
+			self.st = bits[0]
+			self.flaA = bits[1]
+			self.pilE = bits[2]
+			self.asd = bits[3]
+			self.mip = bits[4]
+			self.mompS = bits[5]
+			self.proA = bits[6]
+			self.neuA_neuAH = bits[7]
+			self.flaA_seq = ""
+			self.pilE_seq = ""
+			self.asd_seq = ""
+			self.mip_seq = ""
+			self.mompS_seq = ""
+			self.proA_seq = ""
+			self.neuA_neuAH_seq = ""
+		except:
+			print(line)
+			sys.exit()
 
 
 class Read():
@@ -245,9 +249,7 @@ def choose_sts(args, sts):
 
 
 def load_allele_seqs(args):
-	allele_seqs = {}
-	for locus in ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA_neuAH']:
-		allele_seqs[locus] = fasta_to_dict(f"{args.db_path}/{locus}_alleles.tfa")
+	allele_seqs = fasta_to_dict(f"{args.db_path}/all_loci.fasta")
 	return allele_seqs
 
 
@@ -255,32 +257,32 @@ def fill_st_seq(st_choices, allele_seqs):
 	for choice in st_choices:
 		choice.flaA_seq = (
 			GENE_UPDOWN['flaA']['up']
-			+ allele_seqs['flaA'][f'flaA_{choice.flaA}']
+			+ allele_seqs[f'flaA_{choice.flaA}']
 			+ GENE_UPDOWN['flaA']['down']
 			)
 		choice.pilE_seq = (
 			GENE_UPDOWN['pilE']['up']
-			+ allele_seqs['pilE'][f'pilE_{choice.pilE}']
+			+ allele_seqs[f'pilE_{choice.pilE}']
 			+ GENE_UPDOWN['pilE']['down']
 			)
 		choice.asd_seq = (
 			GENE_UPDOWN['asd']['up']
-			+ allele_seqs['asd'][f'asd_{choice.asd}']
+			+ allele_seqs[f'asd_{choice.asd}']
 			+ GENE_UPDOWN['asd']['down']
 			)
 		choice.mip_seq = (
 			GENE_UPDOWN['mip']['up']
-			+ allele_seqs['mip'][f'mip_{choice.mip}']
+			+ allele_seqs[f'mip_{choice.mip}']
 			+ GENE_UPDOWN['mip']['down']
 			)
 		choice.mompS_seq = (
 			GENE_UPDOWN['mompS']['up']
-			+ allele_seqs['mompS'][f'mompS_{choice.mompS}']
+			+ allele_seqs[f'mompS_{choice.mompS}']
 			+ GENE_UPDOWN['mompS']['down']
 			)
 		choice.proA_seq = (
 			GENE_UPDOWN['proA']['up']
-			+ allele_seqs['proA'][f'proA_{choice.proA}']
+			+ allele_seqs[f'proA_{choice.proA}']
 			+ GENE_UPDOWN['proA']['down']
 			)
 		if int(choice.neuA_neuAH) < 200:
@@ -289,7 +291,7 @@ def fill_st_seq(st_choices, allele_seqs):
 			var = 'neuAH'
 		choice.neuA_neuAH_seq = (
 			GENE_UPDOWN[var]['up']
-			+ allele_seqs['neuA_neuAH'][f'neuA_neuAH_{choice.neuA_neuAH}']
+			+ allele_seqs[f'neuA_neuAH_{choice.neuA_neuAH}']
 			+ GENE_UPDOWN[var]['down']
 			)
 
@@ -318,6 +320,14 @@ def sequence_fragment(seq):
 	else:
 		r2 = rev_comp(seq[end-250: min([len(seq), end])])
 
+	# make sure reads are long enough or make them up to between 150 and 250 with random seq
+	if len(r1) < 150:
+		add_len = random.randint(150-len(r1), 250-len(r1))
+		r1 = "".join([rand_seq(add_len), r1])
+	if len(r2) < 150:
+		add_len = random.randint(150-len(r2), 250-len(r2))
+		r2 = "".join([rand_seq(add_len), r2])
+
 	switch = random.choice([True, False])
 
 	if switch:
@@ -334,8 +344,8 @@ def generate_reads(n, st_choices):
 		read2 = Read(i)
 		seq = random.choice([st.flaA_seq, st.pilE_seq, st.asd_seq, st.mip_seq, st.mompS_seq, st.proA_seq, st.neuA_neuAH_seq])
 		read1.seq, read2.seq = sequence_fragment(seq)
-		read1.qual = '?'*len(read1.seq)
-		read2.qual = '?'*len(read2.seq)
+		read1.qual = "".join([chr(random.randint(58, 69)) for _ in range(len(read1.seq))])
+		read2.qual = "".join([chr(random.randint(58, 69)) for _ in range(len(read2.seq))])
 		reads1.append(read1)
 		reads2.append(read2)
 
