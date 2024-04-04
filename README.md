@@ -27,14 +27,14 @@ El_gato is a bioinformatics tool that utilizes either a genome assembly (.fasta)
 * [Reporting Module](#reporting-module)
 
 Codebase stage: development   
-Developers and maintainers, Testers: [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/), [Dev Mashruwala](https://github.com/dmashruwala), [Alan Collins](https://github.com/Alan-Collins)
+Developers and maintainers, Testers: [Alan Collins](https://github.com/Alan-Collins), [Dev Mashruwala](https://github.com/dmashruwala), [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Will Overholt](https://github.com/waoverholt/)
 
 # Installation 
 
 ## Method 1: using conda
 ```
 # Create an environment named elgato and install el_gato.py plus all dependencies
-conda create -n elgato -c bioconda -c conda-forge -c appliedbinf elgato
+conda create -n elgato -c bioconda -c conda-forge el_gato
 
 # Activate the environment to use el_gato.py
 conda activate elgato
