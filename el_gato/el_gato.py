@@ -1494,9 +1494,9 @@ def run_stats(samfile: str, outdir: str):
 
     mean_insert_size, mean_read_length = [float(i) for i in re.findall("[\d.]+", result)]
     if mean_insert_size < 300:
-        logging.info(f"WARNING: The average insert size in your reads is {int(mean_insert_size)}. El_gato may struggle to resolve multiple alleles such as for mompS with insert sizes below 300. Consider resequencing.")
+        logging.info(f"WARNING: The average insert size in your reads is {int(mean_insert_size)}. The insert size is the size of DNA fragment sequenced, i.e. from the start of the forward read to the end of the reverse read. El_gato may struggle to resolve multiple alleles such as for mompS with insert sizes below 300. Consider resequencing.")
         with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
-            fout.write(f"WARNING: The average insert size in your reads is {int(mean_insert_size)}. El_gato may struggle to resolve multiple alleles such as for mompS with insert sizes below 300. Consider resequencing.")
+            fout.write(f"WARNING: The average insert size in your reads is {int(mean_insert_size)}. The insert size is the size of DNA fragment sequenced, i.e. from the start of the forward read to the end of the reverse read. El_gato may struggle to resolve multiple alleles such as for mompS with insert sizes below 300. Consider resequencing.")
     
     if mean_read_length < 150:
         logging.info(f"WARNING: The average read length is {int(mean_read_length)}. El_gato may struggle to resolve multiple alleles such as for mompS with shorter read lengths.")
