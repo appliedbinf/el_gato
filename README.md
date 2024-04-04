@@ -290,6 +290,8 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 
 6. The allele number of all alleles is then determined using BLAST and the ST is generated using the correct allele. 
 
+Note that as the above process depends upon read pairs mapping to biallelic sites and the primer region, sequence data characteristics such as read length and insert size can impact the ability of el_gato to determine *mompS* alleles. 
+
 If the above process cannot identify the correct sequence, a ? will be returned as the *mompS* allele, and el_gato will report information about the steps in this process in the [output files](#output-files).
 
 ## *momps* Read Mapping Schematic
