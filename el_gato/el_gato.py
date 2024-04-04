@@ -1307,6 +1307,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
         n_multiallelic = len([i for i in num_alleles_per_site if i > 1])
 
+
         if n_multiallelic == 0:
             alleles[locus] = [Allele()]
             alleles[locus][0].seq = "".join([b[0] for b in seq])
@@ -1336,6 +1337,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
             reads_at_locs = [reads_dict['readnames'][idx+allele_start-1] for idx in multi_allelic_idx]
 
             intersect = set(reads_at_locs[0]).intersection(set(reads_at_locs[1]))
+            
             for i in range(2, len(reads_at_locs)):
                 intersect = intersect.intersection(set(reads_at_locs[i]))
 
@@ -1380,16 +1382,39 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 continue
 
             biallele_results_count = Counter(read_pair_base_calls)
+
+
+            # Check if no read-pairs span both bialleleic sites
+            if len(biallele_results_count) < 2: 
+                logging.info(f"ERROR: {len(multi_allelic_idx)} biallelic sites found for {locus.split('_')[0]} at positions {', '.join([str(i) for i in multi_allelic_idx])}, but no read-pairs span all positions to resolve the allele.")
+                with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
+                    f.write(f"\nERROR: {len(multi_allelic_idx)} biallelic sites found for {locus.split('_')[0]} at positions {', '.join([str(i) for i in multi_allelic_idx])}, but no read-pairs span all positions to resolve the allele.\n\n")
+                a = Allele()
+                a.allele_id = '?'
+                alleles[locus] = [a]
+                continue
+
             max_biallele_count = max([v for v in biallele_results_count.values()])
             bialleles = [k for k,v in biallele_results_count.items() if v >= max(0.2*max_biallele_count, 2)]
 
+            if len(bialleles) == 0:
+                # not enough reads span biallelic sites to resolve alleles
+                logging.info(f"ERROR: {len(multi_allelic_idx)} biallelic sites found for {locus.split('_')[0]} at positions {', '.join([str(i) for i in multi_allelic_idx])}, but not enough read-pairs span all positions to resolve the allele.")
+                with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
+                    f.write(f"\nERROR: {len(multi_allelic_idx)} biallelic sites found for {locus.split('_')[0]} at positions {', '.join([str(i) for i in multi_allelic_idx])}, but not enough read-pairs span all positions to resolve the allele.\n\n")
+                a = Allele()
+                a.allele_id = '?'
+                alleles[locus] = [a]
+                continue
+
             # If more than 2 alleles found, can't resolve
             if len(bialleles) > 2:
-                logging.info(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.")
+                logging.info(f"ERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved.")
                 with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
-                    f.write(f"\nERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved. Aborting.\n\n")
-                #sys.exit(1)
-                raise SystemExit("More than two mompS alleles have been identified because of this an SBT result can not be generated. Exiting.")
+                    f.write(f"\nERROR: {len(bialleles)} well-supported {locus.split('_')[0]} alleles identified and can't be resolved.\n\n")
+                a = Allele()
+                a.allele_id = '?'
+                alleles[locus] = [a]
             if len(bialleles) > 1 and locus == 'mompS':
                 alleles[locus] = assess_allele_conf(bialleles, reads_at_locs, multi_allelic_idx, read_info_dict, ref)
 
@@ -1459,6 +1484,26 @@ def write_alleles_to_file(alleles: list, outdir: str):
     with open(f"{outdir}/identified_alleles.fna", "w") as fout:
         fout.write(identified_allele_fasta_string)
 
+
+def run_stats(samfile: str, outdir: str):
+    # Check if insert size is long enough and log read length and insert size
+    stats_command = f"samtools stats {samfile} | awk '$1==\"IS\" {{is+=$3*$2; is_count+=$3}} $1==\"RL\" {{rl+=$2*$3; rl_count+=$3}} END {{print \"Average insertion size:\", is/is_count, \"Average read length:\", rl/rl_count}}'"
+    desc_header = "Assessing read mapping information."
+
+    result = run_command(stats_command, tool='samtools stats', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
+
+    mean_insert_size, mean_read_length = [float(i) for i in re.findall("[\d.]+", result)]
+    if mean_insert_size < 300:
+        logging.info(f"WARNING: The average insert size in your reads is {int(mean_insert_size)}. El_gato may struggle to resolve multiple alleles such as for mompS with insert sizes below 300. Consider resequencing.")
+        with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
+            fout.write(f"WARNING: The average insert size in your reads is {int(mean_insert_size)}. El_gato may struggle to resolve multiple alleles such as for mompS with insert sizes below 300. Consider resequencing.")
+    
+    if mean_read_length < 150:
+        logging.info(f"WARNING: The average read length is {int(mean_read_length)}. El_gato may struggle to resolve multiple alleles such as for mompS with shorter read lengths.")
+        with open(f"{outdir}/intermediate_outputs.txt", "a") as fout:
+            fout.write(f"WARNING: The average read length is {int(mean_read_length)}. El_gato may struggle to resolve multiple alleles such as for mompS with shorter read lengths.")
+    
+
 def map_alleles(inputs: dict, ref: Ref):
     """Map reads to reference loci sequences and identify one or more alleles
 
@@ -1487,6 +1532,8 @@ def map_alleles(inputs: dict, ref: Ref):
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
     mapping_command = f"minimap2 -ax sr -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
     run_command(mapping_command, tool='minimap2 -ax sr', shell=True)
+
+    run_stats(f"{outdir}/reads_vs_all_ref_filt.sam", outdir)
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
 
@@ -1519,13 +1566,15 @@ def map_alleles(inputs: dict, ref: Ref):
                     if bits[0] == allele.fasta_header:
                         allele.allele_id = "NAT"
 
-    if len(alleles['mompS']) == 1:
+    if len(alleles['mompS']) == 1 and alleles["mompS"][0].allele_id == "?":
+        logging.info("0 mompS alleles identified.")
+        message = "Identified allele information:\n\n0 mompS alleles identified.\n\n"
+    elif len(alleles['mompS']) == 1:
         logging.info("1 mompS allele identified.")
         message = "Identified allele information:\n\n1 mompS allele identified.\n\n"
     elif len(alleles['mompS']) == 0:
         logging.info("0 mompS allele identified.")
-        message = "Identified allele information:\n\n1 mompS allele identified.\n\n"
-        raise SystemExit("There is no mompS in this isolate, thus no SBT result can be generated. Exiting.") 
+        message = "Identified allele information:\n\n0 mompS allele identified.\n\n"
     else:
         logging.info(f"Identified allele information:\n\n{len(alleles['mompS'])} mompS allele identified.")
         message = f"{len(alleles['mompS'])} mompS allele identified.\n"
