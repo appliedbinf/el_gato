@@ -1383,8 +1383,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
 
             biallele_results_count = Counter(read_pair_base_calls)
 
-
-            # Check if no read-pairs span both bialleleic sites
+            # check if no read-pairs span both bialleleic sites for either allele
             if len(biallele_results_count) < 2: 
                 logging.info(f"ERROR: {len(multi_allelic_idx)} biallelic sites found for {locus.split('_')[0]} at positions {', '.join([str(i) for i in multi_allelic_idx])}, but no read-pairs span all positions to resolve the allele.")
                 with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
@@ -1393,9 +1392,22 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 a.allele_id = '?'
                 alleles[locus] = [a]
                 continue
-
+            
             max_biallele_count = max([v for v in biallele_results_count.values()])
             bialleles = [k for k,v in biallele_results_count.items() if v >= max(0.2*max_biallele_count, 2)]
+
+            # If there is now only 1 allele, check if it was sufficiently more deeply covered to support a call of only one allele
+            if len(bialleles) == 1:
+                # If one allele was only covered with a single read, require at least 5 reads for the other allele to be called
+                if biallele_results_count[bialleles[0]] < 5:
+                    logging.info(f"ERROR: {len(multi_allelic_idx)} biallelic sites found for {locus.split('_')[0]} at positions {', '.join([str(i) for i in multi_allelic_idx])}, but not enough read-pairs span all positions to resolve the allele.")
+                    with open(f"{outdir}/intermediate_outputs.txt", 'a') as f:
+                        f.write(f"\nERROR: {len(multi_allelic_idx)} biallelic sites found for {locus.split('_')[0]} at positions {', '.join([str(i) for i in multi_allelic_idx])}, but not enough read-pairs span all positions to resolve the allele.\n\n")
+                    a = Allele()
+                    a.allele_id = '?'
+                    alleles[locus] = [a]
+                    continue
+            
 
             if len(bialleles) == 0:
                 # not enough reads span biallelic sites to resolve alleles
