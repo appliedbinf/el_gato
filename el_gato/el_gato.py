@@ -13,8 +13,9 @@ import time
 import math
 import json
 from collections import defaultdict, Counter, OrderedDict
-#from pkg_resources import get_distribution
 from importlib import metadata
+from packaging.version import Version
+
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
@@ -1891,11 +1892,15 @@ def main():
         'json_out' : {}
         }
 
-
     parser = get_args()
     args = parser.parse_args()
     if args.version:
         print(f'el_gato version: {version}')
+        sys.exit()
+    
+    # check python version
+    if Version(sys.version.split()[0]) < Version("3.8") or Version(sys.version.split()[0]) >= Version("3.12"):
+        sys.stderr.write(f"ERROR: el_gato requires Python version >= 3.8 and < 3.12.\nYou have version {sys.version}\n")
         sys.exit()
     inputs = check_input_supplied(args, parser, inputs)
     inputs = set_inputs(args, inputs)
