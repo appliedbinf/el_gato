@@ -1210,7 +1210,11 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 del ref.REF_POSITIONS[gene]
 
     cov_msg = ""
-    #cov_results = {key: cov_results[key] for key in cov_results.keys() & ref.REF_POSITIONS.keys()}    
+    cov_results_report = cov_results.copy() # keep all coverage information for reporting
+    # remove all but most covered neuA
+    neuA_covs = sorted([(k, v) for k, v in cov_results_report.items() if "neuA" in k], key=lambda x: float(x[1]["Proportion_covered"]))
+    for n in neuA_covs[:-1]:
+        del cov_results_report[n[0]]
     cov_results = {k:v for k,v in cov_results.items() if k in ref.REF_POSITIONS}
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) == 0:
@@ -1468,7 +1472,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         del alleles[neuAs[0]]
         
     cov_dict = {}
-    cov_dict['locus_coverage'] = cov_results
+    cov_dict['locus_coverage'] = cov_results_report
         
     inputs["json_out"]['mode_specific'] = cov_dict
 
