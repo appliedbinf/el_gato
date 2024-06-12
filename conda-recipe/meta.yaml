@@ -1,5 +1,5 @@
 {% set name = "elgato" %}
-{% set version = "1.15.1" %}
+{% set version = "1.17.0" %}
 
 package:
   name: {{ name|lower }}
