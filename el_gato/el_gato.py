@@ -1197,7 +1197,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         gene, _, _, cov, depth, _, _ = line.split()
         cov = float(cov)
         depth = float(depth)
-        cov_results[gene] = {"Proportion_covered": str(cov), "Mean_depth": str(depth)}
+        cov_results[gene] = {"Percent_covered": str(cov), "Mean_depth": str(depth)}
         if cov != 100.:
             if 'neuA' in gene:
                 if cov < 99:
@@ -1212,9 +1212,19 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     cov_msg = ""
     cov_results_report = cov_results.copy() # keep all coverage information for reporting
     # remove all but most covered neuA
-    neuA_covs = sorted([(k, v) for k, v in cov_results_report.items() if "neuA" in k], key=lambda x: float(x[1]["Proportion_covered"]))
+    neuA_covs = sorted([(k, v) for k, v in cov_results_report.items() if "neuA" in k], key=lambda x: float(x[1]["Percent_covered"]))
     for n in neuA_covs[:-1]:
         del cov_results_report[n[0]]
+    
+    # If remaining neuA has no coverage, manually set report fields
+    if float(neuA_covs[-1][1]["Percent_covered"]) == 0.:
+        del cov_results_report[neuA_covs[-1][0]]
+        cov_results_report["neuA"] = {
+            "Percent_covered": "0",
+            "Mean_depth": "0",
+            "Min_depth": 0,
+            "Num_below_min_depth": 353
+        }
     cov_results = {k:v for k,v in cov_results.items() if k in ref.REF_POSITIONS}
 
     if len([i for i in ref.REF_POSITIONS.keys() if 'neuA' in i]) == 0:
@@ -1295,6 +1305,9 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                     [base for base, num in count.items() if num > 0.3*total]
                     )
         min_cov = min(cov)
+        num_below_min = len([i for i in cov if i < inputs['depth']])
+        cov_results[locus]["Min_depth"] = min_cov
+        cov_results[locus]["Num_below_min_depth"] = num_below_min
         
         if min_cov < inputs['depth']:
             msg = f"WARNING: After applying a quality cutoff of 20 to basecalls, at least one position in {locus.split('_')[0]} has below {inputs['depth']} depth and can't be resolved"
