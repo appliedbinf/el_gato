@@ -16,7 +16,7 @@ LOGO="""\
 """
 
 summary_header = """\
-Sequence Based Typing is based on 7 __Legionella pneumophila__ loci (flaA, pilE, asd, mip, mompS, proA, neuA/neuAh). \
+Sequence Based Typing (SBT) is based on 7 __Legionella pneumophila__ loci (flaA, pilE, asd, mip, mompS, proA, neuA/neuAh). \
 Each locus is assigned an allele number based on comparison of its sequence with sequences in an \
 allele database. The allelic profile is the combination of allele numbers for all seven loci in order \
 and denotes a unique Sequence Type (ST). el_gato utilizes either a genome assembly (.fasta) or \
@@ -28,7 +28,7 @@ reads_header = """\
 The following sample was analyzed using the paired-end reads functionality. The tables below show the full \
 MLST profile of the sample, the coverage data for each locus, and information regarding the primers used to \
 identify the primary mompS allele. If present, highlighted rows illustrate data that resulted in allele \
-identification failure. More information can be found in the log file for this sample \
+identification failure. More information can be found in the log file for this sample. \
 """
 
 assembly_header = """\
@@ -37,7 +37,7 @@ MLST profile of the sample and the corresponding locus location information. Unl
 el_gato utilizes a default 30% (0.3) BLAST hit length threshold and a 95% (95.0) sequence identity threshold \
 to identify the presence of multiple copies of an allele. BLAST hits that meet these criteria are highlighted \
 as this may indicate assembly errors or contamination. el_gato will only report allele matches for BLAST hits \
-of 100% length and 100% identity. More information can be found in the log file for this sample \
+of 100% length and 100% identity. More information can be found in the log file for this sample. \
 """
 
 bioconda_header = """\
@@ -52,8 +52,8 @@ abbrev_key = """\
 Novel ST = the alleles for all 7 loci were identified, however their unique combination and corresponding ST has not been found in the database. \n
 Novel ST* = an exact match for sequences of at least one locus was not identified in the database, which may indicate a novel allele. \n
 MA? = **m**ultiple **a**lleles; for at least one locus, multiple alleles were identified, and the true allele could not be resolved; therefore, no ST was generated. \n
-MD- = **m**issing **d**ata; data was missing for at least one locus; therefore, no ST was generated. \n
-'-' = missing data; data was missing for this locus; therefore, an allele number could not be determined. \n
+MD- = **m**issing **d**ata; data were missing for at least one locus (e.g., low read coverage at one or more position, missing sequence in assembly); therefore, no ST was generated. \n
+'-' = missing data; data were missing for this locus (e.g., low read coverage at one or more position, missing sequence in assembly); therefore, an allele number could not be determined. \n
 'NAT' = **n**ovel **a**llele **t**ype; this locus did not match any allele listed in the database, possibly indicating a novel allele. \n
 '?' = multiple alleles; for this locus multiple alleles were identified, and could not be resolved. \n
 """
