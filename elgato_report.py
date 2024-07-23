@@ -57,10 +57,11 @@ MD- = **m**issing **d**ata; data were missing for at least one locus (e.g., low 
 """
 
 primer_footer = """\
-"NA" indicates that primer support was not assessed. Otherwise, the primary mompS allele is identified using the following criteria: \n
+"NA" indicates that primer support was not assessed since only one mompS allele was identified. Otherwise, the primary mompS allele is identified using the following criteria: \n
 1. Only one allele has associated reads with the correctly oriented primers. \n
 2. One allele has more than 3 times as many reads with the correctly oriented primer as the other. \n
-3. One allele has no associated reads with the primer in either orientation, but the other has reads with the primer only in the wrong direction. The sequence with no associated reads is considered the primary locus in this case.\
+3. One allele has no associated reads with the primer in either orientation, but the other has reads with the primer only in the wrong direction. The sequence with no associated reads is considered the primary locus in this case. \n
+4. mompS fails quality control or the absence of any primer-associated reads does not allow one to identify the primary allele.\
 """
 
 disclaimer = """\
