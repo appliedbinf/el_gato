@@ -89,9 +89,10 @@ class Report(FPDF):
 	neuA_neuAH: str
 	mode: str
 	mode_specific: dict
+	shorten_names: bool=False
 
 	@classmethod
-	def from_json(cls, json_data):
+	def from_json(cls, json_data, shorten_names=False):
 		sample_id = json_data["id"]
 		st = json_data["mlst"]["st"]
 		flaA = json_data["mlst"]["flaA"]
@@ -115,12 +116,17 @@ class Report(FPDF):
 			neuA_neuAH,
 			mode,
 			mode_specific,
+			shorten_names
 		)
 		return x
 
 	def list_mlst(self):
+		sample_id = self.sample_id
+		if self.shorten_names:
+			if len(self.sample_id) > 23:
+				sample_id = self.sample_id[:20] + "..."
 		return [
-			self.sample_id,
+			sample_id,
 			self.st,
 			self.flaA,
 			self.pilE,
@@ -181,7 +187,7 @@ class Report(FPDF):
 			)
 		pdf.ln(10)
 
-		pdf = self.make_mlst_table(pdf, [self.list_mlst()])
+		pdf = self.make_mlst_table(pdf, [self.list_mlst()], self.shorten_names)
 		pdf.ln(10)
 
 		pdf.set_font(style="BU")
@@ -216,7 +222,7 @@ class Report(FPDF):
 
 
 	def read_coverage_table(self, pdf):
-		contents = [["Locus", "Percent Covered", "Mean Depth", "Minimum Depth", "Bases below minimum depth"]]
+		contents = [["Locus", "Percent Covered", "Mean Depth", "Minimum Depth", "Low depth bases"]]
 		contents += [
 			[
 				k, v["Percent_covered"], f'{float(v["Mean_depth"]):.1f}', f'{v["Min_depth"]}', f'{v["Num_below_min_depth"]}'
@@ -278,7 +284,7 @@ class Report(FPDF):
 			new_x="LMARGIN", new_y="NEXT"
 			)
 		pdf.ln(10)
-		pdf = self.make_mlst_table(pdf, [self.list_mlst()])
+		pdf = self.make_mlst_table(pdf, [self.list_mlst()], self.shorten_names)
 		pdf.ln(10)
 
 		pdf.set_font(style="BU")
@@ -299,8 +305,14 @@ class Report(FPDF):
 		x = 1
 		for k, v in self.mode_specific["BLAST_hit_locations"].items():
 			for row in v:
+				# set % length
 				p_length = 100*(int(row[-2])-int(row[-3])+1)/int(row[-1])
 				row[-1] = (f"{p_length:.1f}")
+				# shorten contig names if needed
+				if self.shorten_names:
+					if len(row[1]) > 28:
+						row[1] = row[1][:25] + "..."
+
 			contents.append([k] + v[0])
 			if len(v) > 1:
 				for row in v[1:]:
@@ -310,7 +322,13 @@ class Report(FPDF):
 		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER")
 
 		content = [i for i in contents]
-		batches = self.fit_table(pdf, content, pdf.get_y(), 25)
+
+		# if shortening names, don't adjust table for long lines
+		if self.shorten_names:
+			chars = 1000
+		else:
+			chars = 25
+		batches = self.fit_table(pdf, content, pdf.get_y(), chars)
 		# Add a header to each table
 		for i in range(len(batches)):
 			batches[i] = header + batches[i]
@@ -398,9 +416,14 @@ class Report(FPDF):
 		
 
 	@staticmethod
-	def make_mlst_table(pdf, data):
+	def make_mlst_table(pdf, data, shorten_names=False):
 		contents = [["Sample ID","ST","flaA","pilE","asd","mip","mompS","proA","neuA"]]
 		for sample in data:
+			if shorten_names:
+				# Make sure sample id is fewer than XXX characters
+				s_name = sample[0]
+				if len(s_name) > 23:
+					sample[0] = s_name[0:20] + "..."
 			contents.append(sample)
 		col_widths = (60, 18, 18, 18, 18, 18, 18, 18, 18)
 		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER", "CENTER")
@@ -408,21 +431,21 @@ class Report(FPDF):
 		return pdf
 
 	@staticmethod
-	def read_jsons(files):
+	def read_jsons(files, shorten_names=False):
 		data = []
 		for file in files:
 			with open(file) as fin:
 				json_data = json.load(fin)
-				data.append(Report.from_json(json_data))
+				data.append(Report.from_json(json_data, shorten_names))
 		return data
 	
 	@staticmethod
-	def read_multi_json(files):
+	def read_multi_json(files, shorten_names=False):
 		data = []
 		with open(files) as fin:
 			json_data = json.load(fin)
 			for i in json_data:
-				data.append(Report.from_json(i))
+				data.append(Report.from_json(i, shorten_names))
 				
 		return data	
 
@@ -446,12 +469,13 @@ class PDF(FPDF):
 
 
 help_message= """
-usage: elgato_report.py [-h] -i INPUT_JSONS [INPUT_JSONS ...] -o OUT_REPORT
+usage: elgato_report.py [-h] -i INPUT_JSONS [INPUT_JSONS ...] -o OUT_REPORT [-s]
 
 options:
   -h, --help            show this help message and exit
   -i, --input_jsons     path to one or more report.json files
   -o, --out_report      desired output pdf file path
+  -s, --shorten_names   shorten long sample and contig names to prevent line wrapping
 """
 
 class Parser(argparse.ArgumentParser):
@@ -476,6 +500,12 @@ def parse_args():
 		help=""
 		)
 	p.add_argument(
+		"-s", "--shorten_names",
+		required = False,
+		help="",
+		action="store_true"
+		)
+	p.add_argument(
 		"-h", "--help",
 		action="help"
 	)
@@ -487,9 +517,9 @@ def main():
 	args = parse_args()
 	with open(args.input_jsons[0]) as fin:
 		if fin.read().startswith("["):
-			data = Report.read_multi_json(args.input_jsons[0])
+			data = Report.read_multi_json(args.input_jsons[0], args.shorten_names)
 		else:
-			data = Report.read_jsons(args.input_jsons)
+			data = Report.read_jsons(args.input_jsons, args.shorten_names)
 	pdf = PDF('P', 'mm', 'Letter')
 	pdf.add_page()
 	pdf.set_font('Courier', 'B', 10)
@@ -518,16 +548,21 @@ def main():
 				   markdown=True)
 	pdf.ln(2)
 	content = [i.list_mlst() for i in data]
-	batches = Report.fit_table(pdf, content, pdf.get_y(), 19)
+	# if shortening names, don't adjust table for long lines
+	if args.shorten_names:
+		chars = 1000
+	else:
+		chars = 19
+	batches = Report.fit_table(pdf, content, pdf.get_y(), chars)
 	for batch in batches:
 		if batch != batches[-1]:
 			pdf.set_font('Courier', '', 11)
-			pdf = Report.make_mlst_table(pdf, batch)
+			pdf = Report.make_mlst_table(pdf, batch, args.shorten_names)
 			pdf.add_page()
 			pdf.ln(10)
 		else:
 			pdf.set_font('Courier', '', 11)
-			pdf = Report.make_mlst_table(pdf, batch)
+			pdf = Report.make_mlst_table(pdf, batch, args.shorten_names)
 			pdf.ln(5)
 	if pdf.get_y() + 50 > pdf.page_break_trigger:
 		pdf.add_page()
