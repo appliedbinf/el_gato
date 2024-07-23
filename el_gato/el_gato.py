@@ -1083,7 +1083,7 @@ def get_st(allele_profile: str, Ref: Ref, profile_file: str) -> str:
         f.readline()
         for line in f:
             line = line.rstrip()
-            if line.endswith(allele_profile):
+            if "\t".join(line.split()[1:]) == allele_profile:
                 st = line.split("\t")[0]
                 return st
     return novel_ST
