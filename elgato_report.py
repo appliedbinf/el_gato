@@ -170,7 +170,7 @@ class Report(FPDF):
 		pdf.set_font('Courier', '', 11)
 		pdf.multi_cell(
 			h=4, w=0,
-			text=f"**{self.sample_id} report**",
+			text=f"**{self.sample_id} reads report**",
 			align="L",
 			markdown=True
 		)
@@ -280,7 +280,7 @@ class Report(FPDF):
 		pdf.set_font(style="U")
 		pdf.multi_cell(
 			h=4, w=0,
-			text=f"**{self.sample_id.replace('_',' ')} report**",
+			text=f"**{self.sample_id.replace('_',' ')} genomic report**",
 			align="L",
 			markdown=True
 		)
