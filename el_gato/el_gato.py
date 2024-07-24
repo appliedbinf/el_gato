@@ -214,8 +214,6 @@ def get_args() -> argparse.ArgumentParser:
                         required=False, default=False)
     group2.add_argument("--sbt", "-s", help="Database containing SBT allele and ST mapping files (default: %(default)s)",
                         type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db"))
-    group2.add_argument("--suffix", "-x", help="Suffix of SBT allele files (default: %(default)s)", type=str,
-                        required=False, default="_alleles.tfa")
     group2.add_argument("--profile", "-p", help="Name of allele profile to ST mapping file (default: %(default)s)",
                         type=str, required=False, default=os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"))
     group2.add_argument("--verbose", help="Print what the script is doing (default: %(default)s)",
@@ -391,7 +389,6 @@ def set_inputs(
     inputs["out_prefix"] = args.out
     inputs["log"] = os.path.join(args.out, "run.log")
     inputs["sbt"] = args.sbt
-    inputs["suffix"] = args.suffix
     inputs["profile"] = args.profile
     inputs["verbose"] = args.verbose
     inputs["overwrite"] = args.overwrite
@@ -502,7 +499,6 @@ def get_inputs(inputs: dict):
                 Out Prefix  {inputs["out_prefix"]}
                 Log file    {inputs["log"]}
                 SBT         {inputs["sbt"]}
-                Suffix      {inputs["suffix"]}
                 Profile     {inputs["profile"]}
                 Verbose     {inputs["verbose"]}
                 Overwrite   {inputs["overwrite"]}
@@ -818,7 +814,7 @@ def call_momps_pcr(inputs: dict, assembly_file: str) -> list:
         logging.debug(f"Found the sequence: {primer2_res}")
         a_list = []
         for pcr_res in primer2_res.split(">")[1:]:
-            a_list += blast_momps_allele(inputs=inputs, seq=">"+pcr_res, db=os.path.join(inputs["sbt"], "mompS" + inputs["suffix"]))
+            a_list += blast_momps_allele(inputs=inputs, seq=">"+pcr_res, db=os.path.join(inputs["sbt"], "all_loci.fasta"))
         identified_mompS_msg = f"mompS alleles identified: {', '.join([a.allele_id for a in a_list])}"
         with open(f"{inputs['out_prefix']}/intermediate_outputs.txt", 'a') as f:
             f.write(identified_mompS_msg + "\n\n")
@@ -1895,7 +1891,6 @@ def main():
         'sample_name' : "<Inferred from input file>",
         'log' : os.path.join("out", "run.log"),
         'sbt' : os.path.join(os.path.dirname(__file__), "db"),
-        'suffix' : "_alleles.tfa",
         'profile' : os.path.join(os.path.dirname(__file__), "db", "lpneumophila.txt"),
         'verbose' : False,
         'overwrite' : False,
