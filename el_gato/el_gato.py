@@ -755,7 +755,7 @@ def blast_momps_allele(inputs: dict, seq: str, db: str) -> list:
         mompS allele number
     """
     logging.debug(f"Looking for \n{seq}")
-    blastcmd = f"blastn -query - -db {db} -outfmt '6 std qlen slen sseqid' | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort -u  -k15,15"
+    blastcmd = f"blastn -query - -db {db} -outfmt '6 std qlen slen sseqid' -max_target_seqs 50000 | awk -F'\\t' '{{OFS=FS}}{{gsub(/_.+/, \"\", $15)}}1' | sort -k15,15 -k12,12gr | sort -u  -k15,15"
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen\tsseqid"
     res = run_command(blastcmd, "blastn/mompS", seq, shell=True, column_headers=column_headers).rstrip()
     if res == "":
@@ -929,7 +929,7 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
 
     assembly_dict = fasta_to_dict(assembly_file)
 
-    blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen'"
+    blast_command = f"blastn -query {assembly_file} -db {inputs['sbt']}/all_loci.fasta -outfmt '6 std qlen slen' -max_target_seqs 50000"
     desc_header = "Best match of each locus in provided assembly using BLASTN."
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
     result = run_command(blast_command, tool='blast', shell=True, log_output=False)
@@ -1567,7 +1567,7 @@ def map_alleles(inputs: dict, ref: Ref):
     write_alleles_to_file(alleles, outdir)
     # BLAST alleles
     logging.info("BLASTing identified alleles against database")
-    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
+    blast_command = f"blastn -query {outdir}/identified_alleles.fna -db {db}/all_loci.fasta -outfmt '6 std qlen slen' -max_target_seqs 50000 | sort -k1,1 -k12,12gr | sort --merge -u  -k1,1"
     desc_header = "Best match of each identified sequence determined using BLASTN"
     column_headers = "qseqid\tsseqid\tpident\tlength\tmismatch\tgapopen\tqstart\tqend\tsstart\tsend\tevalue\tbitscore\tqlen\tslen"
 
