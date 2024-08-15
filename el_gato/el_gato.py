@@ -1515,6 +1515,25 @@ def write_alleles_to_file(alleles: list, outdir: str):
         fout.write(identified_allele_fasta_string)
 
 
+def check_reads_are_mapped(inputs: dict, samfile: str):
+    with open(samfile) as f:
+        line_count = sum([1 for line in f if line[0] != "@"])
+    if line_count > 0:
+        return
+    # 0 reads mapped. Abort.
+    logging.error("Critical error. The analysis could not be completed since the sample contains zero reads that could align to all 7 loci and thus likely indicates this sample is not L. pneumophila.")
+    logging.error("Analysis Aborted")
+
+    # set alleles to missing data
+    outlines = []
+    if inputs['header']:
+        header = "Sample\tST\t" + "\t".join(Ref.locus_order)
+        outlines.append(header)
+    outlines.append("\t".join(["MD-"] + ["-"] * 7))
+    print("\n".join(outlines))
+    sys.exit()   
+
+
 def run_stats(samfile: str, outdir: str):
     # Check if insert size is long enough and log read length and insert size
     stats_command = f"samtools stats {samfile} | awk '$1==\"IS\" {{is+=$3*$2; is_count+=$3}} $1==\"RL\" {{rl+=$2*$3; rl_count+=$3}} END {{print \"Average insertion size:\", is/is_count, \"Average read length:\", rl/rl_count}}'"
@@ -1563,6 +1582,8 @@ def map_alleles(inputs: dict, ref: Ref):
     mapping_command = f"minimap2 -ax sr -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
     run_command(mapping_command, tool='minimap2 -ax sr', shell=True)
 
+    # Check for issues with read mapping
+    check_reads_are_mapped(inputs, f"{outdir}/reads_vs_all_ref_filt.sam")
     run_stats(f"{outdir}/reads_vs_all_ref_filt.sam", outdir)
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
@@ -1922,6 +1943,7 @@ def main():
     inputs = set_inputs(args, inputs)
     make_output_directory(inputs)
     configure_logger(inputs)
+    logging.info(f"Running el_gato version {version}")
     logging.info("Starting preprocessing")
     for line in inputs["logging_buffer_message"].rstrip().split("\n"):
         logging.info(line)
