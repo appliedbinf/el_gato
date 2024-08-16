@@ -82,6 +82,10 @@ class Ref:
             'start_pos' : 350,
             'end_pos' : 700,
         },
+        "neuA_215": {
+            'start_pos' : 350,
+            'end_pos' : 703,
+        },
     }
 
 class SAM_data(object):
@@ -385,6 +389,7 @@ def set_inputs(
         inputs["length"] = args.length
         inputs["sequence"] = args.sequence
         inputs["json_out"]['operation_mode'] = "Assembly"
+    inputs["json_out"]["version"] = version
     inputs["threads"] = args.threads
     inputs["out_prefix"] = args.out
     inputs["log"] = os.path.join(args.out, "run.log")
@@ -1180,7 +1185,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     run_command(process_sam_command, tool='samtools', shell=True)
 
     logging.info("Checking coverage of reference loci by mapped reads")
-    coverage_command = f"samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | cut -f 1,4,5,6,7,8,9; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_207:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_211:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_212:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9"
+    coverage_command = f"samtools coverage -r flaA:351-531 {outdir}/reads_vs_all_ref_filt_sorted.bam | cut -f 1,4,5,6,7,8,9; samtools coverage -r pilE:351-682 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r asd:351-822 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mip:350-750 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r mompS:367-717 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r proA:350-754 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuAh:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_207:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_211:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_212:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9; samtools coverage -r neuA_215:350-702 {outdir}/reads_vs_all_ref_filt_sorted.bam | tail -1 | cut -f 1,4,5,6,7,8,9"
     desc_header = "Assessing coverage of MLST loci by provided sequencing reads."
 
     result = run_command(coverage_command, tool='samtools coverage', shell=True, desc_file=f"{outdir}/intermediate_outputs.txt", desc_header=desc_header)
@@ -1511,6 +1516,25 @@ def write_alleles_to_file(alleles: list, outdir: str):
         fout.write(identified_allele_fasta_string)
 
 
+def check_reads_are_mapped(inputs: dict, samfile: str):
+    with open(samfile) as f:
+        line_count = sum([1 for line in f if line[0] != "@"])
+    if line_count > 0:
+        return
+    # 0 reads mapped. Abort.
+    logging.error("Critical error. The analysis could not be completed since the sample contains zero reads that could align to all 7 loci and thus likely indicates this sample is not L. pneumophila.")
+    logging.error("Analysis Aborted")
+
+    # set alleles to missing data
+    outlines = []
+    if inputs['header']:
+        header = "Sample\tST\t" + "\t".join(Ref.locus_order)
+        outlines.append(header)
+    outlines.append("\t".join(["MD-"] + ["-"] * 7))
+    print("\n".join(outlines))
+    sys.exit()   
+
+
 def run_stats(samfile: str, outdir: str):
     # Check if insert size is long enough and log read length and insert size
     stats_command = f"samtools stats {samfile} | awk '$1==\"IS\" {{is+=$3*$2; is_count+=$3}} $1==\"RL\" {{rl+=$2*$3; rl_count+=$3}} END {{print \"Average insertion size:\", is/is_count, \"Average read length:\", rl/rl_count}}'"
@@ -1559,6 +1583,8 @@ def map_alleles(inputs: dict, ref: Ref):
     mapping_command = f"minimap2 -ax sr -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
     run_command(mapping_command, tool='minimap2 -ax sr', shell=True)
 
+    # Check for issues with read mapping
+    check_reads_are_mapped(inputs, f"{outdir}/reads_vs_all_ref_filt.sam")
     run_stats(f"{outdir}/reads_vs_all_ref_filt.sam", outdir)
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
@@ -1835,6 +1861,9 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     
     out_string = "\n".join(outlines)
     for line in out_string.splitlines():
+        if inputs["header"] and line == out_string.splitlines()[0]:
+            # skip header line if included in output
+            continue
         line = line.split("\t")
         while i < len(loci):
             allele_dict[loci[i]] = line[i+1]
@@ -1918,6 +1947,7 @@ def main():
     inputs = set_inputs(args, inputs)
     make_output_directory(inputs)
     configure_logger(inputs)
+    logging.info(f"Running el_gato version {version}")
     logging.info("Starting preprocessing")
     for line in inputs["logging_buffer_message"].rstrip().split("\n"):
         logging.info(line)

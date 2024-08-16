@@ -59,7 +59,7 @@ python3 -m pip install .
 # Usage
 
 ## Quickstart Guide
-Here is an example of a basic run using paired-end reads or assemblies as input.
+Here is an example of a basic run using paired-end reads or assemblies as input. We recommend using reads whenever available as read-based sequence typing is more reliable.
 ```
 # Paired-end:
 el_gato.py --read1 read1.fastq.gz --read2 read2.fastq.gz --out output_folder/
@@ -135,6 +135,8 @@ Optional arguments:
 # Input and Output
 
 ## Input files
+
+If available, we recommend using raw or trimmed reads instead of assemblies as the extra data contained in reads is valuable for the process used by el_gato to identify sample ST. When run with reads, el_gato is able to use read quality and coverage information to apply quality control rules. When run using assemblies, el_gato is unable to identify errors that have been incorporated into the assembly and may therefore report incorrect results. For example, while many isolates encode two copies of *mompS*, in some cases only one copy of the locus is assembled. If only the secondary *mompS* locus is included in the assembly then el_gato will report that allele.
 
 #### Pair-end reads
 When running on a directory of reads, files are associated as pairs using the pattern `R{1,2}.fastq`. i.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. Any files for which a pair can not be identified using this pattern will not be processed.
@@ -238,18 +240,10 @@ Assembly: BLAST hit length and sequence identity thresholds and locus location i
 
 # Approach
 
- At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. Whereas loci *mompS* and *neuA/neuAh* require more involved processing, with neuA/neuAh being an issue only when processing reads—the specifics of these loci are discussed in the corresponding sections below. 
+At its core, el_gato uses BLAST to identify the closest match to each allele in your input data. For the loci *flaA*, *pilE*, *asd*, *mip*, and *proA*, this process is straight forward. Whereas loci *mompS* and *neuA/neuAh* require more involved processing, with neuA/neuAh being an issue only when processing reads—the specifics of these loci are discussed in the corresponding sections below. 
 
 
 First for the simple loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*), the following processes are used:
-
-## Assembly
-
-Six of the seven loci (*flaA*, *pilE*, *asd*, *mip*,*proA*, and *neuA/neuAh*) are identified using BLAST. For each, the best BLAST result is returned as the allele. The closest match is returned with an \* if loci have no exact match. [add in updated code changes if necessary] When processing an assembly, only *mompS* requires extra processing. 
-
-### *mompS*
-
-[*mompS* is sometimes present in multiple copies in *Legionella pneumophila*, though typically two copies.](https://doi.org/10.1016/j.cmi.2017.01.002) When typing *L. pneumophila* using Sanger sequencing, primers amplify only the correct *mompS* locus. We, therefore, use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The primers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLAST.
 
 ## Reads
 
@@ -296,6 +290,14 @@ If the above process cannot identify the correct sequence, a ? will be returned 
 
 ## *momps* Read Mapping Schematic
 ![mompS read mapping schematic](https://github.com/appliedbinf/el_gato/blob/images/images/mompS_allele_assignment.png)
+
+## Assembly
+
+Six of the seven loci (*flaA*, *pilE*, *asd*, *mip*,*proA*, and *neuA/neuAh*) are identified using BLAST. For each, the best BLAST result is returned as the allele. The closest match is returned with an \* if loci have no exact match. [add in updated code changes if necessary] When processing an assembly, only *mompS* requires extra processing. 
+
+### *mompS*
+
+[*mompS* is sometimes present in multiple copies in *Legionella pneumophila*, though typically two copies.](https://doi.org/10.1016/j.cmi.2017.01.002) When typing *L. pneumophila* using Sanger sequencing, primers amplify only the correct *mompS* locus. We, therefore, use *in silico* PCR to extract the correct *mompS* locus sequence from the assembly. The primers used for *in silico* PCR are *mompS*-450F (TTGACCATGAGTGGGATTGG) and *mompS*-1116R (TGGATAAATTATCCAGCCGGACTTC) [as described in this protocol](https://doi.org/10.1007/978-1-62703-161-5_6). The *mompS* allele is then identified using BLAST.
 
 # Using NextFlow 
 ## Using NextFlow with Singularity Container
