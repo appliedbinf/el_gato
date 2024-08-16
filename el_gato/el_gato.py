@@ -389,6 +389,7 @@ def set_inputs(
         inputs["length"] = args.length
         inputs["sequence"] = args.sequence
         inputs["json_out"]['operation_mode'] = "Assembly"
+    inputs["json_out"]["version"] = version
     inputs["threads"] = args.threads
     inputs["out_prefix"] = args.out
     inputs["log"] = os.path.join(args.out, "run.log")
@@ -1860,6 +1861,9 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     
     out_string = "\n".join(outlines)
     for line in out_string.splitlines():
+        if inputs["header"] and line == out_string.splitlines()[0]:
+            # skip header line if included in output
+            continue
         line = line.split("\t")
         while i < len(loci):
             allele_dict[loci[i]] = line[i+1]
