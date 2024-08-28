@@ -1580,7 +1580,7 @@ def map_alleles(inputs: dict, ref: Ref):
 
     # Run BWA mem
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
-    mapping_command = f"minimap2 -ax sr -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
+    mapping_command = f"minimap2 -ax sr -k10 -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
     run_command(mapping_command, tool='minimap2 -ax sr', shell=True)
 
     # Check for issues with read mapping
