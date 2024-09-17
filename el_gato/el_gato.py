@@ -210,6 +210,8 @@ def get_args() -> argparse.ArgumentParser:
                         required=False, default=1)
     group2.add_argument("--depth", "-d", help="Specify the minimum depth used to identify loci in paired-end reads (default: %(default)s)", type=int, required=False,
                         default=10)
+    group2.add_argument("--kmer-size", "-k", help="Specify the kmer sized used for mapping by minimap2. Max acceptable: 28. (default: %(default)s)", type=int, required=False,
+                        default=21)
     group2.add_argument("--out", "-o", help="Output folder name (default: %(default)s)", type=str, required=False,
                         default="out")
     group2.add_argument("--sample", "-n", help="Sample name (default: %(default)s)", type=str, required=False,
@@ -399,6 +401,7 @@ def set_inputs(
     inputs["overwrite"] = args.overwrite
     inputs["depth"] = args.depth
     inputs["header"] = args.header
+    inputs["kmer_size"] = args.kmer_size
     Ref.file = os.path.join(inputs["out_prefix"], Ref.file)
     if args.sample == inputs["sample_name"]:
         if inputs["read1"] is not None:
@@ -1577,10 +1580,11 @@ def map_alleles(inputs: dict, ref: Ref):
     sample_name = inputs['sample_name']
     profile = inputs['profile']
     samfile = inputs['samfile']
+    kmer_size = inputs["kmer_size"]
 
     # Run BWA mem
     logging.info("Mapping reads to reference sequence, then filtering unmapped reads from sam file")
-    mapping_command = f"minimap2 -ax sr -k10 -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
+    mapping_command = f"minimap2 -ax sr -k {kmer_size} -t {threads} {db}/ref_gene_regions.fna {r1} {r2} | samtools view -h -F 0x4 -@ {threads} -o {outdir}/reads_vs_all_ref_filt.sam"
     run_command(mapping_command, tool='minimap2 -ax sr', shell=True)
 
     # Check for issues with read mapping
