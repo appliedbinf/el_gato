@@ -1519,10 +1519,10 @@ def write_alleles_to_file(alleles: list, outdir: str):
 def check_reads_are_mapped(inputs: dict, samfile: str):
     with open(samfile) as f:
         line_count = sum([1 for line in f if line[0] != "@"])
-    if line_count > 0:
+    if line_count > 10:
         return
     # 0 reads mapped. Abort.
-    logging.error("Critical error. The analysis could not be completed since the sample contains zero reads that could align to all 7 loci and thus likely indicates this sample is not L. pneumophila.")
+    logging.error("Critical error. The analysis could not be completed since the sample contains fewer than 10 reads that could align to the 7 SBT loci and thus likely indicates this sample is not L. pneumophila.")
     logging.error("Analysis Aborted")
 
     # set alleles to missing data
