@@ -114,6 +114,14 @@ def cmdline_args():
 		help="number of reads to be generated (default: 10,000)"
 		)
 	p.add_argument(
+		"--av_frag_len", required = False, type=int, default=500,
+		help="Approximate average fragment length (default: 500)"
+		)
+	p.add_argument(
+		"--av_read_len", required = False, type=int, default=240,
+		help="Approximate average read length (default: 240)"
+		)
+	p.add_argument(
 		"-p", "--db_path", required = False, type=str, default="db/",
 		help="path to allele sequence database (default: db/)"
 		)
@@ -306,26 +314,26 @@ def rand_seq(n):
 	return seq
 
 
-def sequence_fragment(seq):
+def sequence_fragment(seq, av_frag_len, av_read_len):
 	mid = random.randint(0,len(seq))
-	read_len = random.randint(400,700)
-	start = int(mid-read_len/2)
-	end = int(mid+read_len/2)
-	if start < -200:
-		r1 = rand_seq(250)
+	fragment_len = random.randint(0.8*av_frag_len,1.2*av_frag_len)
+	start = int(mid-fragment_len/2)
+	end = int(mid+fragment_len/2)
+	if start < -(av_read_len-50):
+		r1 = rand_seq(av_read_len)
 	else:
-		r1 = seq[max([start, 0]): start+250]
-	if end > len(seq)+200:
-		r2 = rand_seq(200)
+		r1 = seq[max([start, 0]): start+av_read_len]
+	if end > len(seq)+(av_read_len-50):
+		r2 = rand_seq(av_read_len-50)
 	else:
-		r2 = rev_comp(seq[end-250: min([len(seq), end])])
+		r2 = rev_comp(seq[end-av_read_len: min([len(seq), end])])
 
-	# make sure reads are long enough or make them up to between 150 and 250 with random seq
-	if len(r1) < 150:
-		add_len = random.randint(150-len(r1), 250-len(r1))
+	# make sure reads are long enough or make them up to between 100 and av_read_len with random seq
+	if len(r1) < 100:
+		add_len = random.randint(100-len(r1), av_read_len-len(r1))
 		r1 = "".join([rand_seq(add_len), r1])
-	if len(r2) < 150:
-		add_len = random.randint(150-len(r2), 250-len(r2))
+	if len(r2) < 100:
+		add_len = random.randint(100-len(r2), av_read_len-len(r2))
 		r2 = "".join([rand_seq(add_len), r2])
 
 	switch = random.choice([True, False])
@@ -335,7 +343,7 @@ def sequence_fragment(seq):
 	return r1, r2
 
 
-def generate_reads(n, st_choices):
+def generate_reads(n, st_choices, av_frag_len, av_read_len):
 	reads1 = []
 	reads2 = []
 	for i in range(1, n+1):
@@ -343,7 +351,7 @@ def generate_reads(n, st_choices):
 		read1 = Read(i)
 		read2 = Read(i)
 		seq = random.choice([st.flaA_seq, st.pilE_seq, st.asd_seq, st.mip_seq, st.mompS_seq, st.proA_seq, st.neuA_neuAH_seq])
-		read1.seq, read2.seq = sequence_fragment(seq)
+		read1.seq, read2.seq = sequence_fragment(seq, av_frag_len, av_read_len)
 		read1.qual = "".join([chr(random.randint(58, 69)) for _ in range(len(read1.seq))])
 		read2.qual = "".join([chr(random.randint(58, 69)) for _ in range(len(read2.seq))])
 		reads1.append(read1)
@@ -380,7 +388,7 @@ def main(args):
 	st_choices = choose_sts(args, sts)
 	allele_seqs = load_allele_seqs(args)
 	st_choices = fill_st_seq(st_choices, allele_seqs)
-	reads1, reads2 = generate_reads(args.num_reads, st_choices)
+	reads1, reads2 = generate_reads(args.num_reads, st_choices, args.av_frag_len, args.av_read_len)
 	write_reads_file(reads1, f"{args.outprefix}reads1.fastq")
 	write_reads_file(reads2, f"{args.outprefix}reads2.fastq")
 
