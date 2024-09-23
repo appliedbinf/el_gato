@@ -68,7 +68,7 @@ primer_footer = """\
 disclaimer = """\
 This test has not been cleared or approved by the FDA. The performance characteristics have been established \
 by the Respiratory Diseases Branch. The results are intended for public health purposes only and must NOT be \
-communicated to the patient, their care provider, or placed in the patient’s medical record. These results should \
+communicated to the patient, their care provider, or placed in the patient's medical record. These results should \
 NOT be used for diagnosis, treatment, or assessment of patient health or management.  Reference Value: Not applicable. \
 """
 
@@ -459,11 +459,18 @@ class Report(FPDF):
 		return data	
 
 class PDF_no_header(FPDF):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, disclaimer=False, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.head_spacing = 0
+		self.disclaimer = disclaimer
 	
 	def footer(self):
+		if self.disclaimer:
+			# Position cursor at 1.5 cm from bottom:
+			self.set_y(-30)
+			# Setting font: helvetica italic 8
+			self.set_font("Courier", "", 8)
+			self.multi_cell(0, None, disclaimer, align="C")
 		# Position cursor at 1.5 cm from bottom:
 		self.set_y(-15)
 		# Setting font: helvetica italic 8
@@ -505,6 +512,7 @@ options:
   -o, --out_report      desired output pdf file path
   -s, --shorten_names   shorten long sample and contig names to prevent line wrapping
   -n, --no_header       Do not include the header in the report
+  -d,  --disclaimer     Include disclaimer in footer
   --custom_header       Provide custom header as string in your command
   --header_file         Provide custom header in a text file
 """
@@ -538,6 +546,12 @@ def parse_args():
 		)
 	p.add_argument(
 		"-n", "--no_header",
+		required = False,
+		help="",
+		action="store_true"
+		)
+	p.add_argument(
+		"-d", "--disclaimer",
 		required = False,
 		help="",
 		action="store_true"
@@ -580,9 +594,9 @@ def main():
 		with open(args.header_file) as fin:
 			report_header = fin.read()
 	if args.no_header:
-		pdf = PDF_no_header('P', 'mm', 'Letter')
+		pdf = PDF_no_header(disclaimer, 'P', 'mm', 'Letter')
 	else:
-		pdf = PDF_with_header(report_header, 'P', 'mm', 'Letter')
+		pdf = PDF_with_header(report_header, args.disclaimer, 'P', 'mm', 'Letter')
 		
 	pdf.add_page()
 	pdf.set_font('Courier', 'B', 10)
