@@ -231,7 +231,11 @@ class Report(FPDF):
 		contents = [["Locus", "Percent Covered", "Mean Depth", "Minimum Depth", "Low depth bases"]]
 		contents += [
 			[
-				k, v["Percent_covered"], f'{float(v["Mean_depth"]):.1f}', f'{v["Min_depth"]}', f'{v["Num_below_min_depth"]}'
+				k,
+				f'{float(v["Percent_covered"]):.1f}' if "Percent_covered" in v else "-",
+				f'{float(v["Mean_depth"]):.1f}' if "Mean_depth" in v else "-",
+				f'{float(v["Min_depth"]):.1f}' if "Min_depth" in v else "-",
+				f'{float(v["Num_below_min_depth"]):.1f}' if "Num_below_min_depth" in v else "-"
 			] for k, v in self.mode_specific["locus_coverage"].items()]
 		col_widths = (37.5, 37.5, 37.5, 37.5, 37.5)
 		alignment = ("CENTER", "CENTER", "CENTER", "CENTER", "CENTER")

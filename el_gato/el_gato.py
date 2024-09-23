@@ -1212,6 +1212,12 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 a.allele_id = '-'
                 alleles[gene] = [a]
                 del ref.REF_POSITIONS[gene]
+                cov_results_report[gene] = {
+                    "Percent_covered": "0",
+                    "Mean_depth": "0",
+                    "Min_depth": 0,
+                    "Num_below_min_depth": ref.REF_POSITIONS[gene]["end_pos"] - ref.REF_POSITIONS[gene]["start_pos"]
+                }
 
     cov_msg = ""
     cov_results_report = cov_results.copy() # keep all coverage information for reporting
@@ -1519,22 +1525,32 @@ def write_alleles_to_file(alleles: list, outdir: str):
         fout.write(identified_allele_fasta_string)
 
 
-def check_reads_are_mapped(inputs: dict, samfile: str):
+def check_reads_are_mapped(inputs: dict, ref: Ref, samfile: str):
     with open(samfile) as f:
         line_count = sum([1 for line in f if line[0] != "@"])
     if line_count > 10:
         return
-    # 0 reads mapped. Abort.
+    # < 10 reads mapped. Abort.
     logging.error("Critical error. The analysis could not be completed since the sample contains fewer than 10 reads that could align to the 7 SBT loci and thus likely indicates this sample is not L. pneumophila.")
     logging.error("Analysis Aborted")
 
     # set alleles to missing data
-    outlines = []
-    if inputs['header']:
-        header = "Sample\tST\t" + "\t".join(Ref.locus_order)
-        outlines.append(header)
-    outlines.append("\t".join(["MD-"] + ["-"] * 7))
-    print("\n".join(outlines))
+    alleles = {}
+    for locus in ref.locus_order:
+        alleles[locus] = [Allele()]
+
+    # write blank coverage dict
+    cov_dict = {
+        gene: {
+            "Percent_covered": "0",
+            "Mean_depth": "0",
+            "Min_depth": 0,
+            "Num_below_min_depth": ref.REF_POSITIONS[gene]["end_pos"] - ref.REF_POSITIONS[gene]["start_pos"]
+        } for gene in ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA']
+    }
+    inputs["json_out"]["mode_specific"] = cov_dict
+
+    print(print_table(inputs, ref, alleles))
     sys.exit()   
 
 
@@ -1588,7 +1604,7 @@ def map_alleles(inputs: dict, ref: Ref):
     run_command(mapping_command, tool='minimap2 -ax sr', shell=True)
 
     # Check for issues with read mapping
-    check_reads_are_mapped(inputs, f"{outdir}/reads_vs_all_ref_filt.sam")
+    check_reads_are_mapped(inputs, ref, f"{outdir}/reads_vs_all_ref_filt.sam")
     run_stats(f"{outdir}/reads_vs_all_ref_filt.sam", outdir)
 
     contig_dict, read_info_dict = read_sam_file(f"{outdir}/reads_vs_all_ref_filt.sam")
@@ -1882,8 +1898,16 @@ def print_table(inputs: dict, Ref: Ref, alleles: dict) -> str:
     else:
         pass
     
+    write_report(inputs)
+
     return "\n".join(outlines)
 
+
+def write_report(inputs: dict):
+    json_out = inputs["json_out"]
+    json_dump = json.dumps(json_out, indent=2)
+    with open(os.path.join(inputs["out_prefix"], "report.json"), "w") as j_out:
+        j_out.write(json_dump)
 
 def pretty_time_delta(seconds: int):
     """Pretty print the time
@@ -1971,10 +1995,6 @@ def main():
     get_inputs(inputs)
     logging.info("Starting analysis")
     output = choose_analysis_path(inputs, Ref)
-    json_out = inputs["json_out"]
-    json_dump = json.dumps(json_out, indent=2)
-    with open(os.path.join(inputs["out_prefix"], "report.json"), "w") as j_out:
-        j_out.write(json_dump)
     logging.info("Finished analysis")
 
     logging.debug(f"Output = \n{output}\n")
