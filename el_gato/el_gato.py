@@ -1540,14 +1540,14 @@ def check_reads_are_mapped(inputs: dict, ref: Ref, samfile: str):
         alleles[locus] = [Allele()]
 
     # write blank coverage dict
-    cov_dict = {
+    cov_dict = {"locus_coverage": {
         gene: {
             "Percent_covered": "0",
             "Mean_depth": "0",
             "Min_depth": 0,
             "Num_below_min_depth": ref.REF_POSITIONS[gene]["end_pos"] - ref.REF_POSITIONS[gene]["start_pos"]
         } for gene in ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA']
-    }
+    }}
     inputs["json_out"]["mode_specific"] = cov_dict
 
     print(print_table(inputs, ref, alleles))
