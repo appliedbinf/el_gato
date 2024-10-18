@@ -13,14 +13,12 @@ import time
 import math
 import json
 from collections import defaultdict, Counter, OrderedDict
-from importlib import metadata
 from packaging.version import Version
 
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
-#version = get_distribution('elgato').version
-version = metadata.version('elgato')
+version = "1.20.1"
 
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
