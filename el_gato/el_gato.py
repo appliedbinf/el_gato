@@ -539,7 +539,7 @@ def check_program(program_name: str, inputs: dict) -> None:
         command = f"{program_name} -version | head -1"
     elif program_name == "isPcr":
         # No version retrieval option. pull from usage head instead.
-        command = 'isPcr 2>&1 | head -1 | grep -Po "(?<=v )\S+"'
+        command = r'isPcr 2>&1 | head -1 | grep -Eo "v \S+" | cut -d" " -f2'
     elif program_name == "samtools":
         # only want the first two lines
         command = "samtools --version | head -1"
