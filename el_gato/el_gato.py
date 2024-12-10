@@ -1209,13 +1209,13 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 a = Allele()
                 a.allele_id = '-'
                 alleles[gene] = [a]
-                del ref.REF_POSITIONS[gene]
-                cov_results_report[gene] = {
+                cov_results[gene] = {
                     "Percent_covered": "0",
                     "Mean_depth": "0",
                     "Min_depth": 0,
                     "Num_below_min_depth": ref.REF_POSITIONS[gene]["end_pos"] - ref.REF_POSITIONS[gene]["start_pos"]
                 }
+                del ref.REF_POSITIONS[gene]
 
     cov_msg = ""
     cov_results_report = cov_results.copy() # keep all coverage information for reporting
