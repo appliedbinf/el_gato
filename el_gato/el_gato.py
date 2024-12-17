@@ -18,7 +18,7 @@ from packaging.version import Version
 t0 = time.time()
 script_filename = inspect.getframeinfo(inspect.currentframe()).filename
 script_path = os.path.dirname(os.path.abspath(script_filename))
-version = "1.20.1"
+version = "1.20.2"
 
 class Ref:
     file = "Ref_Paris_mompS_2.fasta"
