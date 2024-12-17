@@ -1196,7 +1196,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
     loci = ['flaA', 'pilE', 'asd', 'mip', 'mompS', 'proA', 'neuA']
     
     for line in result.strip().split('\n')[1:]:
-        gene, _, _, cov, depth, _, _ = line.split()
+        gene, _, covbases, cov, depth, _, _ = line.split()
         cov = float(cov)
         depth = float(depth)
         cov_results[gene] = {"Percent_covered": str(cov), "Mean_depth": str(depth)}
@@ -1210,10 +1210,10 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
                 a.allele_id = '-'
                 alleles[gene] = [a]
                 cov_results[gene] = {
-                    "Percent_covered": "0",
-                    "Mean_depth": "0",
+                    "Percent_covered": str(cov),
+                    "Mean_depth": str(depth),
                     "Min_depth": 0,
-                    "Num_below_min_depth": ref.REF_POSITIONS[gene]["end_pos"] - ref.REF_POSITIONS[gene]["start_pos"]
+                    "Num_below_min_depth": (ref.REF_POSITIONS[gene]["end_pos"] - ref.REF_POSITIONS[gene]["start_pos"]) - int(covbases)
                 }
                 del ref.REF_POSITIONS[gene]
 
