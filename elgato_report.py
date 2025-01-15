@@ -224,12 +224,6 @@ class Report(FPDF):
 			)
 		pdf.ln(0)
 
-		#pdf.multi_cell(
-		#	w=0, h=3.5,
-		#	text=primer_footer,
-		#	new_x="LMARGIN", new_y="NEXT"
-		#)
-
 		return pdf
 
 
@@ -651,12 +645,7 @@ def main():
 	if pdf.get_y() + 50 > pdf.page_break_trigger:
 		pdf.add_page()
 		pdf.ln(10)
-	#pdf.set_font(style="U")
-	#pdf.cell(w=0,h=0, text="Abbreviation Key", new_x="LMARGIN", new_y="NEXT")
-	#pdf.ln(5)
-	#pdf.set_font()
-	#pdf.multi_cell(w=0,h=3.5, text=abbrev_key, new_x="LMARGIN", new_y="NEXT", markdown=True)
-	# Add a page break before printing the abbreviation key
+
 	pdf.add_page()
 	pdf.ln(5)
 	pdf.set_font(style="BU")
