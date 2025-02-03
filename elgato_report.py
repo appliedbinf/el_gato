@@ -204,10 +204,7 @@ class Report(FPDF):
 		pdf.set_font()
 		pdf = self.read_coverage_table(pdf)
 
-		if pdf.head_spacing:
-			pdf.add_page()
-		else:
-			pdf.ln(10)
+		pdf.ln(10)
 		pdf.set_font(style="BU")
 		pdf.cell(
 			w=0,h=10,
@@ -307,7 +304,6 @@ class Report(FPDF):
 
 		return pdf
 
-
 	def locus_location_table(self, pdf):
 		header = [["locus", "allele", "contig", "start", "stop", "%length"]]
 		contents = []
@@ -367,7 +363,6 @@ class Report(FPDF):
 
 		return pdf
 
-
 	def split_highlight_batches(self, batches, highlight_rows):
 		highlight_list = []
 		for batch in batches:
@@ -421,8 +416,7 @@ class Report(FPDF):
 			pdf_y += cell_height
 			this_batch.append(row)
 		batches.append(this_batch)
-		return batches
-		
+		return batches		
 
 	@staticmethod
 	def make_mlst_table(pdf, data, shorten_names=False):
@@ -500,8 +494,6 @@ class PDF_with_header(PDF_no_header):
 			newlines += len(line)//91
 		
 		return newlines * 5
-		
-
 
 help_message= """
 usage: elgato_report.py [-h] -i INPUT_JSONS [INPUT_JSONS ...] -o OUT_REPORT [-s]
@@ -607,10 +599,10 @@ def main():
 		align="C",
 		markdown=True
 	)
-	pdf.ln(2)
+	pdf.ln(10)
 	pdf.set_font('Courier', '', 16)
 	pdf.multi_cell(w=0,h=6, text=LOGO, new_x="LMARGIN", new_y="NEXT")
-	pdf.ln(4)
+	pdf.ln(5)
 	pdf.set_font('Courier', '', 11)
 	pdf.set_font(style="U")
 	pdf.multi_cell(
@@ -620,10 +612,10 @@ def main():
 		markdown=True
 	)
 	pdf.set_font()
-	pdf.ln(2)
+	pdf.ln(5)
 	pdf.multi_cell(w=0,h=5, text=summary_header, new_x="LMARGIN", new_y="NEXT",
 				   markdown=True)
-	pdf.ln(2)
+	pdf.ln(10)
 	
 	content = [i.list_mlst() for i in data]
 	# if shortening names, don't adjust table for long lines
