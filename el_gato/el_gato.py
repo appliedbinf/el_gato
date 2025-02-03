@@ -1199,7 +1199,7 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         gene, _, covbases, cov, depth, _, _ = line.split()
         cov = float(cov)
         depth = float(depth)
-        cov_results[gene] = {"Percent_covered": str(cov), "Mean_depth": str(depth)}
+        cov_results[gene] = {"Percent_covered": cov, "Mean_depth": depth}
         if cov != 100.:
             if 'neuA' in gene:
                 if cov < 99:
