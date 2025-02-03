@@ -1253,7 +1253,6 @@ def process_reads(contig_dict: dict, read_info_dict: dict, ref: Ref, outdir: str
         # Try to use depth to determine the right one to use
         # if highest depth locus more than 3* the depth of next highest, keep
         if cov_sorted[0][1] > 3*cov_sorted[1][1]:
-            logging.info(f"{cov_sorted}")
             logging.info(f"mean coverage of {cov_sorted[0][0]} is greater. Using {cov_sorted[0][0]}.")
             for gene in cov_sorted[1:]:
                 del ref.REF_POSITIONS[gene[0]]
