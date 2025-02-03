@@ -189,10 +189,10 @@ class Report(FPDF):
 			text=reads_header.format(self.version),
 			new_x="LMARGIN", new_y="NEXT"
 			)
-		pdf.ln(10)
+		pdf.ln(8)
 
 		pdf = self.make_mlst_table(pdf, [self.list_mlst()], self.shorten_names)
-		pdf.ln(10)
+		pdf.ln(6)
 
 		pdf.set_font(style="BU")
 		pdf.cell(
@@ -204,7 +204,7 @@ class Report(FPDF):
 		pdf.set_font()
 		pdf = self.read_coverage_table(pdf)
 
-		pdf.ln(10)
+		pdf.ln(6)
 		pdf.set_font(style="BU")
 		pdf.cell(
 			w=0,h=10,
@@ -213,13 +213,11 @@ class Report(FPDF):
 			)
 		pdf.set_font()
 		pdf = self.mompS_primer_table(pdf)
-		pdf.ln(2)
 		pdf.cell(
 			w=0,h=10,
 			text=f"Please find the key for abbreviations on the Abbreviation Overview page.", 
 			new_x="LMARGIN", new_y="NEXT", align="C"
 			)
-		pdf.ln(0)
 
 		return pdf
 
@@ -260,7 +258,7 @@ class Report(FPDF):
 			col_widths=col_widths,
 			text_align=alignment
 			)
-		pdf.ln(4)
+		pdf.ln(2)
 
 		return pdf
 
@@ -291,7 +289,7 @@ class Report(FPDF):
 			)
 		pdf.ln(10)
 		pdf = self.make_mlst_table(pdf, [self.list_mlst()], self.shorten_names)
-		pdf.ln(10)
+		pdf.ln(8)
 
 		pdf.set_font(style="BU")
 		pdf.cell(
