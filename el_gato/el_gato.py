@@ -1975,7 +1975,6 @@ def main():
     make_output_directory(inputs)
     configure_logger(inputs)
     logging.info(f"Running el_gato version {version}")
-    logging.info(f"XXXXXX I am using jh-dev XXXXXX")
     logging.info("Starting preprocessing")
     for line in inputs["logging_buffer_message"].rstrip().split("\n"):
         logging.info(line)
