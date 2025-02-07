@@ -72,12 +72,12 @@ README for more details.
 """
 primer_footer2 = """\
 Please find the key for definitions and evidence for support of __mompS__ allele call \
-on the Definitions Overview
+on the Definitions Overview page.
 """
 
 disclaimer = """\
 This test has not been cleared or approved by the FDA. The performance characteristics have been established \
-by the Respiratory Diseases Branch. The results are intended for public health purposes only and must NOT be \
+by the Pneumonia and Streptococcus Laboratory Branch. The results are intended for public health purposes only and must NOT be \
 communicated to the patient, their care provider, or placed in the patient's medical record. These results should \
 NOT be used for diagnosis, treatment, or assessment of patient health or management. \nReference Value: Not applicable. \
 """
@@ -408,7 +408,7 @@ class Report(FPDF):
 					max_length = column_length
 			num_lines = math.ceil(max_length / characters)
 			cell_height = 2* num_lines * font_size
-			if pdf_y + cell_height > pdf.page_break_trigger:
+			if pdf_y + cell_height + 10 > pdf.page_break_trigger:
 				batches.append(this_batch)
 				this_batch = [row]
 				n+=1
