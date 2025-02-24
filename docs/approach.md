@@ -69,6 +69,8 @@ Note that as the above process depends upon read pairs mapping to biallelic site
 #### Read Mapping Schematic
 
 <p align="center">
+
+
 <img src="https://github.com/user-attachments/assets/5c697f0b-f271-401c-8728-126fa24861a9"/ >
 </p>
 
