@@ -68,9 +68,8 @@ Note that as the above process depends upon read pairs mapping to biallelic site
 
 <p align="center">
    <img src="images/mompSReads.png" style="object-fit:contain;
-            width:200px;
-            height:300px;
-            border: solid 1px #CCC"/> >
+            width:100px;
+            height:50px /> 
 </p>  
 
 **Figure 2: Resolving *mompS* Alleles. -** a) *mompS* is sometimes found as multiple copies within *L. pneumophila*, which can have base pair variation between the copies. Sanger SBT primers target the correct copy. b) el_gato uses primer sequences and, with mapping, read orientation to assess which mompS is the correct one. 
