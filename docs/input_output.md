@@ -1,7 +1,7 @@
 # Input and Output
    * [Input files](#input-files)
       * [Paired-end reads](#pair-end-reads)
-      * [Genome assemblies](#genome-assemblies)      
+      * [Genome assemblies](#genome-assemblies)
    * [Output](#output)
       * [Standard Out](#standard-out)
    * [Output files](#output-files)
@@ -18,7 +18,7 @@
 If available, **we recommend using raw or trimmed reads instead of assemblies**, as the extra data contained in reads is valuable for the process used by el_gato to identify sample ST. When run with reads, el_gato can use read quality and coverage information to apply quality control rules. When run using assemblies, el_gato cannot identify errors incorporated into the assembly and may report incorrect results. For example, while many isolates encode two copies of mompS, in some cases, the assembly includes only one copy of the locus. If the assembly consists of only the secondary mompS locus, el_gato will report that allele.
 
 #### Pair-end reads
-When running on a directory of reads, files are associated as pairs using the pattern `R{1,2}.fastq`. i.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. el_gato will not process any files for which it cannot identify a pair using this pattern. [XX JH check to see if any file ending that matches pattern works, if not than update XX]
+When running on a directory of reads, files are associated as pairs using the *_R1 *_R2 pattern i.e., filenames should be identical except for containing either "R1" or "R2" and can be .fastq or .fastq.gz format. el_gato will not process any files for which it cannot identify a pair using this pattern. 
 
 #### Genome assemblies
 When running on a directory of assemblies, el_gato will process all files in the target directory, and no filename restrictions exist.
@@ -27,13 +27,17 @@ When running on a directory of assemblies, el_gato will process all files in the
 After a run, el_gato will print the identified ST of your sample to your terminal ([stdout](#standard-out)) and write several files to the specified output directory (default: out/). el_gato creates a subdirectory for each processed sample, including five output files with specific information.
 
 #### Standard out
-el_gato writes the ST profile as a tab-delimited table without the headings. If you run el_gato with the `-e` flag, it includes the headings and displays them like this: 
+el_gato writes the ST profile as a tab-delimited table without headings. If you run el_gato with the `-e` flag, it includes the headings and displays them like this: 
 
 `Sample  ST flaA  pilE  asd   mip   mompS proA  neuA_neuAH`    
 
- The sample column contains the user-provided or inferred sample name. The ST column contains the overall sequence type of the sample. 
+   * The sample column contains the user-provided or inferred sample name. 
 
-The ST column can contain two kinds of values. If the identified ST corresponds to a profile found in the database, el_gato provides the corresponding number. If el_gato finds no matching ST profile or if el_gato is unable to make a confident call, then this will be reflected in the value displayed in the ST column.
+   * The ST column contains the sequence type of the sample. The ST column contains two kinds of values. If the identified allelic profile corresponds to a ST found in the database, el_gato provides the corresponding number. If el_gato finds no matching profile or if el_gato is unable to make a confident call for one or more alleles, then a descriptive symbol will be listed. See table below for symbol meanings.
+
+   * *flaA*, *pilE*, *asd*, *mip*, *mompS*, *proA*, and *neuA/neuAh* columns contain the respective allele numbers for each locus
+   
+   * For each locus, if an exact allele match is found in the database, the corresponding allele number is reported. If an exact match is not identified in the database, a descriptive symbol will be listed. See table below for symbol meanings. 
 
 el_gato reports the corresponding allele number for each gene if an exact match is found in the database. Alternatively, el_gato may also note the following symbols:
 [XX Double check that this matches with what is listed in the report XX]
