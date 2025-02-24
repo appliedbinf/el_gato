@@ -39,9 +39,6 @@ el_gato writes the ST profile as a tab-delimited table without headings. If you 
    
    * For each locus, if an exact allele match is found in the database, the corresponding allele number is reported. If an exact match is not identified in the database, a descriptive symbol will be listed. See table below for symbol meanings. 
 
-el_gato reports the corresponding allele number for each gene if an exact match is found in the database. Alternatively, el_gato may also note the following symbols:
-[XX Double check that this matches with what is listed in the report XX]
-
 | Symbol | Meaning |
 |:------:|:---------|
 | Novel ST      | Novel Sequence Type: All 7 target genes were found but not present in the profile - most likely a novel sequence type. |
@@ -52,12 +49,13 @@ el_gato reports the corresponding allele number for each gene if an exact match 
 | -      | Missing Data: Both percent and length identities are too low to return a match or N's in sequence. |
 | ?      | Multiple Alleles: More than one allele was found and could not be resolved. |
 
-If symbols are present in the ST profile, the other output files produced by el_gato will provide additional information to understand what is being communicated.
+If symbols are present in the ST profile, the other output files produced by el_gato will provide information to clarify the source of the symbol.
 
 ## Output files
 
 **The files included in the output directory for a sample are:**  
-[XX Should we include a subdirectory with all of these files and than provide links to each file? XX]
+
+[comment]: # (Should we include a subdirectory with examples of these files?)
 
 #### identified_alleles.fna
 The nucleotide sequence of all identified alleles is written in this file. If more than one allele is determined for the same locus, they are numbered arbitrarily. Fasta headers of sequences in this file correspond to the query IDs in the BLAST output reported in the intermediate_outputs.txt file.
