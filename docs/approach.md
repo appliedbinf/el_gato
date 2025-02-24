@@ -38,7 +38,7 @@ A couple of quality control steps are applied when processing the reads:
 
 el_gato resolves this issue by taking advantage of the proximity of the genome's two copies of *mompS*. [A schematic of the organization of the two *mompS* copies can be found in Fig. 1 in this paper.](https://doi.org/10.1016/j.cmi.2017.01.002) The sequence context of the two *mompS* copies is such that the correct copy is immediately upstream of the incorrect copy. Only the correct copy is flanked on either side by sequences corresponding to primers used for conventional SBT (primer pairs: *mompS*-450F and *mompS*-1116R). For this reason, only the correct copy is amplified in conventional SBT [(see below schematic)](#read-mapping-schematic). In contrast, while *mompS*-450F sequences are present upstream of the incorrect copy, the corresponding *mompS*-1116R sequences are not found downstream. Thus, a read orientation approach allows el_gato to evaluate which reads belong to the correct *mompS* copy when using short-read sequencing data.  
  
-The sequence of the two copies of *mompS* and the identity of the correct allele is resolved through the following process:
+*The sequence of the two copies of *mompS* and the identity of the correct allele is resolved through the following process:*
 
 **1.** Reads from both *mompS* copies are mapped to a single *mompS* reference sequence flanked by the *mompS*-450F and *mompS*-1116R primer sequences. 
 
@@ -50,13 +50,13 @@ The sequence of the two copies of *mompS* and the identity of the correct allele
 
 **5**. The number of reads associated with each allele that contains the primer in the correct orientation relative to *mompS* is counted and compared. The correct allele is then chosen using the following criteria:  
 
-      **a.** Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
+   **a.** Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
 
-      **b.** One allele has more than three times as many reads with correctly oriented primer as the other.  
+   **b.** One allele has more than three times as many reads with correctly oriented primer as the other.  
 
-      **c.** One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
+   **c.** One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
    
-      **d.** Absence of primer-associated reads does not allow identification of the primary allele.
+   **d.** Absence of primer-associated reads does not allow identification of the primary allele.
 
 **6**. el_gato determines the number associated with a particular allele variant using BLAST and generates the ST using the identified alleles for the seven SBT genes. 
 
