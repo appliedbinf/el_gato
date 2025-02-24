@@ -28,7 +28,8 @@ ST is used to describe relatedness of *L. pneumophila* isolates. The sequence of
 
 ## Method 1: Using Conda
 ```
-# Create an environment, here named elgato, and install el_gato.py plus all dependencies
+# Create an environment, here named elgato, and install el_gato.py
+# along with all dependencies
 conda create -n elgato -c bioconda -c conda-forge el_gato
 
 # Activate the environment to use el_gato.py
@@ -67,6 +68,7 @@ el_gato.py --assembly assembly_file.fna --out output_folder/
 
 ## All available arguments
 
+```
 Legionella in silico SBT script. 
     Requires paired-end reads files (preferred) or a genome assembly.
 
