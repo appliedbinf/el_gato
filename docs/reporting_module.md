@@ -28,12 +28,16 @@ options:
   -o, --out_report      desired output pdf file path
   -s, --shorten_names   shorten long sample and contig names to prevent line wrapping
   -n, --no_header       Do not include the header in the report
+  -d,  --disclaimer     Include disclaimer in footer
   --custom_header       Provide a custom header as a string in your command
   --header_file         Provide a custom header in a text file
 ```
 
 ## Example image of pdf report
-[will include when NC printing into report is resolved]
 
+<p align="center">
+  <img src="images/reportExample.png"  width="384" height: auto />
+</p>
 
+**Figure 1: Example report** This report was generated using the elgato_report.py script and only shows the first summary page of the report. 
 
