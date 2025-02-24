@@ -27,7 +27,7 @@ A couple of quality control steps are applied when processing the reads:
 
 #### Sequence Diversity
 <p align="center">
-  <img src="images/neuA_mstree.png"  width="384" height: auto; />
+  <img src="images/neuA_mstree.png"  width="768" height: auto />
 </p>
 
 **Figure 1: *neuA/neuAh* Sequence Diversity -** Identified allele groups that include the known genetic heterogeneity in *neuA/neuAh* (allele group Paris and allele group Dallas-1E). We identified two [three or four] other allele groups and have tested data with the neuA_207 and neuA_211 alleles to confirm their presence.
@@ -67,7 +67,7 @@ Note that as the above process depends upon read pairs mapping to biallelic site
 #### Read Mapping Schematic
 
 <p align="center">
-   <img src="images/mompSReads.png" width="384" height: auto;  />
+   <img src="images/mompSReads.png" width="384" height: auto />
 </p>  
 
 **Figure 2: Resolving *mompS* Alleles. -** a) *mompS* is sometimes found as multiple copies within *L. pneumophila*, which can have base pair variation between the copies. Sanger SBT primers target the correct copy. b) el_gato uses primer sequences and, with mapping, read orientation to assess which mompS is the correct one. 
