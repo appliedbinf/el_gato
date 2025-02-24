@@ -79,7 +79,7 @@ el_gato maps the provided reads to [a set of reference sequences in the el_gato 
 Index files allow programs that can read them to work with the data in the associated files.
 
 #### report.json
-Each sample outputs a JSON file that contains relevant information about the run, which will be included in the report PDF. [reporting_module.md]   
+Each sample outputs a JSON file that contains relevant information about the run, which will be included in the [PDF report.](reporting_module.md)   
 
 * Report Summary page: Summary of el_gato and complete ST profile for each sample included in the report.  
 
