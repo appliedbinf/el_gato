@@ -47,11 +47,12 @@ python3 -m pip install .
 ```
 ### Dependencies
 * [python3](https://www.python.org/downloads/) (>=3.8,<3.12)
-* [minimap2](https://github.com/lh3/minimap2) (2.28-r1209)
-* [SAMTools](https://github.com/samtools/samtools) (1.20)
-* [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) (2.16.0+)
-* [isPcr](https://users.soe.ucsc.edu/~kent/) (33x2)
-  
+* [minimap2](https://github.com/lh3/minimap2) (2.28)
+* [SAMTools](https://github.com/samtools/samtools) (>=1.15.1)
+* [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) (>=2.13.0)
+* [isPcr](https://users.soe.ucsc.edu/~kent/) (33)
+* [fpdf2](https://pyfpdf.github.io/fpdf2/) (2.5.5)
+
 # Usage
 
 ## Quickstart Guide
@@ -65,13 +66,47 @@ el_gato.py --assembly assembly_file.fna --out output_folder/
 ```
 
 ## All available arguments
-[XX add in new arguments like the kmer option once included XX]
-Usage information printed when running el_gato.py with `-h` or `--help`.
-```
-usage: el_gato.py [--read1 Read 1 file] [--read2 Read 2 file] [--assembly Assembly file] [--help]  
-[--threads THREADS] [--depth DEPTH]  [--out OUT] [--sample SAMPLE] [--overwrite] [--sbt SBT]  
-[--suffix SUFFIX] [--profile PROFILE] [--verbose] [--header] [--length LENGTH] [--sequence SEQUENCE]
-[--samfile SAMFILE]
+
+Legionella in silico SBT script. 
+    Requires paired-end reads files (preferred) or a genome assembly.
+
+    Notes on arguments:
+    (1) If only reads are provided, SBT is called using a mapping/alignment approach.
+    (2) If only an assembly is provided, a BLAST and in silico PCR based approach is adopted. 
+
+Input files:
+  Please specify either reads files and/or a genome assembly file
+
+  --read1 Read 1 file, -1 Read 1 file
+                        Input Read 1 (forward) file
+  --read2 Read 2 file, -2 Read 2 file
+                        Input Read 2 (reverse) file
+  --assembly Assembly file, -a Assembly file
+                        Input assembly fasta file
+
+Optional arguments:
+  --help, -h            Show this help message and exit
+  --version, -v         Print the version
+  --threads THREADS, -t THREADS
+                        Number of threads to run the programs (default: 1)
+  --depth DEPTH, -d DEPTH
+                        Specify the minimum depth used to identify loci in paired-end reads (default: 10)
+  --kmer-size KMER_SIZE, -k KMER_SIZE
+                        Specify the kmer sized used for mapping by minimap2. Max acceptable: 28. (default: 21)
+  --out OUT, -o OUT     Output folder name (default: out)
+  --sample SAMPLE, -n SAMPLE
+                        Sample name (default: <Inferred from input file>)
+  --overwrite, -w       Overwrite output directory (default: False)
+  --sbt SBT, -s SBT     Database containing SBT allele and ST mapping files (default: /scicomp/home-pure/ptx4/el_gato/el_gato/db)
+  --profile PROFILE, -p PROFILE
+                        Name of allele profile to ST mapping file (default: /scicomp/home-pure/ptx4/el_gato/el_gato/db/lpneumophila.txt)
+  --verbose             Print what the script is doing (default: False)
+  --header, -e          Include column headers in the output table (default: False)
+  --length LENGTH, -l LENGTH
+                        Specify the BLAST hit length threshold for identifying multiple loci in assembly (default: 0.3)
+  --sequence SEQUENCE, -q SEQUENCE
+                        Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: 95.0)
+  --samfile, -m         Specify whether or not the SAM file is included in the output directory (default: False)
 
 Legionella in silico sequence-based typing (SBT) script.
     Requires paired-end reads files or a genome assembly.
