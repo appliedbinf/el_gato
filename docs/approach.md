@@ -50,13 +50,13 @@ el_gato resolves this issue by taking advantage of the proximity of the genome's
 
 **5**. The number of reads associated with each allele that contains the primer in the correct orientation relative to *mompS* is counted and compared. The correct allele is then chosen using the following criteria:  
 
-    **a.** Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
+  a. Only one allele has associated reads with primer *mompS*-1116R correctly oriented.  
 
-    **b.** One allele has more than three times as many reads with correctly oriented primer as the other.  
+  b. One allele has more than three times as many reads with correctly oriented primer as the other.  
 
-    **c.** One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
-   
-    **d.** Absence of primer-associated reads does not allow identification of the primary allele.
+  c. One allele has no associated reads with the primer *mompS*-1116R in either orientation, but the other allele has associated reads with the primer in only the wrong orientation. In this case, the allele with no associated reads with the primer in either orientation is considered the primary locus by the process of elimination.
+
+  d. Absence of primer-associated reads does not allow identification of the primary allele.
 
 **6**. el_gato determines the number associated with a particular allele variant using BLAST and generates the ST using the identified alleles for the seven SBT genes. 
 
