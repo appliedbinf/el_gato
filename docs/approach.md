@@ -12,15 +12,13 @@ At its core, el_gato uses [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi) to i
 
 ## Reads
 
-When processing reads, identification of both *mompS* and *neuA*/*neuAh* requires additional analyses (described below). The five more straightforward loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*) are processed by mapping the reads to reference loci from [*L. pneumophila* strain Paris](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000048645.1/) and identifying the consensus sequence. Then, all alleles are determined using BLAST against the [SBT allele database](https://github.com/jennahamlin/el_gato/tree/main/el_gato/db). 
+When processing reads, identification of both *mompS* and *neuA*/*neuAh* requires additional analyses (described below). The five more straightforward loci (*flaA*, *pilE*, *asd*, *mip*, and *proA*) are processed by mapping the reads to reference loci from [*L. pneumophila* strain Paris](https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000048645.1/) and identifying the consensus sequence. Then, all alleles are determined using BLAST against the SBT allele database.
 
 A couple of quality control steps are applied when processing the reads:
 
    1. **[Base quality:](https://en.wikipedia.org/wiki/Phred_quality_score)** Any bases with quality scores below 20 are not included when calculating coverage for each position or identifying alternate base calls. 
 
-   [BLERGH]
    2. **[Sequence Coverage:](https://en.wikipedia.org/wiki/Coverage_(genetics))** After excluding low-quality bases, if there is not at least one read covering 100% of the locus (>99% for *neuA*/*neuAh* - see below), then no attempt to identify the allele is made, and a "-" will be reported. [XX How this is written makes me think that one entire read must cover all base pairs, i.e., a read of ~350 bp long. I believe this is different from what it means. Instead, each position must have part of a read that overlaps that nucleotide, and we require 10 reads to cover all positions XX] A minimum depth of 10 is applied as a cutoff. 
-   [BLERGH]
 
 <a id="neuA/neuAh"></a>
 ### *neuA-neuAh* and reads
@@ -69,7 +67,7 @@ Note that as the above process depends upon read pairs mapping to biallelic site
 #### Read Mapping Schematic
 
 <p align="center">
-   ![altText](images/mompSReads.png)
+   <img src="https://rawgithubusercontent.com/jennahamlin/el_gato/main/docs/images/mompSRead.png"/ >
 </p>
 
 #<img src="https://github.com/user-attachments/assets/5c697f0b-f271-401c-8728-126fa24861a9"/ >
