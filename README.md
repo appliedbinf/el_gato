@@ -113,6 +113,6 @@ Optional arguments:
 ```
 # Acknowledgements
 
-We greatly appreciate the United Kingdom Health Security Agency (UKHSA) for curating and sharing the *L. pneumophila* database. You can learn more about the UKHSA at https://www.gov.uk/government/organisations/uk-health-security-agency. Contact legionella-sbt@ukhsa.gov.uk for enquiries about the database. 
+We greatly appreciate the United Kingdom Health Security Agency (UKHSA) for curating and sharing the *L. pneumophila* database. You can learn more about UKHSA here: https://www.gov.uk/government/organisations/uk-health-security-agency. Please contact legionella-sbt@ukhsa.gov.uk for enquiries about the database. 
 
  
