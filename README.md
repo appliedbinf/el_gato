@@ -12,6 +12,7 @@ ST is used to describe relatedness of *L. pneumophila* isolates. The sequence of
 * [Usage](#usage)
    * [Quickstart guide](#quickstart-guide)
    * [All available arguments](#all-available-arguments)
+*[Acknowledgements](#acknowledgements)
 * [Input and Output](docs/input_output.md)
   * [Input files](docs/input_output.md/#input-files)
   * [Output files](docs/input_output.md/#output-files)
@@ -49,7 +50,7 @@ python3 -m pip install .
 ### Dependencies
 * [python3](https://www.python.org/downloads/) (>=3.8,<3.12)
 * [minimap2](https://github.com/lh3/minimap2) (2.28)
-* [SAMTools](https://github.com/samtools/samtools) (>=1.15.1)
+* [SAMTools](https://github.com/samtools/samtools) (>=1.16.1)
 * [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) (>=2.13.0)
 * [isPcr](https://users.soe.ucsc.edu/~kent/) (33)
 * [fpdf2](https://pyfpdf.github.io/fpdf2/) (2.5.5)
@@ -110,3 +111,8 @@ Optional arguments:
                         Specify the BLAST hit percent identity threshold for identifying multiple loci in assembly (default: 95.0)
   --samfile, -m         Specify whether or not the SAM file is included in the output directory (default: False)
 ```
+# Acknowledgements
+
+We greatly appreciate the United Kingdom Health Security Agency (UKHSA) for curating and sharing the *L. pneumophila* database. You can learn more about the UKHSA at https://www.gov.uk/government/organisations/uk-health-security-agency. Contact legionella-sbt@ukhsa.gov.uk for enquiries about the database. 
+
+ 
