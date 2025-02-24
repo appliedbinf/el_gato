@@ -1,7 +1,6 @@
 # Reporting Module  
 
-We provide a script that generates a PDF report of each el_gato run using the report.json file generated in the output folder for each sample.
-Nextflow generates this report by default, but you must run it manually if you run el_gato for individual samples. You can generate a report for one or more samples, including assembly, and read reports.
+We provide a script that generates a PDF report for each el_gato run using the report.json file located in the output folder for each sample. You can generate reports for one or more samples, including assembly, and review the results.
 
 * [Dependencies](#dependencies)
 * [Usage](#usage)
