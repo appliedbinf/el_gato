@@ -187,7 +187,7 @@ def get_args() -> argparse.ArgumentParser:
 
     """ Get commandline arguments """
     parser = argparse.ArgumentParser(description="""Legionella in silico SBT script. 
-    Requires paired-end reads files or a genome assembly.
+    Requires paired-end reads files (preferred) or a genome assembly.
 
     Notes on arguments:
     (1) If only reads are provided, SBT is called using a mapping/alignment approach.

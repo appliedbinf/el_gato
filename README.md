@@ -1,7 +1,9 @@
 # el_gato
 **E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:  
 
-El_gato is a bioinformatics tool that utilizes either Illumina paired-end reads (.fastq) or a genome assembly (.fasta) as input to replicate *Legionella pneumophila* Sanger-based Sequence Based Typing (SBT). From the input, seven loci (*flaA*, *pilE*, *asd*, *mip*, *mompS*, *proA*, and *neuA/neuAh*) are identified and compared to a [database of sequence types](https://github.com/appliedbinf/el_gato/blob/main/el_gato/db/lpneumophila.txt). The unique combination of the allelic identities of the seven target loci determines the sequence type for each input sample. 
+El_gato is a bioinformatics tool that utilizes either Illumina paired-end reads (.fastq) or a genome assembly (.fasta) as input to derive *Legionella pneumophila* Sequence Type (ST) from a database in contrast to the original method which relied on Sanger seqeunces. 
+
+ST is used to describe relatedness of *L. pneumophila* isolates. The sequence of a portion of seven *L. pneumophila* genes (*flaA*, *pilE*, *asd*, *mip*, *mompS*, *proA*, and *neuA/neuAh*) is compared to a curated database of alleles and STs maintained by the European Society of Clinical Microbiology and Infectious Diseases Study Group for Legionella Infections (ESGLI) in which each unique allele is denoted with an allele number. The combination of allele numbers for all seven genes reported in order, corresponds to an allelic profile. The allelic profile, in turn, denotes a unique ST. 
 
 * [Installation](#installation)
    * [Method 1: Using Conda](#method-1-using-conda)
@@ -29,9 +31,6 @@ El_gato is a bioinformatics tool that utilizes either Illumina paired-end reads 
 # Create an environment, here named elgato, and install el_gato.py plus all dependencies
 conda create -n elgato -c bioconda -c conda-forge el_gato
 
-[XX JH confirm final time that this will make el_gato and report module work XX]
-[XX maybe but mamba in parenthesis after conda or vice versus b/c we use mamba XX]
-
 # Activate the environment to use el_gato.py
 conda activate elgato
 ```
@@ -52,7 +51,6 @@ python3 -m pip install .
 * [SAMTools](https://github.com/samtools/samtools) (1.20)
 * [BLAST](https://blast.ncbi.nlm.nih.gov/Blast.cgi?PAGE_TYPE=BlastDocs&DOC_TYPE=Download) (2.16.0+)
 * [isPcr](https://users.soe.ucsc.edu/~kent/) (33x2)
-* [fpdf2]() [what version]
   
 # Usage
 
