@@ -12,7 +12,7 @@ ST is used to describe relatedness of *L. pneumophila* isolates. The sequence of
 * [Usage](#usage)
    * [Quickstart guide](#quickstart-guide)
    * [All available arguments](#all-available-arguments)
-*[Acknowledgements](#acknowledgements)
+* [Acknowledgements](#acknowledgements)
 * [Input and Output](docs/input_output.md)
   * [Input files](docs/input_output.md/#input-files)
   * [Output files](docs/input_output.md/#output-files)
