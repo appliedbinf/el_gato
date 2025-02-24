@@ -27,7 +27,7 @@ A couple of quality control steps are applied when processing the reads:
 
 #### Sequence Diversity
 <p align="center">
-<img src= "https://github.com/user-attachments/assets/7c0eb403-369a-40bf-892d-150c5d2fc214"/ >
+  <img src="images/neuA_mstree.png"  height="384" width="384" />
 </p>
 
 **Figure 1: *neuA/neuAh* Sequence Diversity -** Identified allele groups that include the known genetic heterogeneity in *neuA/neuAh* (allele group Paris and allele group Dallas-1E). We identified two [three or four] other allele groups and have tested data with the neuA_207 and neuA_211 alleles to confirm their presence.
