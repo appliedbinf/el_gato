@@ -17,9 +17,10 @@ El_gato is a bioinformatics tool that utilizes either Illumina paired-end reads 
 * [Reporting Module](docs/reporting_module.md)
 * [Notices](docs/notices.md)
 
-Codebase stage: XX  
-Developers, maintainers, and testers: [Alan Collins](https://github.com/Alan-Collins), [Will Overholt](https://github.com/waoverholt/), [Jenna Hamlin](https://github.com/jennahamlin)  
-Previous developrs, maintainers, and testers: [Dev Mashruwala](https://github.com/dmashruwala), [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines)
+**Codebase stage:** XXX  
+**Developers, maintainers, and testers:** [Alan Collins](https://github.com/Alan-Collins), [Will Overholt](https://github.com/waoverholt/), [Jenna Hamlin](https://github.com/jennahamlin)  
+
+**Previous developers and maintainers:** [Dev Mashruwala](https://github.com/dmashruwala), [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines)
 
 # Installation 
 
