@@ -30,8 +30,7 @@ A couple of quality control steps are applied when processing the reads:
   <img src="images/neuA_mstree.png"  width="768" height: auto />
 </p>
 
-**Figure 1: *neuA/neuAh* Sequence Diversity -** Identified allele groups that include the known genetic heterogeneity in *neuA/neuAh* (allele group Paris and allele group Dallas-1E). We identified two [three or four] other allele groups and have tested data with the neuA_207 and neuA_211 alleles to confirm their presence.
-
+**Figure 1: *neuA/neuAh* Sequence Diversity -** Identified allele groups that include the known genetic heterogeneity in *neuA/neuAh* (allele group Paris, 1 and allele group Dallas-1E, 201). We identified four additinoal allele groups (207, 211, 212, and 215), which are also available for read mapping.  
 ### *mompS* and Reads
 
 [*mompS* is sometimes present in multiple copies in the genome of *L. pneumophila*, though typically two copies.](https://doi.org/10.1016/j.cmi.2017.01.002) Duplicate gene copies pose an obvious challenge for a short read-mapping approach. If two similar sequence copies are present in a genome, reads from both copies may map to the same reference sequence, calling into question which base pairs are correctly associated with the loci of interest.
