@@ -36,8 +36,8 @@ options:
 ## Example image of pdf report
 
 <p align="center">
-  <img src="images/reportExample.png"  width="384" height: auto />
+  <img src="images/reportExample.png"  width="768" height: auto />
 </p>
 
-**Figure 1: Example report** This report was generated using the elgato_report.py script and only shows the first summary page of the report. 
+**Figure 1: Example report** -This report was generated using the elgato_report.py script and only shows the first summary page of the report. 
 

@@ -27,7 +27,7 @@ A couple of quality control steps are applied when processing the reads:
 
 #### Sequence Diversity
 <p align="center">
-  <img src="images/neuA_mstree.png"  width="768" height: auto />
+  <img src="images/neuAMStree.png"  width="768" height: auto />
 </p>
 
 **Figure 1: *neuA/neuAh* Sequence Diversity -** Identified allele groups that include the known genetic heterogeneity in *neuA/neuAh* (allele group Paris, 1 and allele group Dallas-1E, 201). We identified four additinoal allele groups (207, 211, 212, and 215), which are also available for read mapping.  
