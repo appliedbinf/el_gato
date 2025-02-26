@@ -20,10 +20,10 @@ ST is used to describe relatedness of *L. pneumophila* isolates. The sequence of
 * [Reporting Module](docs/reporting_module.md)
 * [Notices](docs/notices.md)
 
-**Codebase stage:** XXX  
+**Codebase stage:** Maintenance   
 **Developers, maintainers, and testers:** [Alan Collins](https://github.com/Alan-Collins), [Will Overholt](https://github.com/waoverholt/), [Jenna Hamlin](https://github.com/jennahamlin)  
 
-**Previous developers and maintainers:** [Dev Mashruwala](https://github.com/dmashruwala), [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines)
+**Previous developers and maintainers:** [Dev Mashruwala](https://github.com/dmashruwala), [Andrew Conley](https://github.com/abconley), [Lavanya Rishishwar](https://github.com/lavanyarishishwar), [Emily T. Norris](https://github.com/norriset), [Anna Gaines](https://github.com/annagaines), [Vasanta Chivukula](https://github.com/vchivukula7)
 
 # Installation 
 
