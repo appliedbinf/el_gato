@@ -991,6 +991,9 @@ def blast_remaining_loci(inputs: dict, assembly_file: str, ref: Ref, momps: bool
     inputs["json_out"]['mode_specific'] = blast_dict
 
     for line in result.strip().split('\n'):
+        if not line:
+            continue
+
         bits = line.split()
 
         # Find best match in db
