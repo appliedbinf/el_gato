@@ -1,6 +1,9 @@
 # el_gato
 **E**pidemiology of ***L**egionella* : **G**enome-b**A**sed **T**yping:  
 
+**This repo will be archived. 
+All future updates will be found at: https://github.com/CDCgov/el_gato**
+
 El_gato is a bioinformatics tool that utilizes either Illumina paired-end reads (.fastq) or a genome assembly (.fasta) as input to derive *Legionella pneumophila* Sequence Type (ST) from a database in contrast to the original method which relied on Sanger seqeunces. 
 
 ST is used to describe relatedness of *L. pneumophila* isolates. The sequence of a portion of seven *L. pneumophila* genes (*flaA*, *pilE*, *asd*, *mip*, *mompS*, *proA*, and *neuA/neuAh*) is compared to a curated database of alleles and STs maintained by the European Society of Clinical Microbiology and Infectious Diseases Study Group for Legionella Infections (ESGLI) in which each unique allele is denoted with an allele number. The combination of allele numbers for all seven genes reported in order, corresponds to an allelic profile. The allelic profile, in turn, denotes a unique ST. 
